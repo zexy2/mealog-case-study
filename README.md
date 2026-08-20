@@ -4,6 +4,14 @@ Photo- and text-based meal logging that turns messy input into **canonical foods
 portions and nutrition**, and measures its own accuracy **per cuisine** rather than
 in aggregate.
 
+> ### 👉 Read [`STATUS.md`](STATUS.md) first
+>
+> It is generated from the working tree and checked in CI, so it states what is
+> actually built, what is not, and what the current numbers do and do not mean —
+> rather than what this README hopes for. **This project is mid-build and not yet
+> submittable**; `STATUS.md` says exactly which pieces are missing and in what
+> order they land.
+
 > Published accuracy for photo-based dietary assessment is measured on
 > evaluation sets that are ~62% Western. Independent re-analysis puts the
 > worst-to-best error ratio across cuisines at **1.6x–2.4x**. For a product
