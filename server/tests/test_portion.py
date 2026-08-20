@@ -11,15 +11,15 @@ from mealog.pipeline.portion import (
 )
 
 
-def test_non_water_volume_uses_declared_density():
+def test_non_water_volume_uses_unknown_density_interval():
     pack = load("tr")
     food = pack.foods["tr.mercimek_corbasi"]
 
     grams, p10, p90 = estimate(food, 2.0, "kepce", pack)
 
-    assert grams == pytest.approx(309.9, abs=0.01)
-    assert p10 == pytest.approx(247.9, abs=0.01)
-    assert p90 == pytest.approx(387.4, abs=0.01)
+    assert grams == pytest.approx(300.0, abs=0.01)
+    assert p10 == pytest.approx(135.0, abs=0.01)
+    assert p90 == pytest.approx(525.0, abs=0.01)
 
 
 def test_missing_density_widens_volume_interval():
@@ -44,19 +44,25 @@ def test_missing_quantity_does_not_get_explicit_unit_spread():
 
     grams, p10, p90 = estimate(food, None, "kepce", pack)
 
-    assert grams == pytest.approx(155.0, abs=0.1)
+    assert grams == pytest.approx(150.0, abs=0.1)
     assert (p10, p90) == pytest.approx(
-        (grams * DEFAULT_SPREAD[0], grams * DEFAULT_SPREAD[1]),
+        (grams * UNKNOWN_DENSITY_SPREAD[0], grams * UNKNOWN_DENSITY_SPREAD[1]),
         abs=0.1,
     )
+    assert p10 < grams * 0.8
+    assert p90 > grams * 1.25
 
 
 @pytest.mark.parametrize("locale", ["en_US", "tr", "ja_JP"])
-def test_every_volume_unit_declares_density_provenance(locale: str):
+def test_volume_units_have_optional_food_independent_density_or_none(locale: str):
     pack = load(locale)
     volume_units = [conversion for conversion in pack.units.values() if "ml" in conversion]
 
     assert volume_units
     for conversion in volume_units:
-        assert conversion["density_g_per_ml"] > 0
-        assert conversion["density_source"]
+        density = conversion.get("density_g_per_ml")
+        source = conversion.get("density_source")
+        assert (density is None) == (source is None)
+        if density is not None:
+            assert density > 0
+            assert source

@@ -1,6 +1,6 @@
-{"unit": "kepce", "ml": 150, "density_g_per_ml": 1.033, "density_source": "Issue #7 reference: lentil soup, approximately 155 g per 150 ml"}
+{"unit": "kepce", "ml": 150}
 {"unit": "dilim_ekmek", "g": 25}
-{"unit": "cay_bardagi", "ml": 110, "density_g_per_ml": 1.0, "density_source": "Water-like reference density; replace with food-specific density when available"}
-{"unit": "su_bardagi", "ml": 200, "density_g_per_ml": 1.0, "density_source": "Water-like reference density; replace with food-specific density when available"}
+{"unit": "cay_bardagi", "ml": 110}
+{"unit": "su_bardagi", "ml": 200}
 {"unit": "porsiyon", "g": 250}
-{"unit": "kase", "ml": 250, "density_g_per_ml": 1.033, "density_source": "Issue #7 reference: lentil soup, approximately 155 g per 150 ml"}
+{"unit": "kase", "ml": 250}
