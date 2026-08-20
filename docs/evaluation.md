@@ -1,75 +1,113 @@
 # Evaluation methodology
 
-## Why this exists before the model does
-
-Accuracy claims without a measurement system are marketing. The harness was the
-first thing built; every pipeline change since has been justified by a row in the
-ablation table.
+This document describes the measurement system that is implemented by
+`eval/metrics.py` and rendered by `eval/harness.py`. `make eval` replays the
+recorded fixtures offline; the live-provider path is separate as required by
+[D4](decisions.md#d4--offline-reproducible-evaluation-via-recorded-fixtures).
 
 ## Golden set
 
-Target **n≈80**, stratified across the six cuisine buckets used by the Dietary
-Assessment Initiative's distribution-shift work — reused verbatim so the numbers
-are comparable to published evaluations rather than being a private taxonomy.
+Each line in `eval/golden/manifest.jsonl` is one sample. It carries a cuisine
+bucket, a ground-truth tier, and truth items as `food_id` plus grams. The
+harness derives truth calories from the catalogue before scoring them. Traps
+have empty truth; they are scored on identity rather than calorie error.
 
-| Stratum | Target n | Ground truth |
-|---|---:|---|
-| Weighed reference sample (Nutrition5k) | ~30 | **Tier 1** — scale-measured per-ingredient mass |
-| Packaged / branded | ~15 | **Tier 1** — printed label |
-| Self-cooked | ~20 | **Tier 2** — kitchen scale + per-ingredient computation |
-| Restaurant / regional (East, South Asian, Latin) | ~10 | **Tier 2** — published menu values |
-| Traps (non-food, empty plate, menu photo) | ~8 | definitional |
+Every sample carries one of these ground-truth tiers:
 
-Using a public weighed dataset as **evaluation** data (not training data) buys two
-things cheaply: uncontestable ground truth, and direct comparability with published
-VLM baselines on the same dishes.
+| Tier | Meaning |
+|---|---|
+| Tier 1 | Packaged label or lab/scale-weighed source, including Nutrition5k |
+| Tier 2 | Self-cooked food measured with a kitchen scale and per-ingredient computation |
+| Tier 3 | Two-rater consensus estimate, with disagreement recorded |
 
-**Ground-truth uncertainty is reported, not hidden.** Tier is carried on every
-sample and every metric can be sliced by it. Published work has found label
-omissions in widely used food datasets large enough to move measured ingredient
-overlap from 0.62 to 0.82 after correction — so a subset of Tier 1 labels is
-hand-verified and the disagreement rate is published.
+An error against a Tier 3 label is weaker evidence than the same error against
+a Tier 1 label. Tiers are never silently combined: the harness reports the
+same evaluation by ground-truth tier as well as by cuisine.
 
-## Metrics
+## Headline and per-sample metrics
 
-| Family | Metric | Why |
-|---|---|---|
-| Identity | item P / R / F1 over `food_id` | what was eaten |
-| Identity | false-positive rate | hallucination, once resolution is closed-set |
-| Retrieval | Recall@1 / @5 | isolates the matcher from the resolver |
-| Mass | gram MAE / MAPE | the dominant calorie error source |
-| Outcome | kcal MAPE, **within ±20%** | ±20% is what a user feels; MAPE is what we tune |
-| Trust | coverage, abstention rate, accuracy-under-coverage | risk–coverage trade |
-| Ops | p50/p95 stage latency, cost per log | unit economics of the feature |
+The headline is the **worst cuisine bucket's MAPE**, followed by the
+worst-to-best **spread**. It is not the mean: averaging can hide the market or
+cuisine where the system fails, which is the failure this evaluation is meant
+to expose. This follows [D3](decisions.md#d3--headline-metric-is-the-worst-cuisine-and-accuracy-is-read-with-coverage).
 
-Aggregation is **per cuisine**, reported worst-first.
+`spread` is the worst cuisine MAPE divided by the best cuisine MAPE. The
+scorecard also prints overall MAPE as secondary context, but it is not the
+headline.
+
+Calorie MAPE is computed over **covered samples only**. A sample is covered
+when it neither abstains nor asks the user for clarification. Coverage is
+reported next to MAPE because they describe a risk–coverage trade: a system
+can lower its error by answering only the cases it is willing to commit to.
+Treating a deferred meal as a zero-calorie answer would punish correct
+behaviour, so deferred samples are excluded from calorie MAPE rather than
+scored as wrong zeroes. Samples with zero truth calories have no calorie APE;
+the trap case is therefore represented by identity metrics.
+
+The implemented `Bucket` metrics are:
+
+| Metric | Meaning |
+|---|---|
+| `precision`, `recall`, `f1` | Set-based identity precision, recall, and F1 over `food_id` |
+| `coverage` | Covered samples as a percentage of all samples in the bucket |
+| `mape` | Mean absolute percentage calorie error over covered samples with positive truth calories |
+| `within_20pct` | Covered samples whose calorie error is at most 20% |
+| `hallucination_rate` | False positives divided by true positives plus false positives |
+| `error_distribution` | Count of observed error tags, once per sample carrying each tag |
+
+The generated scorecard labels `hallucination_rate` as `FP rate`. The code's
+caveat is important: a false positive means a hallucination only after
+resolution is closed-set. Before that, it is a wrong free-text guess, not a
+closed-set hallucination finding.
+
+`aggregate()` produces these per-bucket metrics by cuisine and
+`aggregate_by_tier()` applies every one of the same `Bucket` calculations by
+ground-truth tier, so every per-bucket headline metric has a tier slice and the
+definitions cannot silently diverge. The scorecard prints, for each cuisine
+and tier, `n`, coverage, Item F1, kcal MAPE, `within_20pct`, and FP rate.
 
 ## Error taxonomy
 
-`E1`–`E12`, defined in `server/src/mealog/domain/taxonomy.py` as a real enum so
-production logs and offline evals use the same vocabulary. Every failure is
-auto-tagged and hand-confirmed, which turns "how would you improve accuracy next"
-into a data question: the top three fixes are whichever codes own the largest share
-of the calorie error budget.
+The taxonomy has twelve `ErrorCode` values, but the harness only derives codes
+that are observable from the fields in an evaluated result:
 
-Two groupings matter: `PORTION_CODES` splits the error budget between *what it is*
-and *how much of it*; `CLOSED_SET_VIOLATIONS` should be empty after V1 — if `E3`
-appears, that is a resolver bug, not model misbehaviour.
+- `E3` — an extra predicted `food_id`;
+- `E4` — a truth `food_id` that was missed;
+- `E7` — a matched food whose predicted mass differs from truth by more than 30%;
+- `E12` — the harness asked for clarification instead of committing.
 
-## Ablation
+Identity-based tags apply only when identity is applicable, such as the
+closed-set configurations. The remaining causes require human judgement. In
+particular, when a mismatch could be `E1`, `E2`, `E9`, `E10`, or `E11`, the
+harness represents it as `unclassified`; aggregate fields cannot establish the
+cause. A guessed code is worse than no code. A sample with an observable
+mismatch also keeps `unclassified` alongside any automatic tag rather than
+pretending to know the human cause.
 
-| Config | Adds |
+The error-distribution section lists all twelve codes plus `unclassified` and
+reports sample counts and their share of tagged samples. It is a distribution
+of tags, not a claim that a human reviewed and assigned every specific cause.
+
+## Configurations and regression guard
+
+The offline scorecard compares the four configurations implemented by the
+harness:
+
+| Config | What it adds |
 |---|---|
-| V0 | single-prompt VLM reporting calories directly — the baseline to beat |
-| V1 | closed-set resolution + computed nutrition |
-| V2 | locale text and unit normalization |
-| V3 | confidence gating and abstention |
+| V0 | Single-prompt VLM reporting calories directly |
+| V1 | Closed-set resolution and catalogue-computed nutrition |
+| V2 | Locale text and unit normalization |
+| V3 | Confidence gating and abstention |
 
-Each row must pay for itself on worst-bucket MAPE, spread, or hallucination rate.
+Each ablation row reports worst-cuisine MAPE, secondary overall MAPE, spread,
+coverage, Item F1, and FP rate. `python eval/harness.py --check-regression`
+compares the selected configuration's per-cuisine MAPE with the stored
+baseline and fails if any cuisine bucket gets worse.
 
-## Regression guard
+## Not yet measured
 
-`python eval/harness.py --check-regression` compares per-bucket MAPE against a
-stored baseline and fails on **any** bucket that got worse. Runs in CI. This is the
-guard against the failure mode a multi-market product fears most: improving one
-market at the silent expense of another.
+> **Input state today:** all recorded fixtures are synthetic placeholders. No
+> number in `eval/reports/` is yet a claim about how accurately the system
+> reads a real plate. That changes when [#3](../../issues/3) records real
+> provider responses and [#2](../../issues/2) grows the golden set.
