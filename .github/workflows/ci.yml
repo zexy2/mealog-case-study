@@ -1,16 +1,29 @@
 name: ci
 on: [push, pull_request]
+
+# The default token is contents-only. The scope gate has to read the pull
+# request and the claim issue it links to, so those scopes are requested
+# explicitly and kept read-only.
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # `git diff origin/main...HEAD` needs the merge base, which a shallow
+          # clone does not have.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: cd server && python -m pip install -e ".[dev]" -q
 
       - name: lint
-        run: cd server && python -m ruff check src tests
+        run: cd server && python -m ruff check src tests ../scripts
 
       - name: tests
         run: cd server && python -m pytest -q
