@@ -6,6 +6,8 @@ claim with extra steps — this repository has already shipped two of those toda
 dependencies). So status is derived from the working tree, not asserted, and CI
 fails if the committed file disagrees with what the probes find.
 
+Probes assert execution artifacts, never source-text presence.
+
     python scripts/status.py            # regenerate STATUS.md
     python scripts/status.py --check    # fail if STATUS.md is stale
 """
@@ -39,21 +41,45 @@ def probe_mobile() -> Probe:
 
 
 def probe_vision() -> Probe:
-    src = (ROOT / "server/src/mealog/adapters/vision_gemini.py").read_text(encoding="utf-8")
-    if "NotImplementedError" in src:
-        return Probe("Real vision provider", TODO,
-                     "`vision_gemini.perceive()` raises NotImplementedError — "
-                     "[#3](../../issues/3)")
-    return Probe("Real vision provider", DONE, "provider wired")
+    recorded = _recorded_provider_fixtures()
+    if recorded:
+        return Probe("Real vision provider", DONE,
+                     f"{len(recorded)} recorded non-synthetic provider response(s)")
+    return Probe("Real vision provider", PARTIAL,
+                 "adapter implemented, never executed — no recorded provider response")
+
+
+def _recorded_provider_fixtures() -> list[Path]:
+    recorded: list[Path] = []
+    for path in sorted((ROOT / "eval/fixtures").glob("*.json")):
+        try:
+            fixture = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(fixture, dict):
+            continue
+        if (fixture.get("provider")
+                and fixture.get("prompt_version")
+                and not fixture.get("_synthetic", False)):
+            recorded.append(path)
+    return recorded
+
+
+def _is_content_hash_fixture(path: Path) -> bool:
+    return bool(re.fullmatch(r"[0-9a-f]{64}", path.stem))
 
 
 def probe_photo_ingest() -> Probe:
     src = (ROOT / "server/src/mealog/api/main.py").read_text(encoding="utf-8")
-    if "UploadFile" in src or "image_url" in src:
-        return Probe("Photo ingest (end-to-end flow)", DONE, "API accepts an image")
+    accepts_image = "UploadFile" in src or "multipart/form-data" in src
+    recorded = [path for path in _recorded_provider_fixtures()
+                if _is_content_hash_fixture(path)]
+    if accepts_image and recorded:
+        return Probe("Photo ingest (end-to-end flow)", DONE,
+                     f"API accepts an image; {len(recorded)} content-hash-keyed "
+                     "non-synthetic fixture(s)")
     return Probe("Photo ingest (end-to-end flow)", PARTIAL,
-                 "API accepts `sample_id` (a fixture id), not a photograph — "
-                 "[#6](../../issues/6)")
+                 "API accepts an image; the path has not run against a live provider")
 
 
 def probe_golden() -> tuple[Probe, int, int, int]:

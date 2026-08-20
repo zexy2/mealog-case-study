@@ -13,7 +13,7 @@ from mealog.domain.models import MealLog, Nutrients, ResolvedItem
 from mealog.locales.loader import LocalePack, load
 from mealog.pipeline import normalize, nutrition, portion, retrieval
 from mealog.pipeline.confidence import route
-from mealog.pipeline.ports import VisionPort
+from mealog.pipeline.ports import VisionInput, VisionPort
 from mealog.pipeline.resolve import resolve
 
 
@@ -38,14 +38,21 @@ CONFIGS: dict[str, Config] = {
 }
 
 
-def run(vision: VisionPort, sample_id: str, locale: str, config: Config,
+def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: Config,
         idempotency_key: str, text: str | None = None) -> MealLog:
+    if isinstance(input_ref, str):
+        # TODO(#6): Remove VisionInput | str compatibility once all callers pass
+        # VisionInput.
+        input_ref = VisionInput(sample_id=input_ref, text=text)
+    elif text is not None:
+        raise TypeError("text must be part of VisionInput")
+
     obs.new_request_id()
     pack: LocalePack = load(locale)
     log = MealLog(idempotency_key=idempotency_key, locale=locale, config=config.name)
 
-    with obs.stage("perception", provider=vision.name, sample=sample_id):
-        perceived = vision.perceive(sample_id, text=text)
+    with obs.stage("perception", provider=vision.name, sample=input_ref.log_reference):
+        perceived = vision.perceive(input_ref)
 
     if not config.grounded:
         # Baseline: trust whatever the model said. No catalogue, no arithmetic

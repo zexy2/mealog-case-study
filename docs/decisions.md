@@ -81,3 +81,27 @@ with provider and `prompt_version`, and re-recording whenever either changes.
 
 <!-- TODO(Sun/Mon): D5 retrieval fusion · D6 portion as distribution
      · D7 fine-tune scope · D8 mobile stack -->
+
+## D5 — Photo ingress uses bounded multipart and content-hash fixture keys
+
+**Decision.** `POST /v1/meals` accepts `multipart/form-data` with an `image`
+part, validates an allow-list of image MIME types, and caps the image at 10 MiB.
+The request body is held in memory only for the provider call; the application
+does not persist the photograph. `VisionPort` receives a `VisionInput`; fixture
+replay keys image inputs by SHA-256 and retains `sample_id` only as a fixture-
+provider compatibility path.
+
+**Rejected.** Base64 JSON would avoid a multipart parser but expands every image
+by roughly one third and makes the mobile upload path less suitable. A
+pre-signed object URL would avoid keeping bytes in the API process but requires
+an object store, expiry policy and cleanup worker that do not exist in this
+take-home.
+
+**Constraint.** The photo path must be a real input boundary before a mobile
+client is built, while D4 requires offline fixture replay with no image upload
+or provider key.
+
+**Cost.** Multipart adds one runtime dependency and the API process briefly
+holds image bytes. Provider-side retention and processing are governed by the
+provider's terms; this repository records only validated observations, never
+the photograph or response envelope.
