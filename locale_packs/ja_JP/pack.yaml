@@ -1,5 +1,11 @@
 locale: ja_JP
 cuisine_bucket: east_asian
 nutrition_source: MEXT Standard Tables of Food Composition
-license: public reference; verify before commercial use
+license: unverified
+license_note: >-
+  The MEXT tables are published as a public reference, but their commercial
+  redistribution terms have not been confirmed by anyone on this project.
+  Recorded as unverified rather than permissive on purpose: silence is not
+  permission, so this pack is refused in commercial mode until the terms are
+  checked and the value is changed deliberately.
 food_count: 8

@@ -1,5 +1,8 @@
 locale: en_US
 cuisine_bucket: western
 nutrition_source: USDA FoodData Central
-license: public-domain (USDA)
+license: public-domain
+license_note: >-
+  USDA FoodData Central is a work of the US federal government and carries no
+  copyright restriction on reuse, commercial included.
 food_count: 8
