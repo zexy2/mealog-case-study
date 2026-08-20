@@ -117,3 +117,21 @@ about what you used and why."*
 **Decision.** AI used throughout, disclosed specifically — not summarised — in the
 README's AI usage section, including the places where model output was wrong and how it
 was caught. Every line is mine to defend.
+
+## A8 — Photo ingress is bounded and application-side retention is zero
+
+**Checked.** The API originally accepted only a fixture `sample_id`; the mobile
+client therefore had no photograph contract. A real upload needs content-type
+validation, a hard size limit and a clear retention boundary before a client is
+built.
+
+**Decision.** Accept one `multipart/form-data` `image` part, allow only common
+image MIME types, reject images over 10 MiB, and keep bytes in memory only for
+the provider call. Recorded fixtures contain provider metadata and validated
+observed items, not the image or raw response envelope. Image fixture lookup is
+by SHA-256 content hash.
+
+**Reversal cost.** Moderate. A pre-signed object-store flow can replace the
+multipart endpoint later, but needs upload expiry, cleanup and provider-fetch
+behaviour. Provider-side retention remains governed by its own terms and is not
+controlled by this application.

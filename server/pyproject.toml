@@ -7,6 +7,8 @@ dependencies = [
   "uvicorn>=0.32",
   "pydantic>=2.9",
   "pyyaml>=6.0",
+  # FastAPI needs this parser for the photo-ingest multipart contract.
+  "python-multipart>=0.0.20",
   # Retrieval scoring (TF-IDF vectorisers for word and char n-grams). A runtime
   # dependency, not a dev one: pipeline/retrieval.py imports it at module load.
   "scikit-learn>=1.4",
