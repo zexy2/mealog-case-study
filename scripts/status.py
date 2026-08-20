@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate STATUS.md by probing the repository.
 
 A hand-written status file drifts, and a drifted status file is just a false
