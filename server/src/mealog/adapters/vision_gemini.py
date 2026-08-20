@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import random
 import socket
 import time
@@ -28,8 +29,10 @@ from mealog.domain.models import PerceivedItem
 from mealog.pipeline.ports import VisionInput
 
 PROMPT_VERSION = "p2"
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-flash-lite-latest"
 SECONDARY_MODEL = "gemini-2.5-flash-lite"
+MODEL_ENV_VAR = "GEMINI_MODEL"
+REQUEST_INTERVAL_SECONDS = 4.0
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
 MAX_ERROR_BODY = 500
 TRANSIENT_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
@@ -117,6 +120,11 @@ _IMAGE_MIME_FALLBACKS = {
     ".webp": "image/webp",
 }
 _ALLOWED_IMAGE_MIME_TYPES = frozenset(_IMAGE_MIME_FALLBACKS.values()) | {"image/jpg"}
+
+
+def configured_model_id() -> str:
+    """Read the live model from environment-backed application config."""
+    return os.getenv(MODEL_ENV_VAR, DEFAULT_MODEL).strip() or DEFAULT_MODEL
 
 
 class _ProviderFailure(RuntimeError):
@@ -232,7 +240,7 @@ class GeminiVision:
     def __init__(
         self,
         api_key: str,
-        model: str = DEFAULT_MODEL,
+        model: str | None = None,
         timeout: float = 90.0,
         opener: Callable[..., Any] = urlopen,
         secondary_model: str | None = SECONDARY_MODEL,
@@ -241,11 +249,14 @@ class GeminiVision:
         sleep_fn: Callable[[float], None] = time.sleep,
         clock_fn: Callable[[], float] = time.monotonic,
         jitter_fn: Callable[[float], float] | None = None,
+        request_interval: float = REQUEST_INTERVAL_SECONDS,
+        model_id: str | None = None,
     ):
         if not api_key.strip():
             raise ValueError("GEMINI_API_KEY is required for the live vision provider")
         self.api_key = api_key
-        self.model = model
+        self.model_id = model_id or model or configured_model_id()
+        self.model = self.model_id
         self.timeout = timeout
         self._opener = opener
         self.secondary_model = secondary_model
@@ -254,12 +265,23 @@ class GeminiVision:
         self._sleep = sleep_fn
         self._clock = clock_fn
         self._jitter = jitter_fn or (lambda cap: random.uniform(0.0, cap))
+        self.request_interval = max(0.0, request_interval)
+        self._last_request_started: float | None = None
+        self.request_count = 0
         self.last_items: list[PerceivedItem] | None = None
         self.last_input: VisionInput | None = None
         self.degraded = False
         self.rung = RUNG_CONFIGURED_MODEL
-        self.last_model = model
+        self.last_model = self.model_id
         self.last_attempts = 0
+
+    def _wait_for_request_slot(self) -> None:
+        now = self._clock()
+        if self._last_request_started is not None:
+            remaining = self.request_interval - (now - self._last_request_started)
+            if remaining > 0:
+                self._sleep(remaining)
+        self._last_request_started = self._clock()
 
     def _request(
         self,
@@ -287,6 +309,8 @@ class GeminiVision:
             },
             method="POST",
         )
+        self._wait_for_request_slot()
+        self.request_count += 1
         try:
             with self._opener(request, timeout=timeout or self.timeout) as response:
                 return json.loads(response.read())
@@ -371,7 +395,7 @@ class GeminiVision:
         self.last_items = None
         self.degraded = False
         self.rung = RUNG_CONFIGURED_MODEL
-        self.last_model = self.model
+        self.last_model = self.model_id
         self.last_attempts = 0
         started = self._clock()
         deadline = started + self.max_elapsed
@@ -453,7 +477,7 @@ class GeminiVision:
             "sample_id": input_ref.sample_id,
             "input_sha256": input_ref.content_hash,
             "provider": self.name,
-            "model": self.last_model,
+            "model_id": self.last_model,
             "prompt_version": PROMPT_VERSION,
             "degraded": self.degraded,
             "rung": self.rung,
@@ -461,7 +485,9 @@ class GeminiVision:
             "items": [item.model_dump(exclude_none=True) for item in items],
         }
 
-    def record_fixture(self, directory: Path, input_ref: VisionInput) -> Path:
+    def record_fixture(
+        self, directory: Path, input_ref: VisionInput, path: Path | None = None
+    ) -> Path:
         """Persist last validated observations without the image or envelope."""
         if self.last_items is None or self.last_input != input_ref:
             raise ValueError("record_fixture must follow a successful perceive call")
@@ -469,7 +495,8 @@ class GeminiVision:
         if not key:
             raise ValueError("fixture recording needs an image hash or sample_id")
         directory.mkdir(parents=True, exist_ok=True)
-        path = directory / f"{key}.json"
+        path = path or directory / f"{key}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(".json.tmp")
         temporary.write_text(
             json.dumps(self.fixture_payload(input_ref, self.last_items), indent=2, ensure_ascii=False)

@@ -3,12 +3,14 @@ from __future__ import annotations
 import io
 import json
 import logging
+from pathlib import Path
 from typing import Self
 from urllib.error import HTTPError, URLError
 
 import pytest
 
 from mealog import obs
+from mealog.adapters import vision_gemini
 from mealog.adapters.vision_gemini import (
     RUNG_CONFIGURED_MODEL,
     RUNG_FAILURE,
@@ -17,6 +19,7 @@ from mealog.adapters.vision_gemini import (
     GeminiVision,
 )
 from mealog.pipeline.ports import VisionInput
+from mealog.domain.models import PerceivedItem
 
 
 class FakeResponse:
@@ -84,6 +87,7 @@ def provider_error(status: int, headers: dict[str, str] | None = None) -> HTTPEr
 
 
 def build_vision(transport: FakeTransport, **kwargs) -> GeminiVision:
+    kwargs.setdefault("request_interval", 0)
     return GeminiVision(
         "test-key",
         opener=transport,
@@ -212,3 +216,67 @@ def test_image_failure_falls_back_to_secondary_text_only_path():
     third_parts = third_payload["contents"][0]["parts"]
     assert not any("inlineData" in part for part in third_parts)
     assert {part.get("text") for part in third_parts} >= {"rice"}
+
+
+def test_model_id_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GEMINI_MODEL", "test-model")
+
+    vision = GeminiVision("key", request_interval=0, secondary_model=None)
+
+    assert vision.model_id == "test-model"
+
+
+def test_model_id_defaults_to_flash_lite(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+
+    vision = GeminiVision("key", request_interval=0, secondary_model=None)
+
+    assert vision.model_id == "gemini-flash-lite-latest"
+
+
+def test_request_interval_waits_between_attempts(monkeypatch: pytest.MonkeyPatch) -> None:
+    sleeps: list[float] = []
+    clock = iter([10.0, 10.0])
+    vision = GeminiVision(
+        "key",
+        request_interval=4,
+        secondary_model=None,
+        clock_fn=lambda: next(clock),
+        sleep_fn=sleeps.append,
+    )
+    vision._last_request_started = 9.0
+
+    vision._wait_for_request_slot()
+
+    assert sleeps == [3.0]
+
+
+def test_fixture_payload_stamps_model_and_real_provider() -> None:
+    vision = GeminiVision("key", model_id="test-model", request_interval=0, secondary_model=None)
+    input_ref = VisionInput(text="simit", sample_id="tr_0003")
+    items = [PerceivedItem(surface_form="simit", confidence=0.9)]
+    vision.last_input = input_ref
+    vision.last_items = items
+    vision.last_model = "test-model"
+    vision.last_attempts = 1
+
+    payload = vision.fixture_payload(input_ref, items)
+
+    assert payload["provider"] == "gemini"
+    assert payload["model_id"] == "test-model"
+    assert payload["prompt_version"] == vision_gemini.PROMPT_VERSION
+    assert payload["_synthetic"] is False
+    assert "model" not in payload
+
+
+def test_record_fixture_accepts_model_specific_path(tmp_path: Path) -> None:
+    vision = GeminiVision("key", model_id="test-model", request_interval=0, secondary_model=None)
+    input_ref = VisionInput(text="simit", sample_id="tr_0003")
+    vision.last_input = input_ref
+    vision.last_items = [PerceivedItem(surface_form="simit")]
+    target = tmp_path / "models" / "test-model" / "tr_0003.json"
+
+    path = vision.record_fixture(tmp_path, input_ref, path=target)
+
+    assert path == target
+    assert json.loads(path.read_text(encoding="utf-8"))["model_id"] == "test-model"
