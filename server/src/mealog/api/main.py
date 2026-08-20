@@ -15,10 +15,11 @@ from mealog.config import settings
 from mealog.pipeline.ports import VisionInput
 from mealog.pipeline.runner import CONFIGS, make_vision, run
 
+settings = settings.validated()
 obs.configure(settings.log_level)
 app = FastAPI(title="mealog", version="0.1.0")
 
-#: TODO(Mon): Postgres-backed unique index on (user_id, idempotency_key).
+#: TODO(Mon): Postgres-backed unique index on idempotency_key.
 #: In-memory is honest for day 0 and is called out in README "known limitations".
 _SEEN: dict[str, dict] = {}
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -42,6 +43,17 @@ class LogMealRequest(BaseModel):
     locale: str = "en_US"
     text: str | None = None
     config: str = "V3"
+
+
+def _config_for(name: str):
+    config = CONFIGS.get(name)
+    if config is None:
+        choices = ", ".join(sorted(CONFIGS))
+        raise HTTPException(
+            status_code=422,
+            detail=f"unknown config '{name}'; expected one of: {choices}",
+        )
+    return config
 
 
 @app.get("/health")
@@ -102,7 +114,9 @@ async def _parse_request(request: Request) -> tuple[LogMealRequest, VisionInput]
 @app.post("/v1/meals")
 async def log_meal(request: Request) -> dict:
     req, input_ref = await _parse_request(request)
-    if cached := _SEEN.get(req.idempotency_key):
+    config = _config_for(req.config)
+    if req.idempotency_key in _SEEN:
+        cached = _SEEN[req.idempotency_key]
         obs.event("idempotent_replay", key=req.idempotency_key)
         return cached
     if settings.vision_provider != "fixture" and input_ref.sample_id:
@@ -111,6 +125,6 @@ async def log_meal(request: Request) -> dict:
             detail="sample_id is test-only; live provider needs image or text input",
         )
     vision = make_vision(settings.vision_provider, settings.gemini_api_key)
-    result = run(vision, input_ref, req.locale, CONFIGS[req.config], req.idempotency_key).model_dump()
+    result = run(vision, input_ref, req.locale, config, req.idempotency_key).model_dump()
     _SEEN[req.idempotency_key] = result
     return result
