@@ -28,7 +28,7 @@
 - [ ] `python eval/harness.py --check-regression` passes (no cuisine bucket worse)
 - [ ] `python scripts/check_invariants.py` passes
 - [ ] Scope matches my claim issue; I did not touch files outside it
-- [ ] `AGENT_LOG.md` entry appended
+- [ ] Session log added under `log/YYYY-MM-DD-HHMM-<handle>-<topic>.md`
 - [ ] No secrets, no `.env`, no user images
 - [ ] New dependencies (if any) justified below
 

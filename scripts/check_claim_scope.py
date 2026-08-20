@@ -25,7 +25,9 @@ API = "https://api.github.com"
 
 #: Process files every agent is expected to touch. Requiring them in each claim
 #: would be noise, and forgetting them is not the failure this guards against.
-ALWAYS_ALLOWED = ("log/", "AGENT_LOG.md", "STATUS.md")
+# Every agent gets its own session file. The old AGENT_LOG.md is only a pointer
+# and should not be silently changed outside a declared scope.
+ALWAYS_ALLOWED = ("log/", "STATUS.md")
 
 ISSUE_REF = re.compile(r"(?:closes|fixes|resolves|issue)[:\s]+#(\d+)", re.IGNORECASE)
 SCOPE_BLOCK = re.compile(r"##\s*Scope.*?\n(.*?)(?=\n##\s|\Z)", re.DOTALL | re.IGNORECASE)
