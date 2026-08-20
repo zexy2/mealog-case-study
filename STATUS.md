@@ -13,8 +13,8 @@
 | Deliverable | State | Evidence |
 |---|---|---|
 | Mobile app experience (not a web app) | ⬜ not started | no app project in the tree |
-| Photo ingest (end-to-end flow) | 🚧 partial | API accepts `sample_id` (a fixture id), not a photograph — [#6](../../issues/6) |
-| Real vision provider | ⬜ not started | `vision_gemini.perceive()` raises NotImplementedError — [#3](../../issues/3) |
+| Photo ingest (end-to-end flow) | 🚧 partial | API accepts an image; the path has not run against a live provider |
+| Real vision provider | 🚧 partial | adapter implemented, never executed — no recorded provider response |
 | Accuracy evaluation (metrics, test set, taxonomy) | 🚧 partial | harness runs offline; 9 golden samples, 9/9 fixtures still synthetic — [#3](../../issues/3), [#2](../../issues/2) |
 | Fine-tuning | 🚧 partial | plan in `docs/finetuning-plan.md`; nothing trained (the brief marks implementation optional) |
 | Technical write-up | 🚧 partial | README + 5 documents; 4 section group(s) still TODO |
@@ -35,7 +35,7 @@ and [#2](../../issues/2) grows the golden set.
 
 | | |
 |---|---:|
-| Test functions | 22 |
+| Test functions | 26 |
 | Locale packs | 3 (en_US, ja_JP, tr) |
 | Canonical foods | 24 |
 | Golden-set samples | 9 |

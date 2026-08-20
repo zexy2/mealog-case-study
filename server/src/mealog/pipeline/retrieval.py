@@ -29,13 +29,14 @@ No locale is named anywhere in this module (decision D2, enforced in CI).
 """
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
-from functools import cache
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from mealog.domain.models import Candidate
-from mealog.locales.loader import LocalePack, load
+from mealog.locales.loader import LocalePack
 from mealog.pipeline.normalize import fold
 
 #: Char n-grams are weighted above word matches because the failure this
@@ -55,7 +56,7 @@ MIN_SIGNAL = 0.15
 
 @dataclass
 class _Index:
-    """Per-locale search structures. Built once, cached for process lifetime."""
+    """Per-pack search structures. Built once per pack content identity."""
 
     food_ids: list[str]
     names: list[str]
@@ -69,9 +70,40 @@ class _Index:
     char_an: object
 
 
-@cache
-def _build(locale: str) -> _Index:
-    pack = load(locale)
+_INDEX_CACHE: dict[str, _Index] = {}
+
+
+def _pack_identity(pack: LocalePack) -> str:
+    """Return a stable identity for every value that can affect retrieval.
+
+    Locale names are not identities: tests and pack builders can hand us a
+    changed ``LocalePack`` with the same locale. Hashing the complete pack
+    keeps the cache fast for repeated calls while ensuring changed data gets a
+    fresh index in the same process.
+    """
+    payload = {
+        "locale": pack.locale,
+        "cuisine_bucket": pack.cuisine_bucket,
+        "nutrition_source": pack.nutrition_source,
+        "license": pack.license,
+        "foods": {
+            food_id: pack.foods[food_id].model_dump(mode="json")
+            for food_id in sorted(pack.foods)
+        },
+        "aliases": pack.aliases,
+        "negative_aliases": pack.negative_aliases,
+        "units": pack.units,
+        "text_rules": pack.text_rules,
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _build(pack: LocalePack, identity: str) -> _Index:
+    if cached := _INDEX_CACHE.get(identity):
+        return cached
+
     food_ids = list(pack.foods)
 
     # One document per food: canonical name plus every alias. Aliases are part of
@@ -95,7 +127,7 @@ def _build(locale: str) -> _Index:
     char_vec = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5),
                                binary=True, norm=None, use_idf=True)
 
-    return _Index(
+    index = _Index(
         food_ids=food_ids,
         names=[pack.foods[f].name for f in food_ids],
         exact=exact,
@@ -107,6 +139,20 @@ def _build(locale: str) -> _Index:
         word_an=word_vec.build_analyzer(),
         char_an=char_vec.build_analyzer(),
     )
+    _INDEX_CACHE[identity] = index
+    return index
+
+
+def _negative_match(index: _Index, query: str) -> str | None:
+    """Return confusion target when a negative alias occupies whole tokens."""
+    query_tokens = query.split()
+    for alias, food_id in index.negative.items():
+        alias_tokens = alias.split()
+        width = len(alias_tokens)
+        if width and any(query_tokens[i:i + width] == alias_tokens
+                         for i in range(len(query_tokens) - width + 1)):
+            return food_id
+    return None
 
 
 def _similarities(index: _Index, query: str) -> list[float]:
@@ -159,10 +205,11 @@ def search(query: str, pack: LocalePack, k: int = 5) -> list[Candidate]:
     An empty list is a valid, meaningful answer: it makes the resolver abstain,
     which is the correct behaviour for food we do not carry.
     """
-    if not query.strip():
+    query = fold(query, pack)
+    if not query:
         return []
 
-    index = _build(pack.locale)
+    index = _build(pack, _pack_identity(pack))
     scores: dict[str, float] = {}
 
     # 1. Exact surface hit. Unambiguous, so it outranks everything fuzzy.
@@ -178,9 +225,8 @@ def search(query: str, pack: LocalePack, k: int = 5) -> list[Candidate]:
     #    capped low so the user is asked rather than silently given the wrong
     #    regional match. Without this the trap returns nothing and we abstain for
     #    the wrong reason — right outcome, no understanding.
-    if (confused_with := index.negative.get(query)) is not None:
-        scores[confused_with] = min(scores.get(confused_with, 0.0) or CONFUSION_SCORE,
-                                    CONFUSION_SCORE)
+    if (confused_with := _negative_match(index, query)) is not None:
+        scores[confused_with] = CONFUSION_SCORE
 
     ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))[:k]
     return [Candidate(food_id=fid, name=pack.foods[fid].name, score=round(s, 3))
