@@ -1,11 +1,15 @@
 """Retrieval tests.
 
-Two of these pin the specific defects documented on issue #1, so they cannot
-silently come back. The rest pin properties that must survive any future swap of
-the matching implementation — including the embedding model that replaces this.
+The regression cases pin the three defects documented on issue #17, so they
+cannot silently come back. The rest pin properties that must survive any future
+swap of the matching implementation — including the embedding model that
+replaces this.
 """
+from copy import deepcopy
+
 import pytest
 
+from mealog.domain.models import CanonicalFood, Nutrients
 from mealog.locales.loader import load
 from mealog.pipeline.normalize import fold
 from mealog.pipeline.resolve import MIN_ACCEPT_SCORE, resolve
@@ -39,6 +43,50 @@ def test_known_confusion_is_surfaced_and_still_asked_about():
 
     assert "tr.kuru_fasulye" in [c.food_id for c in cands], "confusable food not surfaced"
     assert resolve(query, cands, allow_abstain=True).abstained, "accepted instead of asking"
+
+
+@pytest.mark.parametrize("query", ["some baked beans", "baked beans and rice"])
+def test_known_confusion_matches_a_token_bounded_subphrase(query):
+    pack = load("tr")
+    cands = search(fold(query, pack), pack)
+
+    confusion = next(c for c in cands if c.food_id == "tr.kuru_fasulye")
+    assert confusion.score == CONFUSION_SCORE
+    assert resolve(query, cands, allow_abstain=True).abstained
+
+
+def test_known_confusion_does_not_match_inside_a_token():
+    pack = load("tr")
+
+    cands = search(fold("baked beanstalk", pack), pack)
+
+    assert "tr.kuru_fasulye" not in [c.food_id for c in cands]
+
+
+def test_search_builds_index_from_passed_pack():
+    pack = deepcopy(load("tr"))
+    pack.foods = {
+        "tr.injected": CanonicalFood(
+            food_id="tr.injected", name="Injected dish",
+            per_100g=Nutrients(kcal=1), default_serving_g=1,
+            default_serving_name="1 serving", source="test", locale=pack.locale,
+        ),
+    }
+    pack.aliases = {"tr.injected": ["injected"]}
+    pack.negative_aliases = {}
+
+    cands = search(fold("injected", pack), pack)
+
+    assert [c.food_id for c in cands[:1]] == ["tr.injected"]
+
+
+def test_changed_pack_content_invalidates_cached_index():
+    pack = deepcopy(load("tr"))
+    pack.aliases["tr.pilav"] = [*pack.aliases.get("tr.pilav", []), "changed alias"]
+
+    cands = search(fold("changed alias", pack), pack)
+
+    assert [c.food_id for c in cands[:1]] == ["tr.pilav"]
 
 
 def test_confusion_score_stays_below_the_accept_threshold():
