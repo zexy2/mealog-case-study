@@ -1,0 +1,172 @@
+import { Ionicons } from "@expo/vector-icons";
+import { CameraView } from "expo-camera";
+import React from "react";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+
+import { isDemoMode } from "../src/api";
+import { PendingCapture } from "../src/types";
+import { Header } from "../components/Header";
+import { formatDate } from "../components/meal";
+import { colors } from "../components/theme";
+
+export type CaptureScreenProps = {
+  cameraRef: React.RefObject<CameraView | null>;
+  permissionGranted: boolean;
+  requestPermission: () => Promise<unknown>;
+  text: string;
+  setText: (value: string) => void;
+  error: string | null;
+  pending: PendingCapture | null;
+  onCapture: () => void;
+  onChoosePhoto: () => void;
+  onSubmitText: () => void;
+  onRetry: () => void;
+};
+
+export function CaptureScreen({
+  cameraRef,
+  permissionGranted,
+  requestPermission,
+  text,
+  setText,
+  error,
+  pending,
+  onCapture,
+  onChoosePhoto,
+  onSubmitText,
+  onRetry,
+}: CaptureScreenProps) {
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Header eyebrow="CAPTURE" title="What did you eat?" subtitle={formatDate()} />
+      <View style={styles.cameraFrame}>
+        {permissionGranted ? (
+          <CameraView ref={cameraRef} facing="back" style={StyleSheet.absoluteFill} />
+        ) : (
+          <View style={styles.cameraFallback}>
+            <View style={styles.cameraIconCircle}>
+              <Ionicons name="camera-outline" size={28} color={colors.terracotta} />
+            </View>
+            <Text style={styles.fallbackTitle}>Camera is waiting</Text>
+            <Text style={styles.fallbackCopy}>Allow camera access, or choose a plate photo.</Text>
+            <Pressable style={styles.smallOutlineButton} onPress={requestPermission}>
+              <Text style={styles.smallOutlineButtonText}>Allow camera</Text>
+            </Pressable>
+          </View>
+        )}
+        <View style={styles.cameraTopRow}>
+          <View style={styles.livePill}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE CAMERA</Text>
+          </View>
+          <Pressable style={styles.cameraLibraryButton} onPress={onChoosePhoto}>
+            <Ionicons name="images-outline" size={18} color={colors.ink} />
+          </Pressable>
+        </View>
+        {permissionGranted ? (
+          <Pressable style={styles.shutter} onPress={onCapture} accessibilityLabel="Take plate photo">
+            <View style={styles.shutterInner} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      <View style={styles.orRow}>
+        <View style={styles.orLine} />
+        <Text style={styles.orText}>OR TELL ME</Text>
+        <View style={styles.orLine} />
+      </View>
+      <View style={styles.textInputWrap}>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder="e.g. rice, lentil soup, ayran"
+          placeholderTextColor={colors.muted}
+          style={styles.textInput}
+          returnKeyType="send"
+          onSubmitEditing={onSubmitText}
+        />
+        <Pressable
+          style={[styles.textSubmit, !text.trim() && styles.textSubmitDisabled]}
+          onPress={onSubmitText}
+          disabled={!text.trim()}
+          accessibilityLabel="Send meal description"
+        >
+          <Ionicons name="arrow-up" size={20} color={colors.white} />
+        </Pressable>
+      </View>
+      <Text style={styles.demoHint}>
+        {isDemoMode ? "Demo mode · try “quick simit” or “ask baked beans”" : "Photo and text use the same meal contract"}
+      </Text>
+
+      {pending && !error ? (
+        <View style={styles.pendingCard}>
+          <View style={styles.pendingIcon}>
+            <Ionicons name="cloud-upload-outline" size={18} color={colors.moss} />
+          </View>
+          <View style={styles.messageWrap}>
+            <Text style={styles.messageTitle}>Pending capture saved</Text>
+            <Text style={styles.messageCopy}>Same idempotency key is ready to retry.</Text>
+          </View>
+          <Pressable onPress={onRetry} style={styles.resumeButton}>
+            <Text style={styles.resumeText}>Resume</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {error ? (
+        <View style={styles.errorCard}>
+          <View style={styles.errorIcon}>
+            <Ionicons name="cloud-offline-outline" size={18} color={colors.terracotta} />
+          </View>
+          <View style={styles.messageWrap}>
+            <Text style={styles.messageTitle}>Nothing lost</Text>
+            <Text style={styles.messageCopy}>{error}</Text>
+          </View>
+          {pending ? (
+            <Pressable onPress={onRetry} style={styles.retryButton}>
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  content: { padding: 22, paddingBottom: 32 },
+  cameraFrame: { height: 350, borderRadius: 28, overflow: "hidden", backgroundColor: "#D9D4C9", position: "relative" },
+  cameraFallback: { flex: 1, alignItems: "center", justifyContent: "center", padding: 30 },
+  cameraIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.card, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  fallbackTitle: { color: colors.ink, fontSize: 17, fontWeight: "800", textAlign: "center" },
+  fallbackCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, textAlign: "center", marginTop: 7, maxWidth: 220 },
+  smallOutlineButton: { borderWidth: 1, borderColor: colors.terracotta, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 9, marginTop: 18 },
+  smallOutlineButtonText: { color: colors.terracotta, fontSize: 12, fontWeight: "800" },
+  cameraTopRow: { position: "absolute", top: 14, left: 14, right: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  livePill: { flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "rgba(32,38,31,0.72)", paddingHorizontal: 10, paddingVertical: 7, borderRadius: 14 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#E77B58" },
+  liveText: { color: colors.white, fontSize: 9, fontWeight: "800", letterSpacing: 1.1 },
+  cameraLibraryButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,253,248,0.9)", alignItems: "center", justifyContent: "center" },
+  shutter: { position: "absolute", bottom: 18, alignSelf: "center", width: 72, height: 72, borderRadius: 36, borderWidth: 5, borderColor: colors.white, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,253,248,0.35)" },
+  shutterInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.terracotta },
+  orRow: { flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 20 },
+  orLine: { flex: 1, height: 1, backgroundColor: colors.line },
+  orText: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.5 },
+  textInputWrap: { flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.line, padding: 6, paddingLeft: 17 },
+  textInput: { flex: 1, color: colors.ink, fontSize: 15, minHeight: 43 },
+  textSubmit: { width: 40, height: 40, borderRadius: 14, backgroundColor: colors.terracotta, alignItems: "center", justifyContent: "center" },
+  textSubmitDisabled: { backgroundColor: colors.line },
+  demoHint: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 9, marginLeft: 3 },
+  errorCard: { flexDirection: "row", alignItems: "center", backgroundColor: colors.terracottaSoft, borderRadius: 18, padding: 13, marginTop: 19, gap: 10 },
+  pendingCard: { flexDirection: "row", alignItems: "center", backgroundColor: colors.mossSoft, borderRadius: 18, padding: 13, marginTop: 19, gap: 10 },
+  errorIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.card, alignItems: "center", justifyContent: "center" },
+  pendingIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.card, alignItems: "center", justifyContent: "center" },
+  messageWrap: { flex: 1 },
+  messageTitle: { color: colors.ink, fontSize: 13, fontWeight: "800" },
+  messageCopy: { color: colors.muted, fontSize: 11, lineHeight: 15, marginTop: 2 },
+  retryButton: { backgroundColor: colors.terracotta, borderRadius: 13, paddingHorizontal: 11, paddingVertical: 9 },
+  retryText: { color: colors.white, fontSize: 11, fontWeight: "800" },
+  resumeButton: { backgroundColor: colors.moss, borderRadius: 13, paddingHorizontal: 11, paddingVertical: 9 },
+  resumeText: { color: colors.white, fontSize: 11, fontWeight: "800" },
+});

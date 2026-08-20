@@ -6,7 +6,8 @@ claim with extra steps — this repository has already shipped two of those toda
 dependencies). So status is derived from the working tree, not asserted, and CI
 fails if the committed file disagrees with what the probes find.
 
-Probes assert execution artifacts, never source-text presence.
+Probes assert execution artifacts where the repository can prove them. Device
+execution is external and stays partial until the walkthrough.
 
     python scripts/status.py            # regenerate STATUS.md
     python scripts/status.py --check    # fail if STATUS.md is stale
@@ -37,30 +38,9 @@ def probe_mobile() -> Probe:
     if not package.exists():
         return Probe("Mobile app experience (not a web app)", TODO,
                      "no app project in the tree")
-
-    proof_paths = sorted((app_root / "verification").glob("*.json"))
-    for path in proof_paths:
-        try:
-            proof = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        if not isinstance(proof, dict):
-            continue
-        artifact = proof.get("artifact")
-        if (proof.get("kind") == "expo-execution"
-                and proof.get("result") == "passed"
-                and proof.get("command") == "npm run verify"
-                and isinstance(artifact, dict)
-                and artifact.get("type") == "expo-export"
-                and artifact.get("platform")
-                and artifact.get("path")
-                and artifact.get("sha256")):
-            return Probe("Mobile app experience (not a web app)", DONE,
-                         f"Expo execution proof: {artifact['platform']} export "
-                         f"({artifact['path']})")
-
     return Probe("Mobile app experience (not a web app)", PARTIAL,
-                 "Expo app exists; no recorded execution proof")
+                 "Expo app present; CI typechecks and bundles it; running on a "
+                 "device is shown in the walkthrough, not provable from the repository")
 
 
 def probe_vision() -> Probe:
@@ -172,8 +152,8 @@ def render() -> str:
         "",
         (f"**{'Yes.' if outstanding == 0 else 'No.'}** "
          f"{outstanding} of {len(probes)} deliverables are still outstanding. "
-         "Core pipeline, measurement layer and current app evidence are listed "
-         "below; remaining submission work is explicit."),
+         "What exists today is the measurement layer and the architecture; the "
+         "photo path and the app do not exist yet."),
         "",
         "## Deliverables",
         "",
