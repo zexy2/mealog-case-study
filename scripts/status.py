@@ -121,13 +121,11 @@ def probe_writeup() -> Probe:
 
 
 def counts() -> dict:
-    tests = sum(len(re.findall(r"^def test_", p.read_text(encoding="utf-8"), re.MULTILINE))
-                for p in (ROOT / "server/tests").glob("test_*.py"))
     packs = sorted(p.name for p in (ROOT / "locale_packs").iterdir()
                    if (p / "pack.yaml").exists())
     foods = sum(len([x for x in (ROOT / "locale_packs" / p / "foods.jsonl")
                      .read_text(encoding="utf-8").splitlines() if x.strip()]) for p in packs)
-    return {"tests": tests, "packs": packs, "foods": foods}
+    return {"packs": packs, "foods": foods}
 
 
 def render() -> str:
@@ -175,7 +173,6 @@ def render() -> str:
 
     L += ["", "## Measured", "",
           "| | |", "|---|---:|",
-          f"| Test functions | {c['tests']} |",
           f"| Locale packs | {len(c['packs'])} ({', '.join(c['packs'])}) |",
           f"| Canonical foods | {c['foods']} |",
           f"| Golden-set samples | {n_golden} |",
