@@ -30,4 +30,4 @@ labels: agent-claim
 - [ ] Read `AGENTS.md` and `docs/decisions.md`
 - [ ] Checked open `agent-claim` issues — no overlap with my scope
 - [ ] Checked open PRs — nobody is already doing this
-- [ ] Read the last 10 `AGENT_LOG.md` entries
+- [ ] Read the 10 most recent files in `log/`

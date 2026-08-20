@@ -129,5 +129,6 @@ eval/
   fixtures/      recorded provider responses (offline reproducibility)
 docs/            decisions · evaluation · finetuning-plan
 AGENTS.md        coordination contract for multi-agent work
-AGENT_LOG.md     append-only session log
+log/             append-only session logs (one file per session)
+AGENT_LOG.md     compatibility pointer; do not append
 ```

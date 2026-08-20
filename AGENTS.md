@@ -19,7 +19,7 @@ Before you write a single line, do all five:
 3. List **open issues** labelled `agent-claim` — these are active locks held by
    other agents. Do not touch files inside someone else's claimed scope.
 4. List **open pull requests**. Another agent may already be doing your task.
-5. Read the last 10 entries of `AGENT_LOG.md`.
+5. Read the 10 most recent files in `log/` (filenames sort chronologically).
 
 If your intended work overlaps an existing claim: comment on that issue and
 negotiate. Do not start.

@@ -1,6 +1,7 @@
 # Agent log
 
-Entries live in [`log/`](log/), **one file per session**.
+Entries live in [`log/`](log/), **one file per session**. Do not append to or edit
+this pointer; create a new session file under `log/` instead.
 
 They used to be appended to this file. With several agents working in parallel
 that guarantees a merge conflict on every pull request, and a conflict on the
