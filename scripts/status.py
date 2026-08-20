@@ -32,12 +32,35 @@ class Probe:
 
 
 def probe_mobile() -> Probe:
-    found = [p for p in ROOT.glob("**/package.json") if "node_modules" not in str(p)]
-    if not found:
+    app_root = ROOT / "apps/mobile"
+    package = app_root / "package.json"
+    if not package.exists():
         return Probe("Mobile app experience (not a web app)", TODO,
                      "no app project in the tree")
+
+    proof_paths = sorted((app_root / "verification").glob("*.json"))
+    for path in proof_paths:
+        try:
+            proof = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(proof, dict):
+            continue
+        artifact = proof.get("artifact")
+        if (proof.get("kind") == "expo-execution"
+                and proof.get("result") == "passed"
+                and proof.get("command") == "npm run verify"
+                and isinstance(artifact, dict)
+                and artifact.get("type") == "expo-export"
+                and artifact.get("platform")
+                and artifact.get("path")
+                and artifact.get("sha256")):
+            return Probe("Mobile app experience (not a web app)", DONE,
+                         f"Expo execution proof: {artifact['platform']} export "
+                         f"({artifact['path']})")
+
     return Probe("Mobile app experience (not a web app)", PARTIAL,
-                 f"{len(found)} package.json found")
+                 "Expo app exists; no recorded execution proof")
 
 
 def probe_vision() -> Probe:
@@ -149,8 +172,8 @@ def render() -> str:
         "",
         (f"**{'Yes.' if outstanding == 0 else 'No.'}** "
          f"{outstanding} of {len(probes)} deliverables are still outstanding. "
-         "What exists today is the measurement layer and the architecture; the "
-         "photo path and the app do not exist yet."),
+         "Core pipeline, measurement layer and current app evidence are listed "
+         "below; remaining submission work is explicit."),
         "",
         "## Deliverables",
         "",

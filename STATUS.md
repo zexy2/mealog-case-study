@@ -6,13 +6,13 @@
 
 ## Is this ready to submit?
 
-**No.** 8 of 8 deliverables are still outstanding. What exists today is the measurement layer and the architecture; the photo path and the app do not exist yet.
+**No.** 7 of 8 deliverables are still outstanding. Core pipeline, measurement layer and current app evidence are listed below; remaining submission work is explicit.
 
 ## Deliverables
 
 | Deliverable | State | Evidence |
 |---|---|---|
-| Mobile app experience (not a web app) | ⬜ not started | no app project in the tree |
+| Mobile app experience (not a web app) | ✅ working | Expo execution proof: ios export (dist/_expo/static/js/ios/AppEntry-ff29e535870ae1af3e8dae8b3b5371ca.hbc) |
 | Photo ingest (end-to-end flow) | 🚧 partial | API accepts an image; the path has not run against a live provider |
 | Real vision provider | 🚧 partial | adapter implemented, never executed — no recorded provider response |
 | Accuracy evaluation (metrics, test set, taxonomy) | 🚧 partial | harness runs offline; 9 golden samples, 9/9 fixtures still synthetic — [#3](../../issues/3), [#2](../../issues/2) |
