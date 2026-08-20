@@ -8,11 +8,17 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "server" / "src" / "mealog"
 PACKS = ROOT / "locale_packs"
+
+sys.path.insert(0, str(SRC.parent))
+from mealog.locales.loader import LicenseTerm
 
 failures: list[str] = []
 
@@ -45,16 +51,31 @@ def check_no_locale_literals() -> None:
                     fail("D2", f"{path.relative_to(ROOT)}:{i} hardcodes a locale name")
 
 
-def check_packs_declare_license() -> None:
-    """D2: packs carry different legal terms; provenance is not optional."""
+def check_packs_declare_a_known_license() -> None:
+    """D2: packs carry different legal terms; provenance is not optional.
+
+    The value is validated against the vocabulary, not merely checked for
+    presence. A free-text licence cannot be reasoned about -- a typo in a
+    sentence reads as permissive -- and `loader.load()` enforces this field at
+    runtime, so an unrecognised value is a real defect rather than a style nit.
+    """
+    valid = sorted(term.value for term in LicenseTerm)
     for pack in sorted(PACKS.iterdir()):
         meta = pack / "pack.yaml"
         if not meta.exists():
             continue
-        text = meta.read_text(encoding="utf-8")
-        for field in ("license:", "nutrition_source:", "cuisine_bucket:"):
-            if field not in text:
-                fail("D2", f"{pack.name}/pack.yaml missing '{field}'")
+        data = yaml.safe_load(meta.read_text(encoding="utf-8")) or {}
+        for field_name in ("license", "nutrition_source", "cuisine_bucket"):
+            if not data.get(field_name):
+                fail("D2", f"{pack.name}/pack.yaml missing '{field_name}:'")
+        declared = data.get("license")
+        if declared is None:
+            continue
+        if str(declared).strip().lower() not in valid:
+            fail("D2", f"{pack.name}/pack.yaml has license '{declared}', which is not one "
+                       f"of {valid}. Free text is not checkable; pick the closest term "
+                       f"(use 'unverified' if the terms have not been confirmed -- it is "
+                       f"treated as restricted).")
 
 
 def check_every_golden_sample_has_a_fixture() -> None:
@@ -81,7 +102,7 @@ def check_resolver_is_closed_set() -> None:
 def main() -> int:
     for check in (check_nutrition_is_the_only_producer,
                   check_no_locale_literals,
-                  check_packs_declare_license,
+                  check_packs_declare_a_known_license,
                   check_every_golden_sample_has_a_fixture,
                   check_resolver_is_closed_set):
         check()
