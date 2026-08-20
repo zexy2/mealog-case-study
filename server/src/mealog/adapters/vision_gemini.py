@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import base64
 import json
+import os
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -22,7 +24,11 @@ from mealog.domain.models import PerceivedItem
 from mealog.pipeline.ports import VisionInput
 
 PROMPT_VERSION = "p2"
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-flash-lite-latest"
+MODEL_ENV_VAR = "GEMINI_MODEL"
+REQUEST_INTERVAL_SECONDS = 4.0
+MAX_429_RETRIES = 4
+MAX_BACKOFF_SECONDS = 60.0
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
 MAX_ERROR_BODY = 500
 
@@ -102,6 +108,11 @@ _IMAGE_MIME_FALLBACKS = {
 _ALLOWED_IMAGE_MIME_TYPES = frozenset(_IMAGE_MIME_FALLBACKS.values()) | {"image/jpg"}
 
 
+def configured_model_id() -> str:
+    """Read the live model from environment-backed application config."""
+    return os.getenv(MODEL_ENV_VAR, DEFAULT_MODEL).strip() or DEFAULT_MODEL
+
+
 def _image_part(input_ref: VisionInput) -> dict[str, Any]:
     if input_ref.image_bytes is None or not input_ref.image_media_type:
         raise ValueError("Gemini image input needs bytes and a MIME type")
@@ -175,18 +186,52 @@ class GeminiVision:
     def __init__(
         self,
         api_key: str,
-        model: str = DEFAULT_MODEL,
+        model: str | None = None,
         timeout: float = 90.0,
         opener: Callable[..., Any] = urlopen,
+        request_interval: float = REQUEST_INTERVAL_SECONDS,
+        max_429_retries: int = MAX_429_RETRIES,
+        retry_backoff_base: float = REQUEST_INTERVAL_SECONDS,
+        model_id: str | None = None,
     ):
         if not api_key.strip():
             raise ValueError("GEMINI_API_KEY is required for the live vision provider")
         self.api_key = api_key
-        self.model = model
+        self.model_id = model_id or model or configured_model_id()
+        self.model = self.model_id  # compatibility for existing callers
         self.timeout = timeout
         self._opener = opener
+        self.request_interval = max(0.0, request_interval)
+        self.max_429_retries = max(0, max_429_retries)
+        self.retry_backoff_base = max(0.0, retry_backoff_base)
+        self._last_request_started: float | None = None
+        self.request_count = 0
         self.last_items: list[PerceivedItem] | None = None
         self.last_input: VisionInput | None = None
+
+    def _wait_for_request_slot(self) -> None:
+        now = time.monotonic()
+        if self._last_request_started is not None:
+            remaining = self.request_interval - (now - self._last_request_started)
+            if remaining > 0:
+                time.sleep(remaining)
+        self._last_request_started = time.monotonic()
+
+    @staticmethod
+    def _retry_after(exc: HTTPError) -> float | None:
+        value = exc.headers.get("Retry-After") if exc.headers else None
+        if value is None:
+            return None
+        try:
+            return max(0.0, float(value))
+        except ValueError:
+            return None
+
+    def _backoff_delay(self, exc: HTTPError, attempt: int) -> float:
+        retry_after = self._retry_after(exc)
+        if retry_after is not None:
+            return retry_after
+        return min(MAX_BACKOFF_SECONDS, self.retry_backoff_base * (2**attempt))
 
     def _request(self, parts: list[dict[str, Any]]) -> dict[str, Any]:
         payload = {
@@ -197,7 +242,7 @@ class GeminiVision:
                 "responseSchema": RESPONSE_SCHEMA,
             },
         }
-        url = f"{API_ROOT}/models/{quote(self.model, safe='')}:generateContent"
+        url = f"{API_ROOT}/models/{quote(self.model_id, safe='')}:generateContent"
         request = Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
@@ -207,16 +252,29 @@ class GeminiVision:
             },
             method="POST",
         )
-        try:
-            with self._opener(request, timeout=self.timeout) as response:
-                return json.loads(response.read())
-        except HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")[:MAX_ERROR_BODY]
-            raise RuntimeError(f"Gemini request failed with HTTP {exc.code}: {detail}") from exc
-        except URLError as exc:
-            raise RuntimeError(f"Gemini request failed: {exc.reason}") from exc
-        except json.JSONDecodeError as exc:
-            raise RuntimeError("Gemini returned an invalid JSON envelope") from exc
+        for attempt in range(self.max_429_retries + 1):
+            self._wait_for_request_slot()
+            self.request_count += 1
+            try:
+                with self._opener(request, timeout=self.timeout) as response:
+                    return json.loads(response.read())
+            except HTTPError as exc:
+                detail = exc.read().decode("utf-8", errors="replace")[:MAX_ERROR_BODY]
+                if exc.code != 429:
+                    raise RuntimeError(
+                        f"Gemini request failed with HTTP {exc.code}: {detail}"
+                    ) from exc
+                if attempt >= self.max_429_retries:
+                    raise RuntimeError(
+                        f"Gemini request exhausted 429 retries after {self.request_count} "
+                        f"attempts: {detail}"
+                    ) from exc
+                time.sleep(self._backoff_delay(exc, attempt))
+            except URLError as exc:
+                raise RuntimeError(f"Gemini request failed: {exc.reason}") from exc
+            except json.JSONDecodeError as exc:
+                raise RuntimeError("Gemini returned an invalid JSON envelope") from exc
+        raise RuntimeError("Gemini request loop ended without a response")
 
     def perceive(self, input_ref: VisionInput) -> list[PerceivedItem]:
         """Call Gemini with image bytes or explicit text, never a fixture ID."""
@@ -244,12 +302,14 @@ class GeminiVision:
             "sample_id": input_ref.sample_id,
             "input_sha256": input_ref.content_hash,
             "provider": self.name,
-            "model": self.model,
+            "model_id": self.model_id,
             "prompt_version": PROMPT_VERSION,
             "items": [item.model_dump(exclude_none=True) for item in items],
         }
 
-    def record_fixture(self, directory: Path, input_ref: VisionInput) -> Path:
+    def record_fixture(
+        self, directory: Path, input_ref: VisionInput, path: Path | None = None
+    ) -> Path:
         """Persist last validated observations without the image or envelope."""
         if self.last_items is None or self.last_input != input_ref:
             raise ValueError("record_fixture must follow a successful perceive call")
@@ -257,7 +317,8 @@ class GeminiVision:
         if not key:
             raise ValueError("fixture recording needs an image hash or sample_id")
         directory.mkdir(parents=True, exist_ok=True)
-        path = directory / f"{key}.json"
+        path = path or directory / f"{key}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(".json.tmp")
         temporary.write_text(
             json.dumps(self.fixture_payload(input_ref, self.last_items), indent=2, ensure_ascii=False)
