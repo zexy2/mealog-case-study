@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Enforce that a pull request stays inside the scope its claim issue declared.
 
 AGENTS.md section 3 makes issues the only lock between agents. A lock nobody
