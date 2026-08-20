@@ -14,12 +14,15 @@ Did:     Added `apps/mobile` as an Expo SDK57 + React Native + TypeScript app
          `probe_mobile()` now requires structured Expo execution proof, not a
          package.json. README documents the QR/demo/API run paths.
 Result:  Expo Doctor 21/21. `npm run typecheck`, Android and iOS Expo exports,
-         localhost Expo manifest, `make check`, generated STATUS check, 25
-         backend tests, Ruff, invariants and V3 regression guard passed.
+         localhost Expo manifest, `make check`, generated STATUS check, 40
+         backend tests, Ruff, invariants and V3 regression guard passed after
+         rebasing onto current `main`.
 Next:    Rebase onto current `main`, push, open PR, read CI, then comment on #31
          after merge.
 Traps:   Expo SDK57 bundles React Native 0.86.2; RN 0.87.0 made Metro export
          fail with missing `rn-get-polyfills`. Run `npx expo-doctor` after every
          native dependency change. Do not mark mobile working from package
          presence; the status probe requires `verification/expo-execution.json`.
-         Do not add server changes to make the app demo work.
+         Do not reuse a Python venv installed editable from another worktree:
+         it can make a clean gate import stale server code. Do not add server
+         changes to make the app demo work.
