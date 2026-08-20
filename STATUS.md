@@ -35,7 +35,7 @@ and [#2](../../issues/2) grows the golden set.
 
 | | |
 |---|---:|
-| Test functions | 26 |
+| Test functions | 29 |
 | Locale packs | 3 (en_US, ja_JP, tr) |
 | Canonical foods | 24 |
 | Golden-set samples | 9 |
