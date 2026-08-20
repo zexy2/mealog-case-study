@@ -1,0 +1,6 @@
+lowercase: true
+strip_accents: false
+romaji_fold: true
+notes: |
+  Third pack exists to prove 'locale' is a data boundary, not an if-statement.
+  Deliberately thin: coverage is a roadmap item, the abstraction is the deliverable.

@@ -1,0 +1,8 @@
+{"food_id": "tr.mercimek_corbasi", "name": "Mercimek corbasi", "per_100g": {"kcal": 62, "protein_g": 3.1, "carb_g": 9.4, "fat_g": 1.4}, "default_serving_g": 250, "default_serving_name": "1 kase", "source": "TURKOMP"}
+{"food_id": "tr.kuru_fasulye", "name": "Kuru fasulye (etli)", "per_100g": {"kcal": 118, "protein_g": 6.9, "carb_g": 13.2, "fat_g": 4.3}, "default_serving_g": 250, "default_serving_name": "1 porsiyon", "source": "TURKOMP"}
+{"food_id": "tr.pilav", "name": "Sade pirinc pilavi", "per_100g": {"kcal": 151, "protein_g": 3.0, "carb_g": 28.0, "fat_g": 3.1}, "default_serving_g": 180, "default_serving_name": "1 porsiyon", "source": "TURKOMP"}
+{"food_id": "tr.lahmacun", "name": "Lahmacun", "per_100g": {"kcal": 243, "protein_g": 10.5, "carb_g": 34.0, "fat_g": 7.4}, "default_serving_g": 140, "default_serving_name": "1 adet", "source": "TURKOMP"}
+{"food_id": "tr.menemen", "name": "Menemen", "per_100g": {"kcal": 118, "protein_g": 6.2, "carb_g": 4.8, "fat_g": 8.3}, "default_serving_g": 220, "default_serving_name": "1 porsiyon", "source": "TURKOMP"}
+{"food_id": "tr.simit", "name": "Simit", "per_100g": {"kcal": 329, "protein_g": 9.5, "carb_g": 57.0, "fat_g": 6.6}, "default_serving_g": 100, "default_serving_name": "1 adet", "source": "TURKOMP"}
+{"food_id": "tr.ayran", "name": "Ayran", "per_100g": {"kcal": 37, "protein_g": 1.7, "carb_g": 2.6, "fat_g": 2.0}, "default_serving_g": 200, "default_serving_name": "1 bardak", "source": "TURKOMP"}
+{"food_id": "tr.yaprak_sarma", "name": "Zeytinyagli yaprak sarma", "per_100g": {"kcal": 182, "protein_g": 3.1, "carb_g": 22.4, "fat_g": 8.9}, "default_serving_g": 150, "default_serving_name": "6 adet", "source": "TURKOMP"}

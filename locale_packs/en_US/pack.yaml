@@ -1,0 +1,5 @@
+locale: en_US
+cuisine_bucket: western
+nutrition_source: USDA FoodData Central
+license: public-domain (USDA)
+food_count: 8

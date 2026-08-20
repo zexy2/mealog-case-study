@@ -1,0 +1,5 @@
+locale: ja_JP
+cuisine_bucket: east_asian
+nutrition_source: MEXT Standard Tables of Food Composition
+license: public reference; verify before commercial use
+food_count: 8

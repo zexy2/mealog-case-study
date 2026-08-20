@@ -1,0 +1,5 @@
+lowercase: true
+strip_accents: false
+notes: |
+  Baseline locale. Also serves as the no-regression guard:
+  CI fails if this bucket degrades when other packs are enabled.

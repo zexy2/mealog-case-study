@@ -1,0 +1,8 @@
+{"food_id": "jp.rice_steamed", "name": "Steamed white rice", "per_100g": {"kcal": 168, "protein_g": 2.5, "carb_g": 37.1, "fat_g": 0.3}, "default_serving_g": 150, "default_serving_name": "1 wan", "source": "MEXT"}
+{"food_id": "jp.miso_soup", "name": "Miso soup", "per_100g": {"kcal": 40, "protein_g": 3.0, "carb_g": 3.4, "fat_g": 1.5}, "default_serving_g": 200, "default_serving_name": "1 bowl", "source": "MEXT"}
+{"food_id": "jp.salmon_grilled", "name": "Grilled salmon", "per_100g": {"kcal": 204, "protein_g": 22.5, "carb_g": 0.1, "fat_g": 12.4}, "default_serving_g": 80, "default_serving_name": "1 fillet", "source": "MEXT"}
+{"food_id": "jp.ramen_shoyu", "name": "Shoyu ramen", "per_100g": {"kcal": 108, "protein_g": 5.4, "carb_g": 14.6, "fat_g": 3.1}, "default_serving_g": 500, "default_serving_name": "1 bowl", "source": "MEXT"}
+{"food_id": "jp.tofu_silken", "name": "Silken tofu", "per_100g": {"kcal": 56, "protein_g": 4.9, "carb_g": 2.0, "fat_g": 3.0}, "default_serving_g": 150, "default_serving_name": "1 block", "source": "MEXT"}
+{"food_id": "jp.edamame", "name": "Edamame, boiled", "per_100g": {"kcal": 134, "protein_g": 11.5, "carb_g": 8.9, "fat_g": 6.2}, "default_serving_g": 80, "default_serving_name": "1 serving", "source": "MEXT"}
+{"food_id": "jp.tonkatsu", "name": "Tonkatsu (pork cutlet)", "per_100g": {"kcal": 344, "protein_g": 22.0, "carb_g": 16.5, "fat_g": 21.0}, "default_serving_g": 130, "default_serving_name": "1 piece", "source": "MEXT"}
+{"food_id": "jp.gyoza", "name": "Gyoza, pan-fried", "per_100g": {"kcal": 197, "protein_g": 7.3, "carb_g": 23.0, "fat_g": 8.2}, "default_serving_g": 120, "default_serving_name": "6 pieces", "source": "MEXT"}

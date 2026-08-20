@@ -1,0 +1,25 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: cd server && python -m pip install -e ".[dev]" -q
+
+      - name: lint
+        run: cd server && python -m ruff check src tests
+
+      - name: tests
+        run: cd server && python -m pytest -q
+
+      # Architectural rules from AGENTS.md section 9. Prose rules get broken when
+      # several agents edit in parallel; these fail the build instead.
+      - name: invariants
+        run: python scripts/check_invariants.py
+
+      # Offline eval must reproduce, and no cuisine bucket may regress.
+      - name: eval regression guard
+        run: python eval/harness.py --configs V0,V1,V2,V3 --check-regression

@@ -1,0 +1,10 @@
+lowercase: true
+strip_accents: true
+char_map:
+  "\u0130": "i"
+  "I": "i"
+  "\u0131": "i"
+notes: |
+  Turkish dotted/dotless i is a real matching hazard: naive .lower() maps
+  'I' -> 'i' but Turkish 'I' lowercases to 'i-dotless'. Both are folded to 'i'
+  for retrieval only; display strings keep the original form.

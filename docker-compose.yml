@@ -1,0 +1,12 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mealog
+      POSTGRES_PASSWORD: mealog
+      POSTGRES_DB: mealog
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mealog"]
+      interval: 5s
+      retries: 10

@@ -1,0 +1,5 @@
+locale: tr
+cuisine_bucket: mediterranean
+nutrition_source: TURKOMP (Ulusal Gida Kompozisyon Veri Tabani)
+license: RESTRICTED - non-commercial; see docs/decisions.md D4
+food_count: 8
