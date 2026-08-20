@@ -11,3 +11,4 @@ eval/reports/*.md
 data/
 *.safetensors
 .DS_Store
+*.egg-info/
