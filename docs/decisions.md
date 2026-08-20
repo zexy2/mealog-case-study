@@ -79,9 +79,6 @@ with provider and `prompt_version`, and re-recording whenever either changes.
 
 ---
 
-<!-- TODO(Sun/Mon): D5 retrieval fusion · D6 portion as distribution
-     · D7 fine-tune scope · D8 mobile stack -->
-
 ## D5 — Photo ingress uses bounded multipart and content-hash fixture keys
 
 **Decision.** `POST /v1/meals` accepts `multipart/form-data` with an `image`
@@ -105,3 +102,107 @@ or provider key.
 holds image bytes. Provider-side retention and processing are governed by the
 provider's terms; this repository records only validated observations, never
 the photograph or response envelope.
+
+---
+
+## D6 — Retrieval scores coverage, not similarity
+
+**Decision.** Two signals over the same documents — word 1–2 grams and character
+3–5 grams — blended by weight, each scored as **IDF-weighted asymmetric
+coverage**: *how much of what the user said is accounted for by this food's
+surface forms, weighted by how distinctive each piece is.* Exact surface hits
+outrank fuzzy ones. A known confusion surfaces its target capped below the
+accept threshold, so the resolver abstains and the gate asks.
+
+**Rejected.** *BM25* — canonical food names are 2–6 tokens, so document-length
+normalisation has nothing to normalise, and it costs a dependency. *Reciprocal
+Rank Fusion* — it exists to merge ranked lists whose scores are not comparable;
+both signals here are already comparable on the same documents, and RRF would
+leave a rank-derived number `resolve.py` could no longer threshold as a
+confidence. *Cosine similarity* — symmetric, so a short query is penalised for
+everything an alias-rich document contains that the user did not say. `pilav`
+scored 0.28 against `sade pirinc pilavi` purely because the document was longer;
+ranking survived that, the accept threshold did not.
+
+**Constraint.** `resolve.py` thresholds on the absolute score, so the score has
+to stay readable as a confidence. Turkish and Japanese make inflection and
+transliteration the common case rather than the edge case.
+
+**Cost.** Coverage is not a similarity: two foods can both score high on a short
+ambiguous query. That is genuine ambiguity, handed to the margin rule instead of
+resolved silently. And unseen n-grams must be charged at maximum IDF or a
+foreign dish scores against a local one — `pizza margherita` matched a Turkish
+rice dish at 0.55 before that correction, because every n-gram that made it
+*pizza* had been silently dropped by the vectoriser.
+
+---
+
+## D7 — Portion is a distribution, and density belongs to the food
+
+**Decision.** Portion returns `(grams, p10, p90)`. Interval width is graded by
+evidence: a stated quantity with a known unit is narrow, an assumed quantity
+falls back to the catalogue-default band, and an unknown density widens further
+around a declared midpoint. **Volume units carry volume only.**
+
+**Rejected.** *A point estimate* — mass error dominates calorie error, and both
+the confidence gate and the UI need the width. *Density on the unit* — tried and
+reverted within the same pull request. A cup is not made of rice; borrowing one
+food's density made every other food measured in cups **worse** than the 1 g/ml
+assumption it replaced.
+
+**Constraint.** Our own taxonomy names `E8` (unit/density error) and the code was
+committing it. A guess must never be presented with the confidence of a
+measurement.
+
+**Cost.** Every volume unit currently falls to the unknown-density band
+(0.45–1.75), which is wide. Once the gate reads the interval, coverage drops on
+volume-measured meals — that is the system telling the truth, not a regression.
+The fix is `density_g_per_ml` on `CanonicalFood`, which narrows the band with
+evidence rather than with optimism.
+
+---
+
+## D8 — One component fine-tuned, one specified and not trained
+
+**Decision.** The frontier VLM is **rented, not fine-tuned**. The component we
+train is a locale adapter that aligns images into the canonical food embedding
+space, on a mixed multi-cuisine corpus, reported per cuisine. A mass regressor on
+Nutrition5k is **specified in full and not trained**.
+
+**Rejected.** Fine-tuning the frontier VLM for general food recognition.
+Published benchmarking on Nutrition5k puts Gemini 3.0 Flash at 80.7 kcal MAE /
+CCC 0.767, and finds that low-data fine-tuning on strong base models yields
+limited gains without large, high-quality corpora. In six days that produces a
+model that loses to the baseline and a story about trying.
+
+**Constraint.** The brief marks fine-tuning implementation optional and asks
+which path was chosen and why. Measuring *where* the frontier is weak has to come
+before training anything: identification is adequate, mass is not, and local
+cuisine is not.
+
+**Cost.** **Nothing is trained yet** — see `STATUS.md`. This entry records a
+decision, not a result, and it is being misread the moment it is taken for one.
+The same published work found that human annotators corrected label omissions in
+Nutrition5k and moved measured ingredient overlap from 0.62 to 0.82, so a naive
+fine-tune on those labels would learn the dataset's errors and report them as
+accuracy.
+
+---
+
+## D9 — Mobile is Expo / React Native, demoable without a key
+
+**Decision.** Expo + React Native + TypeScript. Three screens. Fully demoable
+against recorded fixtures with `VISION_PROVIDER=fixture`.
+
+**Rejected.** *Native* — two codebases in six days. *Flutter* — no advantage
+here and further from the stack this team most likely runs. *A web app* — the
+brief calls that a format violation, not a shortcut.
+
+**Constraint.** A reviewer has to be able to run it. A QR code and Expo Go is the
+shortest path from clone to a phone, and "could not run it" is the most common
+reason a take-home is rejected. The demo also cannot depend on an API key,
+because D4 already promises the numbers reproduce without one.
+
+**Cost.** Expo Go constrains native modules. Nothing this app needs sits outside
+it — camera and multipart upload are both covered — but if that ever changes,
+EAS build is the escape hatch and it is slower.

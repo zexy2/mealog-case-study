@@ -90,6 +90,11 @@ labels are ground truth; changing them changes every historical number.
 - **Generated files conflict cheaply.** `STATUS.md` is produced by
   `scripts/status.py`. If it conflicts, do not hand-merge it: take either side,
   re-run `make status`, and commit the result.
+- **`STATUS.md` and `log/` are exempt from claim scope** (`ALWAYS_ALLOWED` in
+  `check_claim_scope.py`). Every pull request touches them, so no claim needs to
+  list them. Adding a test changes the generated status file: run `make status`
+  and commit the result before pushing, or CI fails on a stale `STATUS.md` that
+  has nothing to do with your change.
 
 ---
 
