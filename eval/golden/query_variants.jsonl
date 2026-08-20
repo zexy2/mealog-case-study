@@ -1,0 +1,63 @@
+{"query": "grilled chicken", "locale": "en_US", "expected_food_id": "us.chicken_breast_grilled", "kind": "exact"}
+{"query": "chicken breast", "locale": "en_US", "expected_food_id": "us.chicken_breast_grilled", "kind": "alias"}
+{"query": "chiken brest", "locale": "en_US", "expected_food_id": "us.chicken_breast_grilled", "kind": "typo"}
+{"query": "grilled chicken breast", "locale": "en_US", "expected_food_id": "us.chicken_breast_grilled", "kind": "verbose"}
+{"query": "white rice", "locale": "en_US", "expected_food_id": "us.rice_white_cooked", "kind": "exact"}
+{"query": "rice", "locale": "en_US", "expected_food_id": "us.rice_white_cooked", "kind": "partial"}
+{"query": "steamed rice", "locale": "en_US", "expected_food_id": "us.rice_white_cooked", "kind": "alias"}
+{"query": "scrambled eggs", "locale": "en_US", "expected_food_id": "us.eggs_scrambled", "kind": "exact"}
+{"query": "scrambled egg", "locale": "en_US", "expected_food_id": "us.eggs_scrambled", "kind": "inflection"}
+{"query": "whole wheat bread", "locale": "en_US", "expected_food_id": "us.bread_whole_wheat", "kind": "exact"}
+{"query": "wholewheat bread", "locale": "en_US", "expected_food_id": "us.bread_whole_wheat", "kind": "spacing"}
+{"query": "apple", "locale": "en_US", "expected_food_id": "us.apple_raw", "kind": "partial"}
+{"query": "greek yogurt", "locale": "en_US", "expected_food_id": "us.yogurt_greek_plain", "kind": "partial"}
+{"query": "greek yoghurt", "locale": "en_US", "expected_food_id": "us.yogurt_greek_plain", "kind": "spelling"}
+{"query": "cheddar", "locale": "en_US", "expected_food_id": "us.cheddar_cheese", "kind": "partial"}
+{"query": "cheddar cheese", "locale": "en_US", "expected_food_id": "us.cheddar_cheese", "kind": "exact"}
+{"query": "olive oil", "locale": "en_US", "expected_food_id": "us.olive_oil", "kind": "exact"}
+{"query": "mercimek corbasi", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "exact"}
+{"query": "Mercimek Çorbası", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "diacritics"}
+{"query": "MERCIMEK ÇORBASI", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "casing"}
+{"query": "mercimek", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "partial"}
+{"query": "kirmizi mercimek corbasi", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "verbose"}
+{"query": "kuru fasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "exact"}
+{"query": "kurufasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "spacing"}
+{"query": "fasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "partial"}
+{"query": "pilav", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "inflection"}
+{"query": "pilavi", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "inflection"}
+{"query": "pirinc pilavi", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "exact"}
+{"query": "sade pirinc pilavi", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "verbose"}
+{"query": "lahmacun", "locale": "tr", "expected_food_id": "tr.lahmacun", "kind": "exact"}
+{"query": "menemen", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "exact"}
+{"query": "simit", "locale": "tr", "expected_food_id": "tr.simit", "kind": "exact"}
+{"query": "ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "exact"}
+{"query": "sarma", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "partial"}
+{"query": "yaprak sarma", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "alias"}
+{"query": "yaprak dolmasi", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "alias"}
+{"query": "baked beans", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "confusion"}
+{"query": "steamed rice", "locale": "ja_JP", "expected_food_id": "jp.rice_steamed", "kind": "exact"}
+{"query": "rice", "locale": "ja_JP", "expected_food_id": "jp.rice_steamed", "kind": "partial"}
+{"query": "gohan", "locale": "ja_JP", "expected_food_id": "jp.rice_steamed", "kind": "translit"}
+{"query": "miso soup", "locale": "ja_JP", "expected_food_id": "jp.miso_soup", "kind": "exact"}
+{"query": "ramen", "locale": "ja_JP", "expected_food_id": "jp.ramen_shoyu", "kind": "partial"}
+{"query": "shoyu ramen", "locale": "ja_JP", "expected_food_id": "jp.ramen_shoyu", "kind": "exact"}
+{"query": "tonkatsu", "locale": "ja_JP", "expected_food_id": "jp.tonkatsu", "kind": "exact"}
+{"query": "pork cutlet", "locale": "ja_JP", "expected_food_id": "jp.tonkatsu", "kind": "alias"}
+{"query": "katsu", "locale": "ja_JP", "expected_food_id": "jp.tonkatsu", "kind": "partial"}
+{"query": "gyoza", "locale": "ja_JP", "expected_food_id": "jp.gyoza", "kind": "partial"}
+{"query": "edamame", "locale": "ja_JP", "expected_food_id": "jp.edamame", "kind": "partial"}
+{"query": "silken tofu", "locale": "ja_JP", "expected_food_id": "jp.tofu_silken", "kind": "exact"}
+{"query": "grilled salmon", "locale": "ja_JP", "expected_food_id": "jp.salmon_grilled", "kind": "exact"}
+{"query": "pad thai", "locale": "en_US", "expected_food_id": null, "kind": "absent"}
+{"query": "sushi", "locale": "en_US", "expected_food_id": null, "kind": "absent"}
+{"query": "unicorn casserole", "locale": "en_US", "expected_food_id": null, "kind": "absent"}
+{"query": "chocolate cake", "locale": "en_US", "expected_food_id": null, "kind": "absent"}
+{"query": "asdfgh", "locale": "en_US", "expected_food_id": null, "kind": "absent"}
+{"query": "pizza margherita", "locale": "tr", "expected_food_id": null, "kind": "absent"}
+{"query": "sushi", "locale": "tr", "expected_food_id": null, "kind": "absent"}
+{"query": "hamburger", "locale": "tr", "expected_food_id": null, "kind": "absent"}
+{"query": "cheeseburger", "locale": "tr", "expected_food_id": null, "kind": "absent"}
+{"query": "zzzz", "locale": "tr", "expected_food_id": null, "kind": "absent"}
+{"query": "lahmacun", "locale": "ja_JP", "expected_food_id": null, "kind": "absent"}
+{"query": "tacos", "locale": "ja_JP", "expected_food_id": null, "kind": "absent"}
+{"query": "spaghetti carbonara", "locale": "ja_JP", "expected_food_id": null, "kind": "absent"}

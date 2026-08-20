@@ -7,10 +7,20 @@ dependencies = [
   "uvicorn>=0.32",
   "pydantic>=2.9",
   "pyyaml>=6.0",
+  # Retrieval scoring (TF-IDF vectorisers for word and char n-grams). A runtime
+  # dependency, not a dev one: pipeline/retrieval.py imports it at module load.
+  "scikit-learn>=1.4",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.3", "ruff>=0.7"]
+dev = [
+  "pytest>=8.3",
+  "ruff>=0.7",
+  # Required by fastapi.testclient -> starlette.testclient. Not pulled in by
+  # FastAPI itself, so it has to be declared or a clean install fails at test
+  # collection. It did, on every CI run, for a day.
+  "httpx2",
+]
 
 [build-system]
 requires = ["setuptools>=68"]
