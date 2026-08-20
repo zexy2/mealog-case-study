@@ -9,6 +9,8 @@ node_modules/
 eval/reports/*.md
 !eval/reports/.gitkeep
 data/
+# Golden-set inputs are fetched locally and never committed.
+data/golden-images/
 *.safetensors
 .DS_Store
 *.egg-info/
