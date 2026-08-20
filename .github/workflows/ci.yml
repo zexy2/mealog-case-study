@@ -49,3 +49,17 @@ jobs:
       # Offline eval must reproduce, and no cuisine bucket may regress.
       - name: eval regression guard
         run: python eval/harness.py --configs V0,V1,V2,V3 --check-regression
+
+  # Rulesets would prevent this, but GitHub does not enforce them on private
+  # repositories outside a Team plan. Detection is the available substitute:
+  # a direct push still lands, but main goes red and names the commit.
+  main-arrived-via-pull-request:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/check_main_push.py
