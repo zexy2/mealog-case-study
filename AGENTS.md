@@ -75,6 +75,11 @@ labels are ground truth; changing them changes every historical number.
 ## 4. Branch and PR discipline
 
 - **Never commit directly to `main`.** Every change is a PR.
+  This is *detected, not prevented*. GitHub does not enforce rulesets on private
+  repositories outside a Team plan, so a direct push still lands — but the
+  `main-arrived-via-pull-request` job turns `main` red and names the commit and
+  its author. Replace detection with a ruleset the moment this repository becomes
+  public or moves into an organisation.
 - One issue → one branch → one PR. Keep PRs small enough to review in 10 minutes.
 - Fill in the PR template completely. A PR that does not state its **eval impact**
   will not be merged.
