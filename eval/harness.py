@@ -100,9 +100,11 @@ def scorecard(all_results: dict[str, list[SampleResult]]) -> str:
               "> provider responses are recorded. Numbers here validate the harness,",
               "> not the system. Confidence intervals are reported once n >= 60.",
               "",
-              "> Read MAPE and coverage together. V3 answers fewer meals but is",
-              "> right more often on the ones it answers; deferred meals are",
-              "> resolved by one targeted question rather than a silent guess."]
+              "> Read MAPE and coverage together: a config that answers fewer meals",
+              "> is not directly comparable to one that answers all of them. Whether",
+              "> gating actually trades coverage for accuracy is **not established",
+              "> by this table** — seeded fixtures cannot show that. It becomes a",
+              "> measurable claim once real provider responses land (issue #3)."]
     return "\n".join(lines) + "\n"
 
 
