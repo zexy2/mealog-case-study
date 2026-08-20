@@ -1,4 +1,4 @@
-.PHONY: install eval eval-live test lint invariants check api db clean
+.PHONY: install eval eval-live test lint invariants status check api db clean
 
 install:
 	cd server && python -m pip install -e ".[dev]" -q
@@ -20,8 +20,12 @@ lint:
 invariants:
 	python scripts/check_invariants.py
 
+status:
+	python scripts/status.py
+
 # What CI runs. Run this before opening a PR (AGENTS.md section 7).
 check: lint test invariants
+	python scripts/status.py --check
 	python eval/harness.py --configs V0,V1,V2,V3 --check-regression
 
 db:
