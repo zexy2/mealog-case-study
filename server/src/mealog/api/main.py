@@ -6,8 +6,9 @@ The client generates the key; the server makes replays free.
 """
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
+from starlette.datastructures import UploadFile
 
 from mealog import obs
 from mealog.config import settings
@@ -27,6 +28,7 @@ ALLOWED_IMAGE_TYPES = frozenset(
         "image/gif",
         "image/heic",
         "image/heif",
+        "image/jpg",
         "image/jpeg",
         "image/png",
         "image/webp",
@@ -103,15 +105,10 @@ async def log_meal(request: Request) -> dict:
     if cached := _SEEN.get(req.idempotency_key):
         obs.event("idempotent_replay", key=req.idempotency_key)
         return cached
-    if (
-        settings.vision_provider != "fixture"
-        and input_ref.sample_id
-        and input_ref.image_bytes is None
-        and not (input_ref.text and input_ref.text.strip())
-    ):
+    if settings.vision_provider != "fixture" and input_ref.sample_id:
         raise HTTPException(
             status_code=400,
-            detail="sample_id is test-only; live provider requires an image or text",
+            detail="sample_id is test-only; live provider needs image or text input",
         )
     vision = make_vision(settings.vision_provider, settings.gemini_api_key)
     result = run(vision, input_ref, req.locale, CONFIGS[req.config], req.idempotency_key).model_dump()

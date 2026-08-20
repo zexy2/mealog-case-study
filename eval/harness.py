@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -20,6 +21,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "server" / "src"))
 
 from mealog import obs                                    # noqa: E402
+from mealog.adapters.vision_gemini import GeminiVision    # noqa: E402
 from mealog.pipeline.nutrition import scale_per_100g      # noqa: E402
 from mealog.locales.loader import load                    # noqa: E402
 from mealog.pipeline.runner import CONFIGS, make_vision, run  # noqa: E402
@@ -40,9 +42,12 @@ def truth_kcal(entry: dict) -> float:
     return round(total, 1)
 
 
-def evaluate(config_name: str, live: bool = False) -> list[SampleResult]:
+def evaluate(config_name: str, live: bool = False, record: bool = False) -> list[SampleResult]:
     cfg = CONFIGS[config_name]
-    vision = make_vision("gemini" if live else "fixture")
+    if live:
+        vision = GeminiVision(os.getenv("GEMINI_API_KEY", ""))
+    else:
+        vision = make_vision("fixture")
     results = []
     for line in GOLDEN.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -50,6 +55,10 @@ def evaluate(config_name: str, live: bool = False) -> list[SampleResult]:
         entry = json.loads(line)
         log = run(vision, entry["sample_id"], entry["locale"], cfg,
                   idempotency_key=f"eval::{config_name}::{entry['sample_id']}")
+        if live and record:
+            if vision.last_input is None:
+                raise RuntimeError("live vision returned no input metadata to record")
+            vision.record_fixture(REPO / "eval" / "fixtures", vision.last_input)
         results.append(SampleResult(
             sample_id=entry["sample_id"],
             cuisine=entry["cuisine"],
@@ -136,11 +145,20 @@ def main() -> int:
     ap.add_argument("--configs", default="V0,V1,V2,V3")
     ap.add_argument("--out", default=None)
     ap.add_argument("--live", action="store_true")
+    ap.add_argument(
+        "--record",
+        action="store_true",
+        help="record live provider observations into eval/fixtures/",
+    )
     ap.add_argument("--check-regression", action="store_true")
     args = ap.parse_args()
 
+    if args.record and not args.live:
+        ap.error("--record requires --live")
+
     obs.configure("WARNING")  # keep the scorecard readable; INFO for debugging
-    all_results = {name: evaluate(name, live=args.live)
+    # `make eval-live` predates the flag and must keep recording by default.
+    all_results = {name: evaluate(name, live=args.live, record=args.record or args.live)
                    for name in args.configs.split(",")}
 
     if args.check_regression:
