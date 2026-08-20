@@ -22,12 +22,14 @@ sys.path.insert(0, str(REPO / "server" / "src"))
 
 from mealog import obs                                    # noqa: E402
 from mealog.adapters.vision_gemini import GeminiVision    # noqa: E402
+from mealog.domain.taxonomy import ErrorCode, UNCLASSIFIED, tag_errors  # noqa: E402
 from mealog.pipeline.nutrition import scale_per_100g      # noqa: E402
 from mealog.locales.loader import load                    # noqa: E402
 from mealog.pipeline.runner import CONFIGS, make_vision, run  # noqa: E402
 
 sys.path.insert(0, str(REPO / "eval"))
-from metrics import SampleResult, aggregate, spread, worst_cuisine  # noqa: E402
+from metrics import (SampleResult, aggregate, aggregate_by_tier, error_distribution,
+                     spread, worst_cuisine)  # noqa: E402
 
 GOLDEN = REPO / "eval" / "golden" / "manifest.jsonl"
 BASELINE = REPO / "eval" / "reports" / "baseline.json"
@@ -40,6 +42,15 @@ def truth_kcal(entry: dict) -> float:
         food = pack.foods[item["food_id"]]
         total += scale_per_100g(food.per_100g, item["grams"]).kcal
     return round(total, 1)
+
+
+def truth_grams(entry: dict) -> dict[str, float]:
+    """Aggregate truth mass by food ID for the E7 comparison."""
+    grams: dict[str, float] = {}
+    for item in entry["truth"]["items"]:
+        food_id = item["food_id"]
+        grams[food_id] = grams.get(food_id, 0.0) + item["grams"]
+    return grams
 
 
 def evaluate(config_name: str, live: bool = False, record: bool = False) -> list[SampleResult]:
@@ -59,16 +70,35 @@ def evaluate(config_name: str, live: bool = False, record: bool = False) -> list
             if vision.last_input is None:
                 raise RuntimeError("live vision returned no input metadata to record")
             vision.record_fixture(REPO / "eval" / "fixtures", vision.last_input)
+        predicted_items = [item for item in log.items if not item.abstained]
+        predicted_grams: dict[str, float] = {}
+        for item in predicted_items:
+            predicted_grams[item.food_id] = predicted_grams.get(item.food_id, 0.0) + item.grams
+        truth_ids = {i["food_id"] for i in entry["truth"]["items"]}
+        pred_ids = {item.food_id for item in predicted_items}
+        asked = log.action == "ask"
+        expected_grams = truth_grams(entry)
         results.append(SampleResult(
             sample_id=entry["sample_id"],
             cuisine=entry["cuisine"],
             tier=entry["tier"],
-            truth_ids={i["food_id"] for i in entry["truth"]["items"]},
-            pred_ids={i.food_id for i in log.items if not i.abstained},
+            truth_ids=truth_ids,
+            pred_ids=pred_ids,
             truth_kcal=truth_kcal(entry),
             pred_kcal=log.totals.kcal,
             abstained=sum(i.abstained for i in log.items),
-            asked=log.action == "ask",
+            asked=asked,
+            truth_grams=expected_grams,
+            pred_grams=predicted_grams,
+            identity_applicable=cfg.grounded,
+            error_codes=tag_errors(
+                truth_ids=truth_ids,
+                pred_ids=pred_ids,
+                truth_grams=expected_grams,
+                pred_grams=predicted_grams,
+                asked=asked,
+                identity_applicable=cfg.grounded,
+            ),
         ))
     return results
 
@@ -103,6 +133,34 @@ def scorecard(all_results: dict[str, list[SampleResult]]) -> str:
                      f"**{overall.f1:.2f}** | **{overall.mape:.1f}%** | "
                      f"**{overall.within_20pct:.0f}%** | "
                      f"**{overall.hallucination_rate:.1f}%** |")
+
+        tier_buckets, tier_overall = aggregate_by_tier(results)
+        lines += ["", f"## {name} - per ground-truth tier", "",
+                  "| Ground-truth tier | n | Coverage | Item F1 | kcal MAPE | within +/-20% | FP rate |",
+                  "|---|---:|---:|---:|---:|---:|---:|"]
+        for b in sorted(tier_buckets.values(), key=lambda x: x.name):
+            lines.append(f"| {b.name} | {b.n} | {b.coverage:.0f}% | {b.f1:.2f} | "
+                         f"{b.mape:.1f}% | {b.within_20pct:.0f}% | "
+                         f"{b.hallucination_rate:.1f}% |")
+        lines.append(f"| **overall** | **{tier_overall.n}** | **{tier_overall.coverage:.0f}%** | "
+                     f"**{tier_overall.f1:.2f}** | **{tier_overall.mape:.1f}%** | "
+                     f"**{tier_overall.within_20pct:.0f}%** | "
+                     f"**{tier_overall.hallucination_rate:.1f}%** |")
+
+    error_labels = [code.value for code in ErrorCode] + [UNCLASSIFIED]
+    lines += ["", "## Error distribution", "",
+              "> One count is one sample carrying the tag. Human-causal labels are",
+              "> intentionally reported as `unclassified`; no E1/E2/E5/E6/E8/E9/E10/E11",
+              "> code is guessed from aggregate results.", "",
+              "| Config | Error tag | Samples | Share of tagged samples |",
+              "|---|---|---:|---:|"]
+    for name, results in all_results.items():
+        counts = error_distribution(results)
+        total = sum(counts.values())
+        for code in error_labels:
+            count = counts.get(code, 0)
+            share = count / total * 100.0 if total else 0.0
+            lines.append(f"| {name} | {code} | {count} | {share:.1f}% |")
 
     lines += ["", "---", "",
               "> Golden set is seeded (n=9) and fixtures are placeholders until real",

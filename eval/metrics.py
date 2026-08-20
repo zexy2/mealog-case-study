@@ -10,7 +10,11 @@ Two decisions are encoded here and both are deliberate:
 """
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
+from typing import Literal
+
+from mealog.domain.taxonomy import tag_errors
 
 
 @dataclass
@@ -24,6 +28,27 @@ class SampleResult:
     pred_kcal: float
     abstained: int = 0
     asked: bool = False
+    truth_grams: dict[str, float] = field(default_factory=dict)
+    pred_grams: dict[str, float] = field(default_factory=dict)
+    identity_applicable: bool = True
+    error_codes: tuple[str, ...] | None = None
+
+    def __post_init__(self) -> None:
+        """Derive tags once, unless a caller supplied an explicit set.
+
+        The harness passes the per-food masses needed for E7. Keeping the
+        derivation here as well makes manually constructed results just as
+        honest as recorded ones and gives the scorecard one source of truth.
+        """
+        if self.error_codes is None:
+            self.error_codes = tag_errors(
+                truth_ids=self.truth_ids,
+                pred_ids=self.pred_ids,
+                truth_grams=self.truth_grams,
+                pred_grams=self.pred_grams,
+                asked=self.asked,
+                identity_applicable=self.identity_applicable,
+            )
 
     @property
     def covered(self) -> bool:
@@ -61,6 +86,7 @@ class Bucket:
     apes: list[float] = field(default_factory=list)
     abstained: int = 0
     asked: int = 0
+    error_counts: dict[str, int] = field(default_factory=dict)
 
     @property
     def precision(self) -> float:
@@ -101,21 +127,51 @@ class Bucket:
         total = self.tp + self.fp
         return self.fp / total * 100.0 if total else 0.0
 
+    @property
+    def error_distribution(self) -> dict[str, int]:
+        """Per-bucket count of observed error tags."""
+        return dict(self.error_counts)
 
-def aggregate(results: list[SampleResult]) -> tuple[dict[str, Bucket], Bucket]:
+
+def aggregate(
+    results: list[SampleResult],
+    group_by: Literal["cuisine", "tier"] = "cuisine",
+) -> tuple[dict[str, Bucket], Bucket]:
+    """Aggregate by cuisine (default) or ground-truth tier.
+
+    The return shape stays compatible with the original cuisine aggregation;
+    tier slices use the same metrics and therefore cannot drift from them.
+    """
+    if group_by not in {"cuisine", "tier"}:
+        raise ValueError("group_by must be 'cuisine' or 'tier'")
+
     buckets: dict[str, Bucket] = {}
     overall = Bucket("overall")
     for r in results:
-        for b in (buckets.setdefault(r.cuisine, Bucket(r.cuisine)), overall):
+        raw_group = r.cuisine if group_by == "cuisine" else r.tier
+        group = getattr(raw_group, "value", raw_group)
+        for b in (buckets.setdefault(group, Bucket(group)), overall):
             b.n += 1
             b.tp += r.tp; b.fp += r.fp; b.fn += r.fn
             b.abstained += r.abstained
             b.asked += int(r.asked)
+            for code in r.error_codes:
+                b.error_counts[code] = b.error_counts.get(code, 0) + 1
             if r.covered:
                 b.n_covered += 1
                 if (a := r.ape) is not None:
                     b.apes.append(a)
     return buckets, overall
+
+
+def aggregate_by_tier(results: list[SampleResult]) -> tuple[dict[str, Bucket], Bucket]:
+    """Aggregate the same headline metrics by ``GroundTruthTier``."""
+    return aggregate(results, group_by="tier")
+
+
+def error_distribution(results: list[SampleResult]) -> dict[str, int]:
+    """Count each observed tag once per sample."""
+    return dict(Counter(code for r in results for code in r.error_codes))
 
 
 def worst_cuisine(buckets: dict[str, Bucket]) -> Bucket | None:
@@ -126,5 +182,14 @@ def worst_cuisine(buckets: dict[str, Bucket]) -> Bucket | None:
 def spread(buckets: dict[str, Bucket]) -> float:
     """Worst-to-best MAPE ratio. Published re-analyses put commercial apps at
     1.6x-2.4x across cuisines; this is the number we are trying to push to 1.0."""
-    scored = [b.mape for b in buckets.values() if b.apes and b.mape > 0]
-    return max(scored) / min(scored) if len(scored) > 1 else 1.0
+    scored = [b.mape for b in buckets.values() if b.apes]
+    if len(scored) <= 1:
+        return 1.0
+    best = min(scored)
+    worst = max(scored)
+    if best == 0:
+        # A zero-error bucket is genuinely the best bucket. If another bucket
+        # has error, the ratio is unbounded; dropping zero made the spread look
+        # artificially healthy.
+        return float("inf") if worst > 0 else 1.0
+    return worst / best
