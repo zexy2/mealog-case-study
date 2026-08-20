@@ -5,6 +5,7 @@ Every failure the harness finds is tagged with an ErrorCode; every golden-set
 entry carries a CuisineBucket and a GroundTruthTier. Keeping them in the domain
 (not in eval/) means production logs and offline evals speak the same language.
 """
+from collections.abc import Mapping
 from enum import Enum
 
 
@@ -46,6 +47,82 @@ class ErrorCode(str, Enum):
     E10_REGIONAL_MISMATCH = "E10"            # kuru fasulye -> baked beans
     E11_BAD_DB_ENTRY = "E11"                 # canonical record itself is wrong
     E12_UNSURFACED_AMBIGUITY = "E12"         # should have asked, silently guessed
+
+
+# A specific human error code must never be inferred from aggregate eval data.
+# Keep this separate from ErrorCode: there are twelve error codes in the
+# taxonomy, and "unclassified" means that a reviewer still needs to choose one.
+UNCLASSIFIED = "unclassified"
+
+# These are the only codes that can be derived from fields carried by an eval
+# result. The remaining codes describe causes (rather than observable
+# mismatches) and therefore require a human label.
+AUTO_TAGGABLE_CODES = frozenset({
+    ErrorCode.E3_HALLUCINATED_ITEM,
+    ErrorCode.E4_MISSED_ITEM,
+    ErrorCode.E7_PORTION_ERROR,
+    ErrorCode.E12_UNSURFACED_AMBIGUITY,
+})
+
+
+def tag_errors(
+    *,
+    truth_ids: set[str],
+    pred_ids: set[str],
+    truth_grams: Mapping[str, float] | None = None,
+    pred_grams: Mapping[str, float] | None = None,
+    asked: bool = False,
+    identity_applicable: bool = True,
+) -> tuple[str, ...]:
+    """Return the observable error tags for one evaluated sample.
+
+    Identity is deliberately disabled for an ungrounded baseline such as V0:
+    its ``ungrounded:<surface>`` values are not catalogue IDs, so calling them
+    hallucinations would turn a known baseline limitation into a fake finding.
+    A matched ID whose predicted mass differs by more than 30% is an E7. The
+    more specific cause (for example E8 unit/density error) is not available in
+    this aggregate data, so any non-perfect result also carries ``unclassified``
+    as a human-review placeholder rather than a guessed E1/E2/E8/E10 code.
+
+    Tags are deduplicated per sample. The error distribution therefore counts
+    samples with each observed code, not the number of items in a plate.
+    """
+    tags: list[str] = []
+
+    if asked:
+        tags.append(ErrorCode.E12_UNSURFACED_AMBIGUITY.value)
+
+    if not identity_applicable:
+        return tuple(tags)
+
+    truth = set(truth_ids)
+    pred = set(pred_ids)
+    extras = pred - truth
+    missing = truth - pred
+    matched = truth & pred
+
+    if extras:
+        tags.append(ErrorCode.E3_HALLUCINATED_ITEM.value)
+    if missing:
+        tags.append(ErrorCode.E4_MISSED_ITEM.value)
+
+    truth_mass = truth_grams or {}
+    pred_mass = pred_grams or {}
+    mass_error = False
+    for food_id in matched:
+        expected = truth_mass.get(food_id)
+        actual = pred_mass.get(food_id)
+        if (expected is not None and actual is not None and expected > 0
+                and abs(actual - expected) / expected > 0.30):
+            mass_error = True
+            break
+    if mass_error:
+        tags.append(ErrorCode.E7_PORTION_ERROR.value)
+
+    if extras or missing or mass_error:
+        tags.append(UNCLASSIFIED)
+
+    return tuple(tags)
 
 
 #: Codes whose dominant cost is mass, not identity. Used to split the calorie
