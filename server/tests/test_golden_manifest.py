@@ -21,3 +21,8 @@ def test_non_text_golden_entries_declare_reproducible_image_sources() -> None:
         assert row["image_source_url"].startswith(("http://", "https://"))
         assert row["image_license"].strip()
         assert SHA256.fullmatch(row["image_sha256"])
+
+
+def test_seeded_truth_never_claims_tier_one() -> None:
+    for row in _rows():
+        assert not (row["tier"] == "tier_1" and row.get("truth_source") == "seeded")

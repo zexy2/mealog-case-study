@@ -21,6 +21,12 @@ the closed set covers every source ingredient. Tier 3 `truth.items[].grams`
 values are explicit assumptions retained for the existing evaluator; they are
 not evidence of weighed mass or kcal accuracy.
 
+Image provenance and label provenance are separate. `n5k_0001`, `n5k_0002`,
+`tr_0001` and `tr_0002` carry `truth_source: seeded` because their evaluator
+labels have not been imported or independently verified against these new
+inputs. They are Tier 3 until a later human-gated label update; a real image
+never upgrades an invented label to Tier 1.
+
 ## Fetching inputs
 
 Images are intentionally absent from Git. Fetch them into the ignored local
