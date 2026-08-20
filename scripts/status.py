@@ -93,7 +93,7 @@ def probe_writeup() -> Probe:
 
 
 def counts() -> dict:
-    tests = sum(len(re.findall(r"^def test_", p.read_text(encoding="utf-8"), re.M))
+    tests = sum(len(re.findall(r"^def test_", p.read_text(encoding="utf-8"), re.MULTILINE))
                 for p in (ROOT / "server/tests").glob("test_*.py"))
     packs = sorted(p.name for p in (ROOT / "locale_packs").iterdir()
                    if (p / "pack.yaml").exists())
@@ -122,10 +122,10 @@ def render() -> str:
         "",
         "## Is this ready to submit?",
         "",
-        f"**{'Yes.' if outstanding == 0 else 'No.'}** "
-        f"{outstanding} of {len(probes)} deliverables are still outstanding. "
-        "What exists today is the measurement layer and the architecture; the "
-        "photo path and the app do not exist yet.",
+        (f"**{'Yes.' if outstanding == 0 else 'No.'}** "
+         f"{outstanding} of {len(probes)} deliverables are still outstanding. "
+         "What exists today is the measurement layer and the architecture; the "
+         "photo path and the app do not exist yet."),
         "",
         "## Deliverables",
         "",
@@ -136,8 +136,8 @@ def render() -> str:
 
     if n_synth:
         L += ["", "## Read the numbers with this in mind", "",
-              f"**{n_synth} of {n_fix} recorded fixtures are seeded placeholders**, "
-              'flagged in each file with `"_synthetic": true`.',
+              (f"**{n_synth} of {n_fix} recorded fixtures are seeded placeholders**, "
+               'flagged in each file with `"_synthetic": true`.'),
               "",
               "Nothing in `eval/reports/` is yet a claim about how accurately this",
               "system reads a real plate. The harness, the metrics and the per-cuisine",
