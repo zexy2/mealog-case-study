@@ -87,8 +87,22 @@ place numbers are made), locale-pack integrity, the closed-set guarantee, and
 idempotent replay. `docs/evaluation.md` covers the accuracy evaluation, which is
 a separate concern from unit tests.
 
-<!-- TODO(Tue): Assumptions · Known limitations · With more time · Time spent
-     · Tech & dependencies · AI usage · Project structure -->
+## Assumptions
+
+The brief is unusually complete, so I asked no clarifying questions. Where it was
+silent I made a call and recorded it — ambiguity, evidence checked, decision, and
+what it would cost to reverse — in [`docs/assumptions.md`](docs/assumptions.md).
+
+The three that shape the most:
+
+- **Scope**: one narrow slice end to end, with depth spent on measurement (A1).
+- **Market**: cuisine-stratified evaluation with the *worst* bucket as the headline
+  metric — not a locally-weighted set, and not a generic global one (A2).
+- **Friction**: the system may ask one question when unsure, which their shipped
+  tap-to-confirm and portion-editing flows already establish as acceptable (A3).
+
+<!-- TODO(Tue): Known limitations · With more time · Time spent
+     · Tech & dependencies · AI usage -->
 
 ## Project structure
 
