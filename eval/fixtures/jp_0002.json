@@ -1,0 +1,16 @@
+{
+  "_synthetic": true,
+  "_note": "SEEDED placeholder so the harness runs on day 0. Replaced by real recorded provider responses via `make eval-live --record` on Friday.",
+  "sample_id": "jp_0002",
+  "provider": "seed",
+  "prompt_version": "p1",
+  "items": [
+    {
+      "surface_form": "pork cutlet",
+      "cooking_method": "deep_fried",
+      "portion_hint": "1 piece",
+      "confidence": 0.77,
+      "ungrounded_kcal": 320
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "_synthetic": true,
+  "_note": "SEEDED placeholder so the harness runs on day 0. Replaced by real recorded provider responses via `make eval-live --record` on Friday.",
+  "sample_id": "pkg_0001",
+  "provider": "seed",
+  "prompt_version": "p1",
+  "items": [
+    {
+      "surface_form": "greek yogurt",
+      "cooking_method": null,
+      "portion_hint": "1 container",
+      "confidence": 0.97,
+      "ungrounded_kcal": 120
+    }
+  ]
+}

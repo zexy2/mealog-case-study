@@ -1,0 +1,16 @@
+{
+  "_synthetic": true,
+  "_note": "SEEDED placeholder so the harness runs on day 0. Replaced by real recorded provider responses via `make eval-live --record` on Friday.",
+  "sample_id": "tr_0001",
+  "provider": "seed",
+  "prompt_version": "p1",
+  "items": [
+    {
+      "surface_form": "Mercimek çorbası",
+      "cooking_method": "boiled",
+      "portion_hint": "2 kepçe",
+      "confidence": 0.74,
+      "ungrounded_kcal": 150
+    }
+  ]
+}

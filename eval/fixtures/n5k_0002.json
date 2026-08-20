@@ -1,0 +1,23 @@
+{
+  "_synthetic": true,
+  "_note": "SEEDED placeholder so the harness runs on day 0. Replaced by real recorded provider responses via `make eval-live --record` on Friday.",
+  "sample_id": "n5k_0002",
+  "provider": "seed",
+  "prompt_version": "p1",
+  "items": [
+    {
+      "surface_form": "scrambled eggs",
+      "cooking_method": "fried",
+      "portion_hint": "2 eggs",
+      "confidence": 0.86,
+      "ungrounded_kcal": 180
+    },
+    {
+      "surface_form": "whole wheat bread",
+      "cooking_method": null,
+      "portion_hint": "2 slice_bread",
+      "confidence": 0.79,
+      "ungrounded_kcal": 120
+    }
+  ]
+}

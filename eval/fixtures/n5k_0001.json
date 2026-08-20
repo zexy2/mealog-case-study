@@ -1,0 +1,23 @@
+{
+  "_synthetic": true,
+  "_note": "SEEDED placeholder so the harness runs on day 0. Replaced by real recorded provider responses via `make eval-live --record` on Friday.",
+  "sample_id": "n5k_0001",
+  "provider": "seed",
+  "prompt_version": "p1",
+  "items": [
+    {
+      "surface_form": "grilled chicken",
+      "cooking_method": "grilled",
+      "portion_hint": "1 breast",
+      "confidence": 0.88,
+      "ungrounded_kcal": 230
+    },
+    {
+      "surface_form": "white rice",
+      "cooking_method": "boiled",
+      "portion_hint": "1 cup",
+      "confidence": 0.91,
+      "ungrounded_kcal": 180
+    }
+  ]
+}

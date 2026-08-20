@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SEEDED placeholder so the harness runs on day 0. Replaced by real recorded provider responses via `make eval-live --record` on Friday.",
+  "sample_id": "jp_0001",
+  "provider": "seed",
+  "prompt_version": "p1",
+  "items": [
+    {
+      "surface_form": "steamed rice",
+      "cooking_method": "steamed",
+      "portion_hint": "1 wan",
+      "confidence": 0.9,
+      "ungrounded_kcal": 220
+    },
+    {
+      "surface_form": "miso soup",
+      "cooking_method": null,
+      "portion_hint": "1 bowl",
+      "confidence": 0.84,
+      "ungrounded_kcal": 60
+    },
+    {
+      "surface_form": "grilled salmon",
+      "cooking_method": "grilled",
+      "portion_hint": "1 fillet",
+      "confidence": 0.81,
+      "ungrounded_kcal": 190
+    }
+  ]
+}
