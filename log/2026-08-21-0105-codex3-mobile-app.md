@@ -2,7 +2,7 @@
 
 Issue:   #31; claim #32
 Branch:  `agent/codex3/mobile-app`
-Commit:  `70be72c`
+Commits: `225a170`, `0e9530d` (rebased onto current `main`)
 Did:     Added `apps/mobile` as an Expo SDK57 + React Native + TypeScript app
          with exactly three flows: Capture, Review & correct, and Day. Capture
          supports camera, library photo and equal-status text input; analysis
