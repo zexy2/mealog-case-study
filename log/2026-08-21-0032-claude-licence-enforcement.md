@@ -16,6 +16,12 @@ Result:  No eval impact, verified rather than asserted: commercial mode defaults
          offline with no key. `tr` is now refused in commercial mode, and so is
          `ja_JP` — its MEXT terms were "public reference; verify before commercial
          use", which is `unverified`, which fails closed.
+CI:      Read, not assumed. Runs 80/84 (push) green. Run 81 (pull_request) failed
+         on the scope gate, and run 85 failed the same way because it started
+         before the corrected PR body landed — in both cases lint, tests and
+         invariants passed and only `check_claim_scope.py` objected, for the
+         template-parsing reason in Traps below. No code change was needed to
+         resolve it and no gate was weakened.
 Next:    Two follow-ups I deliberately did not do, both outside this claim.
          (1) `docs/decisions.md` should get the enforcement decision as D9 — the
          text is in the PR body for @zexy2 to append. The file is human-gated by
