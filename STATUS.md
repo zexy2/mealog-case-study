@@ -6,15 +6,15 @@
 
 ## Is this ready to submit?
 
-**No.** 6 of 8 deliverables are still outstanding. What exists today is the measurement layer and the architecture; the photo path and the app do not exist yet.
+**No.** 8 of 8 deliverables are still outstanding. What exists today is the measurement layer and the architecture; the photo path and the app do not exist yet.
 
 ## Deliverables
 
 | Deliverable | State | Evidence |
 |---|---|---|
 | Mobile app experience (not a web app) | ⬜ not started | no app project in the tree |
-| Photo ingest (end-to-end flow) | ✅ working | API accepts an image |
-| Real vision provider | ✅ working | provider wired |
+| Photo ingest (end-to-end flow) | 🚧 partial | API accepts an image; the path has not run against a live provider |
+| Real vision provider | 🚧 partial | adapter implemented, never executed — no recorded provider response |
 | Accuracy evaluation (metrics, test set, taxonomy) | 🚧 partial | harness runs offline; 9 golden samples, 9/9 fixtures still synthetic — [#3](../../issues/3), [#2](../../issues/2) |
 | Fine-tuning | 🚧 partial | plan in `docs/finetuning-plan.md`; nothing trained (the brief marks implementation optional) |
 | Technical write-up | 🚧 partial | README + 5 documents; 4 section group(s) still TODO |

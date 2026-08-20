@@ -41,6 +41,8 @@ CONFIGS: dict[str, Config] = {
 def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: Config,
         idempotency_key: str, text: str | None = None) -> MealLog:
     if isinstance(input_ref, str):
+        # TODO(#6): Remove VisionInput | str compatibility once all callers pass
+        # VisionInput.
         input_ref = VisionInput(sample_id=input_ref, text=text)
     elif text is not None:
         raise TypeError("text must be part of VisionInput")
