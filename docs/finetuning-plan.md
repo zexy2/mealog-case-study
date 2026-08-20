@@ -4,6 +4,13 @@ The brief offers three AI paths and asks for one, gone deep. **The chosen path i
 hybrid (rules + retrieval + LLM).** Fine-tuning is not a fourth path here — it is
 how one component of the hybrid gets better.
 
+**Status: nothing in this document is trained yet.** No training script, model
+artifact or prepared dataset exists in the repository. Both sections below are
+designs with their evaluation protocol fixed in advance — which is the point,
+since the brief marks fine-tuning implementation optional and judges the plan.
+An earlier revision of this file was headed "Implemented" for the first section;
+that was wrong and is corrected here rather than quietly reworded.
+
 The decision that matters is *which* component. Published benchmarking of ten VLMs
 on a weighed-reference dataset shows frontier models are reasonable at identifying
 what is on a plate but carry roughly ~80 kcal mean absolute error per dish, and the
@@ -13,7 +20,7 @@ measured hole".
 
 ---
 
-## Implemented — locale adapter (image → canonical embedding)
+## Scoped, not yet trained — locale adapter (image → canonical embedding)
 
 **What.** A lightweight adapter aligning food images to the canonical catalogue's
 text-embedding space, trained on a **mixed multi-cuisine corpus** so the method is
@@ -38,7 +45,7 @@ overstate production lift. Reported as such.
 
 ---
 
-## Planned, not implemented — mass/portion regressor
+## Scoped and deliberately deferred — mass/portion regressor
 
 **What.** A quantile regressor (p10/p50/p90 grams) on a frozen vision backbone,
 trained on a weighed-reference dataset with official train/test splits and an
