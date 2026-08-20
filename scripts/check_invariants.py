@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Architectural invariants, enforced.
 
 AGENTS.md §9 lists the rules that keep this codebase coherent when several agents
