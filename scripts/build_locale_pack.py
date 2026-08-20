@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Build a locale pack from a food-composition source.
 
 Adding a market should be a documented command, not a project. This script is

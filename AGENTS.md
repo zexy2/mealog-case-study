@@ -54,6 +54,18 @@ There is no other locking mechanism. Respect it or agents will clobber each othe
 Any agent may label it `stale-claim`, comment saying it is taking over, and proceed.
 Do not silently seize a live claim.
 
+**Two agents can claim at the same moment.** Checking for open claims and opening
+your own is not atomic, so after you open a claim, **list the claims again**. If an
+overlapping claim exists with a *lower issue number*, it wins: comment on yours,
+close it, and either pick different work or wait. Lowest number wins is arbitrary,
+which is the point — it needs no negotiation.
+
+**Your scope is enforced, not trusted.** `scripts/check_claim_scope.py` runs in CI
+on every pull request: it reads the `## Scope` section of the issue you referenced
+and fails the build if the PR touches anything outside it. Declare paths in
+backticks, one per line, or the parser cannot see them. Widening the scope
+mid-flight is fine — edit the issue first, then continue.
+
 **Unclaimable without human sign-off:** `docs/decisions.md` (append-only, see §6),
 `AGENTS.md`, `.github/workflows/`, and anything under `eval/golden/`. Golden-set
 labels are ground truth; changing them changes every historical number.
@@ -67,6 +79,12 @@ labels are ground truth; changing them changes every historical number.
 - Fill in the PR template completely. A PR that does not state its **eval impact**
   will not be merged.
 - Rebase onto `main` before requesting merge. Resolve your own conflicts.
+- **Respect ordering.** If an issue says *Blocked by #N*, do not start it until #N
+  merges — even if it looks independent. Ordering in this repo usually exists
+  because one change fixes an interface the other would be written against.
+- **Generated files conflict cheaply.** `STATUS.md` is produced by
+  `scripts/status.py`. If it conflicts, do not hand-merge it: take either side,
+  re-run `make status`, and commit the result.
 
 ---
 
@@ -85,12 +103,18 @@ labels are ground truth; changing them changes every historical number.
 
 ## 6. Append-only artifacts
 
-`docs/decisions.md` and `AGENT_LOG.md` are **append-only**. Add at the bottom.
-Never edit or delete an existing entry — supersede it with a new one that references
-the old one by number. History of reasoning is the point.
+`docs/decisions.md` is **append-only**. Add at the bottom. Never edit or delete an
+existing entry — supersede it with a new one that references the old by number. The
+history of reasoning is the point, and a decision quietly rewritten is worse than a
+decision reversed loudly.
 
-End every working session with an `AGENT_LOG.md` entry. That is how the next agent
-learns what happened without reading every PR.
+**End every working session with a log entry**: a new file at
+`log/YYYY-MM-DD-HHMM-<handle>-<topic>.md`. One file per session, never a shared
+file — several agents appending to one log guarantees a merge conflict on every
+pull request, and the log is the one conflict nobody resolves carefully.
+
+Write the `Traps:` line as though the next agent is about to repeat your mistake,
+because they are. That line has been the most valuable part of this log so far.
 
 ---
 
@@ -103,9 +127,19 @@ make test                                  # unit tests
 make lint                                  # ruff
 python eval/harness.py --check-regression  # no cuisine bucket got worse
 python scripts/check_invariants.py         # architectural rules still hold
+python scripts/status.py --check           # STATUS.md still matches reality
 ```
 
-CI runs all four. If you changed pipeline behaviour, also paste the before/after
+CI runs all five, plus `check_claim_scope.py` on pull requests.
+
+**Verify dependency changes in a throwaway virtualenv, not your own.**
+`python -m venv /tmp/x && /tmp/x/bin/pip install -e "server[dev]"`. Every
+environment you already have is contaminated by what you installed yesterday;
+this repository shipped two undeclared dependencies for a day because of exactly
+that, with CI red the whole time.
+
+**Read CI before claiming anything is green.** A guard you do not look at is not
+a guard. If you changed pipeline behaviour, also paste the before/after
 ablation rows into the PR body. **A number without a diff is not evidence.**
 
 ---
@@ -141,7 +175,14 @@ These come from `docs/decisions.md` and are enforced by `scripts/check_invariant
 | Every golden sample has a matching fixture | `make eval` must run offline for anyone |
 | Resolution returns a catalogue `food_id` or `ABSTAIN`, never free text | closed-set is what makes hallucination impossible |
 
-## 10. Where things live
+## 10. Bringing a new agent in
+
+Whoever starts an agent on this repository gives it
+[`docs/onboarding-prompt.md`](docs/onboarding-prompt.md) verbatim as its first
+message. It is short on purpose. An agent that has not read this file will open a
+pull request that fails the scope gate and will not understand why.
+
+## 11. Where things live
 
 | Looking for | Go to |
 |---|---|
@@ -149,5 +190,6 @@ These come from `docs/decisions.md` and are enforced by `scripts/check_invariant
 | How accuracy is measured | `docs/evaluation.md` |
 | What was trained and what was not | `docs/finetuning-plan.md` |
 | How to add a market | `scripts/build_locale_pack.py`, `locale_packs/` |
-| What other agents did | `AGENT_LOG.md`, closed issues, merged PRs |
+| What other agents did | `log/`, closed issues, merged PRs |
+| What is done and what is not | `STATUS.md` (generated) |
 | Current scores | `make eval` → `eval/reports/scorecard.md` |
