@@ -19,7 +19,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 import urllib.error
 import urllib.request
 
@@ -29,8 +28,8 @@ API = "https://api.github.com"
 #: would be noise, and forgetting them is not the failure this guards against.
 ALWAYS_ALLOWED = ("log/", "AGENT_LOG.md", "STATUS.md")
 
-ISSUE_REF = re.compile(r"(?:closes|fixes|resolves|issue)[:\s]+#(\d+)", re.I)
-SCOPE_BLOCK = re.compile(r"##\s*Scope.*?\n(.*?)(?=\n##\s|\Z)", re.S | re.I)
+ISSUE_REF = re.compile(r"(?:closes|fixes|resolves|issue)[:\s]+#(\d+)", re.IGNORECASE)
+SCOPE_BLOCK = re.compile(r"##\s*Scope.*?\n(.*?)(?=\n##\s|\Z)", re.DOTALL | re.IGNORECASE)
 PATHS = re.compile(r"`([^`]+)`")
 
 
@@ -88,7 +87,16 @@ def main() -> int:
             print("not a pull_request event — nothing to check")
             return 0
 
-    pr = gh(f"/repos/{repo}/pulls/{pr_number}", token)
+    try:
+        pr = gh(f"/repos/{repo}/pulls/{pr_number}", token)
+    except urllib.error.HTTPError as exc:
+        # 403 here almost always means the workflow did not request
+        # `pull-requests: read`. The default token is contents-only.
+        print(f"FAIL: cannot read pull request #{pr_number}: {exc.code} {exc.reason}\n\n"
+              "If this is 403, the workflow is missing a permissions block:\n"
+              "  permissions:\n    contents: read\n    pull-requests: read\n    issues: read")
+        return 1
+
     ref = ISSUE_REF.search(pr.get("body") or "")
     if not ref:
         print("FAIL: this pull request references no claim issue.\n\n"
