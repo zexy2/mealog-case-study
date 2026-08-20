@@ -42,3 +42,13 @@ Traps:   - **A cache in front of a legal control is a way around it.** `load()` 
          - `scripts/` is linted by CI (`ruff check src tests ../scripts`), which is
            easy to miss when running ruff from `server/`. An unused `# noqa: E402`
            there was the only thing standing between "green locally" and red CI.
+         - **The PR template is unparseable by the scope gate it feeds.** The
+           template writes `**Closes:** #<issue>`, and
+           `check_claim_scope.py`'s `ISSUE_REF` is
+           `(?:closes|fixes|resolves|issue)[:\s]+#(\d+)` — the `**` sits between
+           the colon and the `#`, so `[:\s]+` never reaches it. Filling the
+           template in exactly as written fails CI with "this pull request
+           references no claim issue". Put a bare `Closes #N` on its own line.
+           Cost me one red CI run; it will cost the next agent one too until
+           either the template or the regex is fixed. Both files are outside my
+           claim, so this is reported on PR #28 rather than patched here.
