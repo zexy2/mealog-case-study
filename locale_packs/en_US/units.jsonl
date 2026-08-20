@@ -1,6 +1,6 @@
-{"unit": "cup", "ml": 240}
-{"unit": "tbsp", "ml": 15}
-{"unit": "tsp", "ml": 5}
+{"unit": "cup", "ml": 240, "density_g_per_ml": 0.658, "density_source": "USDA FoodData Central: cooked white rice, 158 g per cup"}
+{"unit": "tbsp", "ml": 15, "density_g_per_ml": 0.907, "density_source": "USDA FoodData Central: olive oil, approximately 13.6 g per tablespoon"}
+{"unit": "tsp", "ml": 5, "density_g_per_ml": 1.0, "density_source": "Water-like reference density; replace with food-specific density when available"}
 {"unit": "oz", "g": 28.35}
 {"unit": "slice_bread", "g": 28}
 {"unit": "medium_apple", "g": 182}
