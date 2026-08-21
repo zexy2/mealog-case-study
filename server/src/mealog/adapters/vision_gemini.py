@@ -9,7 +9,12 @@ from __future__ import annotations
 
 import base64
 import json
+import random
+import socket
+import time
 from collections.abc import Callable
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -18,13 +23,25 @@ from urllib.request import Request, urlopen
 
 from pydantic import ValidationError
 
+from mealog import obs
 from mealog.domain.models import PerceivedItem
 from mealog.pipeline.ports import VisionInput
 
 PROMPT_VERSION = "p2"
 DEFAULT_MODEL = "gemini-2.5-flash"
+SECONDARY_MODEL = "gemini-2.5-flash-lite"
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
 MAX_ERROR_BODY = 500
+TRANSIENT_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
+NON_RETRYABLE_STATUS_CODES = frozenset({400, 401})
+MAX_ATTEMPTS = 3
+MAX_ELAPSED_SECONDS = 30.0
+BACKOFF_BASE_SECONDS = 0.25
+BACKOFF_CAP_SECONDS = 2.0
+RUNG_CONFIGURED_MODEL = "configured_model"
+RUNG_SECONDARY_MODEL = "secondary_model"
+RUNG_TEXT_ONLY = "text_only"
+RUNG_FAILURE = "failure"
 
 SYSTEM_PROMPT = """You list what food is visible in the supplied image or text.
 Return observed items only. You do NOT estimate calories, macros, nutrients, or
@@ -100,6 +117,46 @@ _IMAGE_MIME_FALLBACKS = {
     ".webp": "image/webp",
 }
 _ALLOWED_IMAGE_MIME_TYPES = frozenset(_IMAGE_MIME_FALLBACKS.values()) | {"image/jpg"}
+
+
+class _ProviderFailure(RuntimeError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        status: int | None = None,
+        retryable: bool = False,
+        fallback_allowed: bool = True,
+        retry_after: float | None = None,
+        attempts: int = 0,
+    ):
+        super().__init__(message)
+        self.status = status
+        self.retryable = retryable
+        self.fallback_allowed = fallback_allowed
+        self.retry_after = retry_after
+        self.attempts = attempts
+
+
+def _retry_after_seconds(headers: Any) -> float | None:
+    value = headers.get("Retry-After") if headers else None
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        try:
+            retry_at = parsedate_to_datetime(value)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if retry_at.tzinfo is None:
+            retry_at = retry_at.replace(tzinfo=UTC)
+        return max(0.0, (retry_at - datetime.now(UTC)).total_seconds())
+
+
+def _is_timeout(error: BaseException) -> bool:
+    reason = getattr(error, "reason", error)
+    return isinstance(reason, (TimeoutError, socket.timeout)) or "timed out" in str(reason).lower()
 
 
 def _image_part(input_ref: VisionInput) -> dict[str, Any]:
@@ -178,6 +235,12 @@ class GeminiVision:
         model: str = DEFAULT_MODEL,
         timeout: float = 90.0,
         opener: Callable[..., Any] = urlopen,
+        secondary_model: str | None = SECONDARY_MODEL,
+        max_attempts: int = MAX_ATTEMPTS,
+        max_elapsed: float = MAX_ELAPSED_SECONDS,
+        sleep_fn: Callable[[float], None] = time.sleep,
+        clock_fn: Callable[[], float] = time.monotonic,
+        jitter_fn: Callable[[float], float] | None = None,
     ):
         if not api_key.strip():
             raise ValueError("GEMINI_API_KEY is required for the live vision provider")
@@ -185,10 +248,26 @@ class GeminiVision:
         self.model = model
         self.timeout = timeout
         self._opener = opener
+        self.secondary_model = secondary_model
+        self.max_attempts = min(MAX_ATTEMPTS, max(1, max_attempts))
+        self.max_elapsed = min(MAX_ELAPSED_SECONDS, max(0.1, max_elapsed))
+        self._sleep = sleep_fn
+        self._clock = clock_fn
+        self._jitter = jitter_fn or (lambda cap: random.uniform(0.0, cap))
         self.last_items: list[PerceivedItem] | None = None
         self.last_input: VisionInput | None = None
+        self.degraded = False
+        self.rung = RUNG_CONFIGURED_MODEL
+        self.last_model = model
+        self.last_attempts = 0
 
-    def _request(self, parts: list[dict[str, Any]]) -> dict[str, Any]:
+    def _request(
+        self,
+        parts: list[dict[str, Any]],
+        *,
+        model: str | None = None,
+        timeout: float | None = None,
+    ) -> dict[str, Any]:
         payload = {
             "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
             "contents": [{"role": "user", "parts": parts}],
@@ -197,7 +276,8 @@ class GeminiVision:
                 "responseSchema": RESPONSE_SCHEMA,
             },
         }
-        url = f"{API_ROOT}/models/{quote(self.model, safe='')}:generateContent"
+        request_model = model or self.model
+        url = f"{API_ROOT}/models/{quote(request_model, safe='')}:generateContent"
         request = Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
@@ -208,20 +288,71 @@ class GeminiVision:
             method="POST",
         )
         try:
-            with self._opener(request, timeout=self.timeout) as response:
+            with self._opener(request, timeout=timeout or self.timeout) as response:
                 return json.loads(response.read())
         except HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:MAX_ERROR_BODY]
-            raise RuntimeError(f"Gemini request failed with HTTP {exc.code}: {detail}") from exc
+            status = exc.code
+            raise _ProviderFailure(
+                f"Gemini request failed with HTTP {status}: {detail}",
+                status=status,
+                retryable=status in TRANSIENT_STATUS_CODES,
+                fallback_allowed=status not in NON_RETRYABLE_STATUS_CODES,
+                retry_after=_retry_after_seconds(exc.headers),
+            ) from exc
+        except TimeoutError as exc:
+            raise _ProviderFailure("Gemini request timed out", retryable=True) from exc
         except URLError as exc:
-            raise RuntimeError(f"Gemini request failed: {exc.reason}") from exc
+            raise _ProviderFailure(
+                f"Gemini request failed: {exc.reason}",
+                retryable=_is_timeout(exc),
+            ) from exc
         except json.JSONDecodeError as exc:
-            raise RuntimeError("Gemini returned an invalid JSON envelope") from exc
+            raise _ProviderFailure(
+                "Gemini returned an invalid JSON envelope",
+                fallback_allowed=True,
+            ) from exc
 
-    def perceive(self, input_ref: VisionInput) -> list[PerceivedItem]:
-        """Call Gemini with image bytes or explicit text, never a fixture ID."""
+    def _retry_delay(self, attempt: int, retry_after: float | None) -> float:
+        exponential = min(
+            BACKOFF_CAP_SECONDS,
+            BACKOFF_BASE_SECONDS * (2 ** (attempt - 1)),
+        )
+        jittered = min(BACKOFF_CAP_SECONDS, exponential + max(0.0, self._jitter(exponential)))
+        return max(retry_after or 0.0, jittered)
+
+    def _request_with_retry(
+        self,
+        parts: list[dict[str, Any]],
+        model: str,
+        deadline: float,
+    ) -> tuple[dict[str, Any], int]:
+        attempts = 0
+        last_failure: _ProviderFailure | None = None
+        while attempts < self.max_attempts:
+            remaining = deadline - self._clock()
+            if remaining <= 0:
+                break
+            attempts += 1
+            try:
+                return self._request(parts, model=model, timeout=min(self.timeout, remaining)), attempts
+            except _ProviderFailure as exc:
+                last_failure = exc
+                if not exc.retryable or attempts >= self.max_attempts:
+                    break
+                delay = self._retry_delay(attempts, exc.retry_after)
+                if delay >= deadline - self._clock():
+                    break
+                self._sleep(delay)
+
+        if last_failure is None:
+            last_failure = _ProviderFailure("Gemini retry wall-clock ceiling reached")
+        last_failure.attempts = attempts
+        raise last_failure
+
+    def _parts(self, input_ref: VisionInput, *, include_image: bool) -> list[dict[str, Any]]:
         parts: list[dict[str, Any]] = []
-        if input_ref.image_bytes is not None:
+        if include_image and input_ref.image_bytes is not None:
             parts.append(_image_part(input_ref))
         elif not input_ref.text or not input_ref.text.strip():
             raise FileNotFoundError(
@@ -231,9 +362,87 @@ class GeminiVision:
         if input_ref.text and input_ref.text.strip():
             parts.append({"text": input_ref.text.strip()})
         parts.append({"text": "List only the visible food items using the required JSON schema."})
+        return parts
+
+    def perceive(self, input_ref: VisionInput) -> list[PerceivedItem]:
+        """Call Gemini with bounded retries and explicit fallback metadata."""
+        has_image = input_ref.image_bytes is not None
         self.last_input = input_ref
-        self.last_items = _parse_items(_response_text(self._request(parts)))
-        return self.last_items
+        self.last_items = None
+        self.degraded = False
+        self.rung = RUNG_CONFIGURED_MODEL
+        self.last_model = self.model
+        self.last_attempts = 0
+        started = self._clock()
+        deadline = started + self.max_elapsed
+
+        rung_chain: list[tuple[str, str, bool]] = [(RUNG_CONFIGURED_MODEL, self.model, True)]
+        if self.secondary_model and self.secondary_model != self.model:
+            rung_chain.append((RUNG_SECONDARY_MODEL, self.secondary_model, True))
+        if has_image and input_ref.text and input_ref.text.strip():
+            rung_chain.append(
+                (RUNG_TEXT_ONLY, self.secondary_model or self.model, False)
+            )
+
+        failures: list[tuple[str, str, _ProviderFailure]] = []
+        total_attempts = 0
+        for rung, model, include_image in rung_chain:
+            if self._clock() >= deadline:
+                break
+            parts = self._parts(input_ref, include_image=include_image)
+            attempts = 0
+            try:
+                response, attempts = self._request_with_retry(parts, model, deadline)
+                items = _parse_items(_response_text(response))
+            except _ProviderFailure as exc:
+                total_attempts += exc.attempts
+                failures.append((rung, model, exc))
+                if not exc.fallback_allowed:
+                    break
+                continue
+            except (RuntimeError, TypeError, ValueError) as exc:
+                total_attempts += attempts
+                failure = _ProviderFailure(str(exc), attempts=attempts)
+                failures.append((rung, model, failure))
+                continue
+
+            total_attempts += attempts
+            self.last_items = items
+            self.last_model = model
+            self.last_attempts = total_attempts
+            self.degraded = rung != RUNG_CONFIGURED_MODEL
+            self.rung = rung
+            if self.degraded:
+                obs.event(
+                    "vision_fallback",
+                    rung=rung,
+                    model=model,
+                    attempts=total_attempts,
+                )
+            return items
+
+        last_rung, last_model, last_failure = failures[-1] if failures else (
+            RUNG_FAILURE,
+            self.model,
+            _ProviderFailure("Gemini retry wall-clock ceiling reached"),
+        )
+        self.degraded = True
+        self.rung = RUNG_FAILURE
+        self.last_model = last_model
+        self.last_attempts = total_attempts
+        elapsed_ms = round((self._clock() - started) * 1000, 2)
+        obs.event(
+            "vision_provider_exhausted",
+            attempts=total_attempts,
+            terminal_status=last_failure.status,
+            elapsed_ms=elapsed_ms,
+            rung=last_rung,
+        )
+        status = last_failure.status if last_failure.status is not None else "unknown"
+        raise RuntimeError(
+            f"Gemini provider exhausted after {total_attempts} attempt(s); "
+            f"terminal_status={status}; rung={last_rung}: {last_failure}"
+        ) from last_failure
 
     def fixture_payload(self, input_ref: VisionInput, items: list[PerceivedItem]) -> dict[str, Any]:
         """Return safe, deterministic fixture data from a validated response."""
@@ -244,8 +453,11 @@ class GeminiVision:
             "sample_id": input_ref.sample_id,
             "input_sha256": input_ref.content_hash,
             "provider": self.name,
-            "model": self.model,
+            "model": self.last_model,
             "prompt_version": PROMPT_VERSION,
+            "degraded": self.degraded,
+            "rung": self.rung,
+            "attempts": self.last_attempts,
             "items": [item.model_dump(exclude_none=True) for item in items],
         }
 
