@@ -61,7 +61,7 @@ class _Index:
     food_ids: list[str]
     names: list[str]
     exact: dict[str, str]           # folded surface form -> food_id
-    negative: dict[str, str]        # folded confusable form -> food_id it is confused with
+    negative: dict[str, list[str]]  # folded form -> all food_ids it is confused with
     word_vec: TfidfVectorizer
     char_vec: TfidfVectorizer
     word_mat: object
@@ -118,7 +118,9 @@ def _build(pack: LocalePack, identity: str) -> _Index:
         for form in folded:
             exact.setdefault(form, food_id)
         for form in pack.negative_aliases.get(food_id, []):
-            negative[fold(form, pack)] = food_id
+            targets = negative.setdefault(fold(form, pack), [])
+            if food_id not in targets:
+                targets.append(food_id)
 
     # binary + norm=None + use_idf: transform() then yields the raw IDF of each
     # present n-gram, which is exactly the weight the coverage score needs.
@@ -143,16 +145,24 @@ def _build(pack: LocalePack, identity: str) -> _Index:
     return index
 
 
-def _negative_match(index: _Index, query: str) -> str | None:
-    """Return confusion target when a negative alias occupies whole tokens."""
+def _negative_matches(index: _Index, query: str) -> list[str]:
+    """Return all confusion targets whose negative alias occupies whole tokens.
+
+    A larger catalogue can expose several plausible neighbours for one surface
+    form. Cap every documented target, or another candidate can still clear the
+    resolver threshold after the first target is capped.
+    """
     query_tokens = query.split()
-    for alias, food_id in index.negative.items():
+    matches: list[str] = []
+    for alias, food_ids in index.negative.items():
         alias_tokens = alias.split()
         width = len(alias_tokens)
         if width and any(query_tokens[i:i + width] == alias_tokens
                          for i in range(len(query_tokens) - width + 1)):
-            return food_id
-    return None
+            for food_id in food_ids:
+                if food_id not in matches:
+                    matches.append(food_id)
+    return matches
 
 
 def _similarities(index: _Index, query: str) -> list[float]:
@@ -213,19 +223,27 @@ def search(query: str, pack: LocalePack, k: int = 5) -> list[Candidate]:
     scores: dict[str, float] = {}
 
     # 1. Exact surface hit. Unambiguous, so it outranks everything fuzzy.
-    if (hit := index.exact.get(query)) is not None:
-        scores[hit] = 1.0
+    exact_hit = index.exact.get(query)
+    if exact_hit is not None:
+        scores[exact_hit] = 1.0
 
     # 2. Blended fuzzy similarity.
     for food_id, score in zip(index.food_ids, _similarities(index, query)):
         if score >= MIN_SIGNAL:
             scores[food_id] = max(scores.get(food_id, 0.0), round(float(score), 3))
 
-    # 3. Known confusion. Surface the food this query is a documented trap for,
-    #    capped low so the user is asked rather than silently given the wrong
+    # 3. Known confusion. Surface every food this query is a documented trap
+    #    for, capped low so the user is asked rather than silently given the wrong
     #    regional match. Without this the trap returns nothing and we abstain for
-    #    the wrong reason — right outcome, no understanding.
-    if (confused_with := _negative_match(index, query)) is not None:
+    #    the wrong reason — right outcome, no understanding. Multiple caps matter
+    #    when a larger catalogue exposes more than one plausible neighbour.
+    for confused_with in _negative_matches(index, query):
+        # A generic negative alias may be a token-bounded subphrase of a more
+        # specific positive alias ("yogurt" inside "yogurt icecegi"). Preserve
+        # the exact positive surface hit; it is stronger evidence than the
+        # generic confusion note.
+        if confused_with == exact_hit:
+            continue
         scores[confused_with] = CONFUSION_SCORE
 
     ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))[:k]
