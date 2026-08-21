@@ -43,7 +43,7 @@ touched.
 ## Verification
 
 - `make status` (with the throwaway venv on PATH) regenerated `STATUS.md`.
-- `make test`: 91 passed.
+- `make test`: 91 passed before rebase; 93 passed in the final post-rebase run.
 - `make lint`: Ruff clean.
 - `scripts/check_invariants.py`: all architectural invariants hold.
 - `scripts/status.py --check`: matches repository.
