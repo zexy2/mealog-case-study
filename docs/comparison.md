@@ -49,9 +49,9 @@ repair. The cost is friction and lower automatic coverage.
 
 **How it is measured.** The current offline V3 replay on **n=80** golden
 samples reports **6% coverage**: **5/80** samples auto-accept and **75/80** ask.
-The evaluator change in open [PR #168](https://github.com/zexy2/mealog-case-study/pull/168)
-will change calorie eligibility for partial-truth rows, so covered calorie MAPE
-is **pending** a post-#168 run and is not guessed here. Coverage and action counts
+The partial-truth evaluator correction in merged [PR #173](https://github.com/zexy2/mealog-case-study/pull/173)
+changed calorie eligibility for affected rows, so covered calorie MAPE remains
+**pending** a post-#173 run and is not guessed here. Coverage and action counts
 do not need that calorie-denominator correction.
 
 **Example.** `jp_0002` contains three foods absent from the `ja_JP` pack. V3
@@ -98,8 +98,9 @@ read together.
 MAPE, within-20%, and FP rate for every cuisine. The current V3 sample sizes are
 western **n=12**, mediterranean **n=12**, east_asian **n=16**, other_mixed
 **n=8**, south_asian **n=16**, and latin_american **n=16**. Calorie MAPE values
-are **pending** the open partial-truth evaluator fix in #168; publishing the
-pre-fix values would mix two denominators.
+are **pending** a post-#173 refresh; PR #173 merged the partial-truth evaluator
+fix, and publishing this document's pre-refresh values would mix two
+denominators.
 
 **Example.** In the current V3 replay, western is **17% covered on n=12** while
 east_asian is **0% covered on n=16**. A single mean would hide that the Japanese
@@ -215,7 +216,7 @@ case abstains rather than charging brewed tea against dry-leaf nutrition.
 
 All repository measurements above are offline and reproducible with `make eval`
 or `python eval/retrieval_eval.py` against committed fixtures and labels. The
-current **n=80** golden set is real according to `STATUS.md`, but the evaluator
-partial-truth correction in #168 is still open. Therefore every affected
-calorie MAPE figure remains explicitly pending; no pre-correction replacement
-is published here.
+current **n=80** golden set is real according to `STATUS.md`. PR #173 merged the
+partial-truth evaluator correction, but this comparison has not been regenerated
+after it; every affected calorie MAPE figure therefore remains explicitly
+pending, and no pre-correction replacement is published here.
