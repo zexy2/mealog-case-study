@@ -15,7 +15,21 @@ import {
 import { settings } from '../config';
 
 /** Repository root's data boundary. Locale names never appear in code. */
-export const PACK_ROOT = resolve(dirname(__filename), '../../../locale_packs');
+function find_pack_root(start: string = dirname(__filename)): string {
+  let current = resolve(start);
+  for (let depth = 0; depth < 10; depth += 1) {
+    const candidate = join(current, 'locale_packs');
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  // Preserve a useful path in the eventual error if the repository is
+  // incomplete rather than silently selecting another directory.
+  return resolve(start, '../../../locale_packs');
+}
+
+export const PACK_ROOT = find_pack_root();
 export const COMMERCIAL_MODE_ENV = 'MEALOG_COMMERCIAL_MODE';
 
 export enum LicenseTerm {

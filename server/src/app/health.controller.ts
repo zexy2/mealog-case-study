@@ -1,8 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
+
+import { Settings } from '../config';
 
 export interface HealthResponse {
   status: 'ok';
-  service: string;
+  vision: string;
 }
 
 /**
@@ -14,8 +16,10 @@ export interface HealthResponse {
  */
 @Controller('health')
 export class HealthController {
+  constructor(@Inject(Settings) private readonly settings: Settings) {}
+
   @Get()
   check(): HealthResponse {
-    return { status: 'ok', service: 'mealog' };
+    return { status: 'ok', vision: this.settings.vision_provider };
   }
 }

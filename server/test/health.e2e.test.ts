@@ -42,7 +42,7 @@ describe('GET /health', () => {
 
   it('reports the service as up', async () => {
     const response = await request(server).get('/health');
-    expect(response.body).toEqual({ status: 'ok', service: 'mealog' });
+    expect(response.body).toEqual({ status: 'ok', vision: 'fixture' });
   });
 
   it('404s an unknown route, proving routing is real and not a catch-all', async () => {
