@@ -143,6 +143,12 @@ def _read_pack(locale: str, root: str | None = None) -> LocalePack:
             default_serving_g=row["default_serving_g"],
             default_serving_name=row["default_serving_name"],
             source=row["source"], locale=pack.locale,
+            packaged=row.get("packaged", False),
+            serving_size_g=row.get("serving_size_g"),
+            serving_size_name=row.get("serving_size_name"),
+            serving_size_source=row.get("serving_size_source"),
+            net_weight_g=row.get("net_weight_g"),
+            net_weight_source=row.get("net_weight_source"),
             density_g_per_ml=row.get("density_g_per_ml"),
             density_source=row.get("density_source"),
         )
