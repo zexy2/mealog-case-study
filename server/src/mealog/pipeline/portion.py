@@ -42,7 +42,7 @@ def estimate(food: CanonicalFood, quantity: float | None, unit: str | None,
             grams = conv["g"] * multiplier
             spread = _spread_for_unit(quantity)
         elif conv.get("ml"):
-            density = conv.get("density_g_per_ml")
+            density = food.density_g_per_ml
             if isinstance(density, (int, float)) and density > 0:
                 grams = conv["ml"] * density * multiplier
                 spread = _spread_for_unit(quantity)

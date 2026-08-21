@@ -25,6 +25,11 @@ def test_pack_loads_and_aliases_point_at_real_foods(locale):
     assert pack.license, f"{locale} must declare a data license"
     for food_id in pack.aliases:
         assert food_id in pack.foods, f"{locale}: alias for unknown food {food_id}"
+    for food in pack.foods.values():
+        assert (food.density_g_per_ml is None) == (food.density_source is None)
+        if food.density_g_per_ml is not None:
+            assert food.density_g_per_ml > 0
+            assert food.density_source.strip()
 
 
 def test_turkish_dotless_i_folds_for_retrieval():
