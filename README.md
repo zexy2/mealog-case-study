@@ -52,8 +52,8 @@ provider, so it needs no API key. From the repository root:
 ```bash
 unset GEMINI_API_KEY
 docker compose up -d --wait
-curl -fsS http://localhost:8000/health
-curl -fsS -X POST http://localhost:8000/v1/meals \
+curl -fsS -w '\n' http://localhost:8000/health
+curl -fsS -w '\n' -X POST http://localhost:8000/v1/meals \
   -H 'content-type: application/json' \
   -d '{"idempotency_key":"reviewer-smoke-1","sample_id":"n5k_0001","text":"rice","locale":"en_US","config":"V3"}'
 docker compose down --volumes
