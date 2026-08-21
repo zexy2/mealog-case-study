@@ -1,6 +1,8 @@
 {
-  "western": 229.49,
+  "western": 12.69,
   "mediterranean": 0.0,
   "east_asian": 0.0,
-  "other_mixed": 0.0
+  "other_mixed": 0.0,
+  "south_asian": 0.0,
+  "latin_american": 0.0
 }
