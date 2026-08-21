@@ -2,12 +2,13 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { colors } from "./theme";
+import { t } from "../src/strings";
 
 export function Header({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
   return (
     <View style={styles.header}>
       <View style={styles.brandRow}>
-        <Text style={styles.brand}>mealog</Text>
+        <Text style={styles.brand}>{t("brand")}</Text>
         <View style={styles.brandDot} />
         <Text style={styles.eyebrow}>{eyebrow}</Text>
       </View>

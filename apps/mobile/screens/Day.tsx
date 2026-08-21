@@ -3,6 +3,7 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { MealLog } from "../src/types";
+import { t } from "../src/strings";
 import { Header } from "../components/Header";
 import { actionLabel, formatDate, formatTime } from "../components/meal";
 import { colors } from "../components/theme";
@@ -17,21 +18,21 @@ export type DayScreenProps = {
 export function DayScreen({ meals, totalCalories, totalProtein, onCapture }: DayScreenProps) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Header eyebrow="TODAY" title="Your day, in evidence." subtitle={formatDate()} />
+      <Header eyebrow={t("dayEyebrow")} title={t("dayTitle")} subtitle={formatDate()} />
       <View style={styles.totalCard}>
         <View>
-          <Text style={styles.totalEyebrow}>LOGGED SO FAR</Text>
+          <Text style={styles.totalEyebrow}>{t("loggedSoFar")}</Text>
           <Text style={styles.totalNumber}>{Math.round(totalCalories)}<Text style={styles.totalUnit}> kcal</Text></Text>
         </View>
         <View style={styles.totalSide}>
           <Text style={styles.totalSideNumber}>{Math.round(totalProtein)} g</Text>
-          <Text style={styles.totalSideLabel}>protein</Text>
+          <Text style={styles.totalSideLabel}>{t("protein")}</Text>
         </View>
       </View>
 
       <View style={styles.listHeader}>
-        <Text style={styles.sectionLabel}>MEALS</Text>
-        <Text style={styles.listCount}>{meals.length} logged</Text>
+        <Text style={styles.sectionLabel}>{t("meals")}</Text>
+        <Text style={styles.listCount}>{t("loggedCount", { count: meals.length })}</Text>
       </View>
       {meals.map((item, index) => (
         <View style={styles.mealRow} key={item.idempotency_key}>
@@ -39,8 +40,8 @@ export function DayScreen({ meals, totalCalories, totalProtein, onCapture }: Day
             <Text style={[styles.mealTimeText, index === 0 && styles.mealTimeTextCurrent]}>{formatTime(item.createdAt)}</Text>
           </View>
           <View style={styles.mealRowBody}>
-            <Text style={styles.mealTitle}>{item.items[0]?.candidates.find((candidate) => candidate.food_id === item.items[0]?.food_id)?.name ?? item.items[0]?.query ?? "Meal"}</Text>
-            <Text style={styles.mealMeta}>{item.items.length} item{item.items.length === 1 ? "" : "s"} · {actionLabel(item.action)}</Text>
+            <Text style={styles.mealTitle}>{item.items[0]?.candidates.find((candidate) => candidate.food_id === item.items[0]?.food_id)?.name ?? item.items[0]?.query ?? t("mealFallback")}</Text>
+            <Text style={styles.mealMeta}>{t("itemCount", { count: item.items.length, plural: item.items.length === 1 ? "" : "s" })} · {actionLabel(item.action)}</Text>
           </View>
           <Text style={styles.mealKcal}>{Math.round(item.totals.kcal)} kcal</Text>
         </View>
@@ -48,11 +49,11 @@ export function DayScreen({ meals, totalCalories, totalProtein, onCapture }: Day
 
       <View style={styles.dayNote}>
         <Ionicons name="sparkles-outline" size={18} color={colors.terracotta} />
-        <Text style={styles.dayNoteText}>Every match stays traceable. Tap Review to inspect the catalogue decision.</Text>
+        <Text style={styles.dayNoteText}>{t("dayNote")}</Text>
       </View>
       <Pressable style={styles.primaryButton} onPress={onCapture}>
         <Ionicons name="camera-outline" size={19} color={colors.white} />
-        <Text style={styles.primaryButtonText}>Capture next meal</Text>
+        <Text style={styles.primaryButtonText}>{t("captureNext")}</Text>
       </Pressable>
     </ScrollView>
   );

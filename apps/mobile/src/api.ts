@@ -1,4 +1,5 @@
 import { buildDemoMeal } from "./demoData";
+import { t } from "./strings";
 import { MealLog, PendingCapture } from "./types";
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
@@ -14,7 +15,7 @@ export async function submitMeal(capture: PendingCapture): Promise<MealLog> {
   }
 
   if (!apiUrl) {
-    throw new Error("EXPO_PUBLIC_API_URL is missing");
+    throw new Error(t("apiUrlMissing"));
   }
 
   const response = capture.photo
@@ -23,7 +24,7 @@ export async function submitMeal(capture: PendingCapture): Promise<MealLog> {
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(detail || `Upload failed (${response.status})`);
+    throw new Error(detail || `${t("uploadFailed")} (${response.status})`);
   }
   return response.json() as Promise<MealLog>;
 }

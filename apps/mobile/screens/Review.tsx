@@ -4,6 +4,7 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Candidate, MealLog } from "../src/types";
+import { t } from "../src/strings";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -48,14 +49,14 @@ export function ReviewScreen({
   const tone = actionTone(meal.action);
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Header eyebrow="REVIEW & CORRECT" title="Make it yours." subtitle="One last look before it lands in your day." />
+      <Header eyebrow={t("reviewEyebrow")} title={t("reviewTitle")} subtitle={t("reviewSubtitle")} />
       <View style={[styles.actionBanner, { backgroundColor: tone.backgroundColor }]}>
         <View style={[styles.actionMark, { backgroundColor: tone.color }]}>
           <Ionicons name={meal.action === "ask" ? "help" : meal.action === "auto_accept" ? "checkmark" : "eye"} size={17} color={colors.white} />
         </View>
         <View style={styles.actionBannerCopy}>
           <Text style={[styles.actionBannerTitle, { color: tone.color }]}>{actionLabel(meal.action)}</Text>
-          <Text style={styles.actionBannerText}>{meal.action === "ask" ? meal.question : "The catalogue match is visible and editable."}</Text>
+          <Text style={styles.actionBannerText}>{meal.action === "ask" ? meal.question : t("editableMatch")}</Text>
         </View>
       </View>
 
@@ -69,21 +70,21 @@ export function ReviewScreen({
               <View style={styles.itemIndex}><Text style={styles.itemIndexText}>{String(index + 1).padStart(2, "0")}</Text></View>
               <View style={styles.itemNameWrap}>
                 <Text style={styles.itemQuery}>{item.query}</Text>
-                <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? "Needs a match" : item.candidates.find((candidate) => candidate.food_id === selected)?.name ?? selected}</Text>
+                <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? t("needsMatch") : item.candidates.find((candidate) => candidate.food_id === selected)?.name ?? selected}</Text>
               </View>
               <View style={styles.confidencePill}><Text style={styles.confidenceText}>{Math.round(item.confidence * 100)}%</Text></View>
             </View>
 
             {meal.action === "ask" && meal.question ? (
               <View style={styles.questionCard}>
-                <Text style={styles.questionLabel}>ONE QUESTION</Text>
+                <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
                 <Text style={styles.questionText}>{meal.question}</Text>
               </View>
             ) : null}
 
             <View style={styles.portionHeader}>
-              <Text style={styles.sectionLabel}>PORTION</Text>
-              <Text style={styles.gramsValue}>{grams ? `${Math.round(grams)} g` : "Not estimated"}</Text>
+              <Text style={styles.sectionLabel}>{t("portion")}</Text>
+              <Text style={styles.gramsValue}>{grams ? (hasRange ? t("portionBand", { grams: Math.round(grams), low: Math.round(item.grams_p10), high: Math.round(item.grams_p90) }) : `${Math.round(grams)} g`) : t("notEstimated")}</Text>
             </View>
             {hasRange ? (
               <>
@@ -95,16 +96,16 @@ export function ReviewScreen({
                   maximumTrackTintColor={colors.line}
                   thumbTintColor={colors.terracotta}
                   onValueChange={(value) => setPortionEdits((current) => ({ ...current, [index]: value }))}
-                  accessibilityLabel={`Portion for ${item.query}`}
+                  accessibilityLabel={t("portionFor", { query: item.query })}
                 />
                 <View style={styles.rangeLabels}>
-                  <Text style={styles.rangeText}>{Math.round(item.grams_p10)} g likely minimum</Text>
-                  <Text style={styles.rangeText}>{Math.round(item.grams_p90)} g upper range</Text>
+                  <Text style={styles.rangeText}>{t("portionLow", { grams: Math.round(item.grams_p10) })}</Text>
+                  <Text style={styles.rangeText}>{t("portionHigh", { grams: Math.round(item.grams_p90) })}</Text>
                 </View>
               </>
-            ) : <Text style={styles.mutedNote}>Portion waits for your answer.</Text>}
+            ) : <Text style={styles.mutedNote}>{t("portionPending")}</Text>}
 
-            <Text style={[styles.sectionLabel, { marginTop: 22 }]}>ALTERNATES CONSIDERED</Text>
+            <Text style={[styles.sectionLabel, { marginTop: 22 }]}>{t("alternates")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
               {item.candidates.map((candidate) => {
                 const isSelected = selected === candidate.food_id;
@@ -119,15 +120,15 @@ export function ReviewScreen({
 
             <Pressable style={styles.whyRow} onPress={() => setExpandedItem(expandedItem === index ? null : index)}>
               <View style={styles.whyIcon}><Ionicons name="finger-print-outline" size={17} color={colors.moss} /></View>
-              <View style={styles.whyCopy}><Text style={styles.whyTitle}>Why this result?</Text><Text style={styles.whySubtitle}>Trace the decision</Text></View>
+              <View style={styles.whyCopy}><Text style={styles.whyTitle}>{t("whyResult")}</Text><Text style={styles.whySubtitle}>{t("traceDecision")}</Text></View>
               <Ionicons name={expandedItem === index ? "chevron-up" : "chevron-down"} size={18} color={colors.muted} />
             </Pressable>
             {expandedItem === index ? (
               <View style={styles.auditBox}>
-                <AuditRow label="Matched food_id" value={selected} mono />
-                <AuditRow label="Source database" value={item.source_database ?? "Catalogue provenance"} />
-                <AuditRow label="Confidence" value={`${Math.round(item.confidence * 100)}%`} />
-                <AuditRow label="Exact grams used" value={grams ? `${Math.round(grams)} g` : "Pending"} />
+                <AuditRow label={t("matchedFoodId")} value={selected} mono />
+                <AuditRow label={t("sourceDatabase")} value={item.source_database ?? t("catalogueProvenance")} />
+                <AuditRow label={t("confidence")} value={`${Math.round(item.confidence * 100)}%`} />
+                <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
               </View>
             ) : null}
           </View>
@@ -135,10 +136,10 @@ export function ReviewScreen({
       })}
 
       <Pressable style={styles.primaryButton} onPress={onSave}>
-        <Text style={styles.primaryButtonText}>{meal.action === "ask" ? "Save with question open" : "Save to today"}</Text>
+        <Text style={styles.primaryButtonText}>{meal.action === "ask" ? t("saveQuestion") : t("saveToday")}</Text>
         <Ionicons name="arrow-forward" size={19} color={colors.white} />
       </Pressable>
-      <Pressable style={styles.textButton} onPress={onBack}><Text style={styles.textButtonLabel}>Capture another plate</Text></Pressable>
+      <Pressable style={styles.textButton} onPress={onBack}><Text style={styles.textButtonLabel}>{t("captureAnother")}</Text></Pressable>
     </ScrollView>
   );
 }

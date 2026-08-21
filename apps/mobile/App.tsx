@@ -14,6 +14,7 @@ import { DayScreen } from "./screens/Day";
 import { ReviewScreen } from "./screens/Review";
 import { submitMeal } from "./src/api";
 import { initialDayMeals } from "./src/demoData";
+import { t } from "./src/strings";
 import { Candidate, MealLog, PendingCapture } from "./src/types";
 
 const PENDING_KEY = "@mealog/pending-capture";
@@ -93,7 +94,7 @@ export default function App() {
       setBusy(false);
       if (result.action === "auto_accept") {
         appendMeal(result);
-        setBanner("Meal added to today");
+        setBanner(t("mealAdded"));
         setScreen("day");
       } else {
         setScreen("review");
@@ -101,7 +102,7 @@ export default function App() {
     } catch (caught) {
       setBusy(false);
       setScreen("capture");
-      setError(caught instanceof Error ? caught.message : "Upload failed. Your draft is safe.");
+      setError(caught instanceof Error ? caught.message : `${t("uploadFailed")} ${t("draftSafe")}`);
     }
   }
 
@@ -111,7 +112,7 @@ export default function App() {
       const picture = await cameraRef.current.takePictureAsync({ quality: 0.82 });
       if (picture?.uri) await submit({ photo: { uri: picture.uri, mimeType: "image/jpeg" } });
     } catch {
-      setError("Camera could not capture this plate. Try the text input instead.");
+      setError(t("cameraCaptureFailed"));
     }
   }
 
@@ -136,7 +137,7 @@ export default function App() {
   function saveReview() {
     if (!meal) return;
     appendMeal({ ...meal, createdAt: meal.createdAt ?? new Date().toISOString() });
-    setBanner(meal.action === "ask" ? "Saved with question open" : "Meal added to today");
+    setBanner(meal.action === "ask" ? t("savedQuestionOpen") : t("mealAdded"));
     setScreen("day");
   }
 

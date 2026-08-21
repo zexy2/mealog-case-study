@@ -3,15 +3,16 @@ import React from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors } from "./theme";
+import { t } from "../src/strings";
 
 export type Screen = "capture" | "review" | "day";
 
 export function BottomNav({ screen, canReview, onChange }: { screen: Screen; canReview: boolean; onChange: (screen: Screen) => void }) {
   return (
     <View style={styles.nav}>
-      <NavItem icon="camera-outline" label="Capture" active={screen === "capture"} onPress={() => onChange("capture")} />
-      <NavItem icon="checkmark-circle-outline" label="Review" active={screen === "review"} disabled={!canReview} onPress={() => onChange("review")} />
-      <NavItem icon="calendar-outline" label="Day" active={screen === "day"} onPress={() => onChange("day")} />
+      <NavItem icon="camera-outline" label={t("navCapture")} active={screen === "capture"} onPress={() => onChange("capture")} />
+      <NavItem icon="checkmark-circle-outline" label={t("navReview")} active={screen === "review"} disabled={!canReview} onPress={() => onChange("review")} />
+      <NavItem icon="calendar-outline" label={t("navDay")} active={screen === "day"} onPress={() => onChange("day")} />
     </View>
   );
 }
