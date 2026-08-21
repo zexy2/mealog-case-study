@@ -206,3 +206,52 @@ because D4 already promises the numbers reproduce without one.
 **Cost.** Expo Go constrains native modules. Nothing this app needs sits outside
 it — camera and multipart upload are both covered — but if that ever changes,
 EAS build is the escape hatch and it is slower.
+
+---
+
+## D10 — Record the golden set with Flash-Lite, retain a full-Flash comparison strip
+
+**Decision.** Record the complete golden set with `gemini-flash-lite-latest`.
+Keep full Flash for a 12–15-sample comparison strip rather than using it for
+every recording. This fits the free-tier recording path while preserving a
+direct comparison against the stronger model.
+
+**Rejected.** A paid tier — the spend is not justified for recording the full
+set. Shrinking the set — it would discard cuisine and coverage evidence rather
+than solve the throughput constraint.
+
+**Constraint.** The golden set must remain complete and re-recordable without
+paid-provider access. The comparison strip must be large enough to expose a
+model difference, while the free tier's full-Flash allowance is 20 requests per
+day.
+
+**Cost.** Lite becomes the model behind the complete recorded set, so its
+results are not interchangeable with full Flash. A 12–15-sample strip cannot
+establish full-set parity, and free-tier quota makes a complete refresh slower.
+
+---
+
+## D11 — Portion-uncertainty gate is specified, measured, and deliberately not shipped
+
+**Decision.** Specify and measure the portion-uncertainty confidence gate, but do
+not ship it yet. On the nine-sample synthetic seed, the gate would keep four
+samples at 13.0% MAPE and newly withhold three at 8.8% MAPE; two samples were
+already withheld by retrieval. The gate therefore withholds better answers on
+this seed — it is abstaining blind, not demonstrating selective risk reduction.
+This risk-coverage measurement is recorded in [PR #39](https://github.com/zexy2/mealog-case-study/pull/39).
+
+**Rejected.** Ship the current gate as a proven risk-control — its seeded
+operating point drops V3 coverage from 78% to 44% and raises covered mean MAPE
+from 11.2% to 13.0%. Tune its thresholds against the nine synthetic fixtures —
+that would turn seeded priors into a production claim.
+
+**Constraint.** D3 requires coverage and error to be read together, and D7
+requires portion uncertainty to remain visible rather than silently accepted.
+The gate must show selectivity on real provider fixtures before it changes the
+runtime operating point; `AUTO_ACCEPT` and `ASK_BELOW` remain untouched until
+then.
+
+**Cost.** The gate remains specified and measured but unavailable in the shipped
+runtime. Current coverage is preserved at the cost of accepting some answers the
+future gate may withhold; real provider fixtures and density evidence are
+required before this decision can be revisited.
