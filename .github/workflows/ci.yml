@@ -20,6 +20,8 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
+      - name: secret guard
+        run: python scripts/check_secrets.py --diff-base origin/main
       - run: cd server && python -m pip install -e ".[dev]" -q
 
       - name: lint
