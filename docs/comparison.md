@@ -17,10 +17,14 @@ free-form calorie answer.
 implemented at the resolver boundary, so it does not depend on a prompt behaving
 well. The trade-off is explicit: an item outside the locale pack is a miss and
 can only be deferred, rather than silently turned into a plausible food.
+The closed-set guarantee does not cover perception: the vision stage can report
+an item that was not on the plate, which the resolver may then map to a real
+catalogue entry. That is an E3 perception failure owned by the vision stage,
+not an invented identifier or nutrition number.
 
 **How it is measured.** The golden-set harness reports the observable `E3`
 error distribution, and the retrieval harness separately measures false accepts
-on negative queries. The committed golden set has one empty-plate trap; the
+on negative queries. The committed golden set has an empty-plate trap; the
 menu-photograph and screenshot trap rows requested for the full refresh are not
 yet present, so the complete trap-set E3 rate is
 `<!-- NUMBER: pending measurement refresh -->`.
@@ -44,13 +48,16 @@ reads accuracy beside coverage. A deferred answer is visible to the user and
 does not become a false calorie record; the cost is that fewer meals are
 automatically logged.
 
-**How it is measured.** The current nine-sample V3 replay reports 56% overall
-coverage and 12.69% western MAPE after the packaged-serving correction; both
-figures are recorded in the [#94 measurement log](../log/2026-08-21-1323-codex-packaged-serving.md).
+**How it is measured.** The current V3 replay over
+`<!-- NUMBER: pending measurement refresh -->` samples reports
+`<!-- NUMBER: pending measurement refresh -->` overall coverage and
+`<!-- NUMBER: pending measurement refresh -->` western MAPE after the
+packaged-serving correction; both figures are recorded in the [#94 measurement
+log](../log/2026-08-21-1323-codex-packaged-serving.md).
 The denominator is covered samples only, as defined by `eval/metrics.py`.
 
-**Example.** Both committed `ja_JP` samples expose the cost: `jp_0001` asks
-after tomato salad and tsukemono abstain, while `jp_0002` abstains all three
+**Example.** The committed `ja_JP` samples expose the cost: `jp_0001` asks
+after tomato salad and tsukemono abstain, while `jp_0002` abstains all
 uncovered items and asks. The system loses coverage rather than writing a
 confident Japanese food that the pack does not contain.
 
@@ -68,15 +75,17 @@ reviewers say portions can be off but editing is quick — while making the
 uncertainty visible before the user edits it.
 
 **How it is measured.** The [packaged-serving measurement](../log/2026-08-21-1323-codex-packaged-serving.md)
-compares the same offline fixture before and after #94: `pkg_0001` changed from
-907.2 g with 433.6% APE to 170.0 g with 0.0% APE, and its p10–p90 band changed
-from 725.8–1134.0 g to 153.0–187.0 g. Those first values are the historical
-pre-fix diagnostic, not current results.
+compares the same offline fixture before and after #94. Its recorded mass,
+APE, and p10–p90 bounds are each `<!-- NUMBER: pending measurement refresh -->`.
+The earlier diagnostic is retained in the log as historical context, not copied
+forward as a current result.
 
-**Example.** `pkg_0001` is Greek yogurt with a printed 170 g serving. The label
-serving now drives the estimate; the current V3 western MAPE is 12.69%, rather
-than the stale pre-#94 229.49% diagnostic. `n5k_0002` is the control: its
-100.0 g estimate and 25.4% APE do not move.
+**Example.** `pkg_0001` is Greek yogurt with a printed serving of
+`<!-- NUMBER: pending measurement refresh -->` g. The label serving now drives
+the estimate; the current V3 western MAPE is
+`<!-- NUMBER: pending measurement refresh -->`, rather than the stale pre-#94
+diagnostic. `n5k_0002` is the control: its estimate and APE are
+`<!-- NUMBER: pending measurement refresh -->` pending refresh.
 
 ## 4. Per-cuisine accuracy with the worst bucket as the headline
 
@@ -92,13 +101,15 @@ requires the worst MAPE, coverage, and the spread to be read together.
 **How it is measured.** `eval/harness.py` emits per-cuisine `n`, coverage, Item
 F1, kcal MAPE, within-20% and FP rate, and CI compares each selected cuisine
 bucket against the stored baseline. The current V3 worst bucket is western at
-12.69% MAPE; the current per-cuisine table is refreshed by the harness rather
-than copied from the stale decomposition in `docs/evaluation.md`.
+`<!-- NUMBER: pending measurement refresh -->` MAPE; the current per-cuisine
+table is refreshed by the harness rather than copied from the stale
+decomposition in `docs/evaluation.md`.
 
-**Example.** The two east-Asian golden samples have 0% V3 coverage because the
+**Example.** The east-Asian golden samples have
+`<!-- NUMBER: pending measurement refresh -->` V3 coverage because the
 Japanese pack cannot resolve all their items, while western `pkg_0001` became a
-measurable portion fix after its label serving was added. Those are two
-different failure modes that one aggregate number would conflate.
+measurable portion fix after its label serving was added. These are different
+failure modes that one aggregate number would conflate.
 
 ## 5. An inspectable decision trace
 
@@ -120,15 +131,21 @@ licence outside that optional UI field, so a durable source-version audit trail
 is `<!-- NUMBER: pending measurement refresh -->` rather than an invented
 completeness percentage.
 
-**Example.** The demo `pilav` item shows three candidate IDs with scores 0.92,
-0.41, and 0.32, 180 g with a 135–245 g band, 78% confidence, and `TURKOMP` as
+**Example.** The demo `pilav` item shows candidate IDs with scores
+`<!-- NUMBER: pending measurement refresh -->`,
+`<!-- NUMBER: pending measurement refresh -->`, and
+`<!-- NUMBER: pending measurement refresh -->`,
+`<!-- NUMBER: pending measurement refresh -->` g with a
+`<!-- NUMBER: pending measurement refresh -->`–
+`<!-- NUMBER: pending measurement refresh -->` g band,
+`<!-- NUMBER: pending measurement refresh -->` confidence, and `TURKOMP` as
 the source database. The reviewer can see what would change before saving.
 
 ## 6. User-scoped idempotent logging
 
 **What is better.** A retry with the same client-generated key returns the same
 meal for that user and does not run the pipeline twice. The same key issued by
-two users is not treated as the same meal.
+different users is not treated as the same meal.
 
 **Why it is better.** This addresses the review pattern in the [EatBetter App
 Store listing](https://apps.apple.com/us/app/eatbetter-ai-food-journal/id6639614109?platform=ipad)
@@ -162,8 +179,9 @@ runtime refusal rather than a CI-only warning.
 
 **How it is measured.** `scripts/check_invariants.py` checks every pack's
 `nutrition_source`, cuisine, and licence vocabulary; `test_locale_packs.py`
-checks runtime refusal in commercial mode. The current tree contains 69
-canonical foods across three locale packs: USDA FoodData Central is public
+checks runtime refusal in commercial mode. The current tree contains
+`<!-- NUMBER: pending measurement refresh -->` canonical foods across
+`<!-- NUMBER: pending measurement refresh -->` locale packs: USDA FoodData Central is public
 domain, TÜRKOMP is restricted-noncommercial, and the Japanese source is
 unverified.
 
@@ -176,7 +194,9 @@ data-provenance difference that can be exercised without a provider call.
 **What is better.** EatBetter is better on practical catalogue breadth: its
 [public product positioning](https://apps.apple.com/us/app/eatbetter-ai-food-journal/id6639614109?platform=ipad)
 is to scan meals without manual logging, while
-mealog currently carries 69 canonical foods across three locale packs and must
+mealog currently carries `<!-- NUMBER: pending measurement refresh -->`
+canonical foods across `<!-- NUMBER: pending measurement refresh -->` locale
+packs and must
 abstain outside them. I am not claiming an EatBetter catalogue count or an
 internal matching policy.
 
@@ -187,13 +207,16 @@ reason to hide the coverage gap.
 
 **How it is measured.** We count canonical IDs from `STATUS.md` and measure
 coverage, recall, and false accepts on the repository's golden and retrieval
-sets. The current retrieval run over 145 variants reports 100.0% Recall@1 and
-Recall@5, 99.2% Accept@1, and 0/22 false accepts; those are surface-form tests,
-not proof of 69-food long-tail coverage. EatBetter's comparable catalogue
-coverage is `<!-- NUMBER: pending measurement refresh -->`.
+sets. The current retrieval run over
+`<!-- NUMBER: pending measurement refresh -->` variants reports
+`<!-- NUMBER: pending measurement refresh -->` Recall@1 and Recall@5,
+`<!-- NUMBER: pending measurement refresh -->` Accept@1, and
+`<!-- NUMBER: pending measurement refresh -->` false accepts; those are
+surface-form tests, not proof of long-tail coverage. EatBetter's comparable
+catalogue coverage is `<!-- NUMBER: pending measurement refresh -->`.
 
 **Example.** `jp_0002` contains foods the `ja_JP` pack does not carry, so all
-three items abstain. `çay` likewise surfaces the dry-tea neighbour and its
+items abstain. `çay` likewise surfaces the dry-tea neighbour and its
 dry-leaf `per_100g` record but still abstains, and `baked beans` is kept apart from Turkish `kuru fasulye`; the
 negative-alias tests show the guardrail, while EatBetter's broader scan-first
 experience has the coverage advantage.
@@ -211,14 +234,16 @@ honest abstention from a wrong match.
 
 **How it is measured.** The current offline harness and retrieval evaluation
 are deterministic and provider-free. The retrieval set grew with the Turkish
-catalogue from 8 to 53 foods; [#99](https://github.com/zexy2/mealog-case-study/pull/99)
-records the resulting 145-variant measurement and the negative/confusion guard.
+catalogue; [#99](https://github.com/zexy2/mealog-case-study/pull/99) records the
+resulting `<!-- NUMBER: pending measurement refresh -->`-variant measurement
+and the negative/confusion guard.
 
-**Example.** The four representative cases are: `pkg_0001` (historical
-433.6% APE before the label-serving fix, current 0.0%); `çay` matched against
+**Example.** The representative cases are: `pkg_0001` (historical APE before
+the label-serving fix, current APE
+`<!-- NUMBER: pending measurement refresh -->`); `çay` matched against
 dry tea leaves until the negative-alias case forced an abstention; `baked beans`
 versus `kuru fasulye`, where the E10-style regional trap is surfaced and
-abstained; and the two `ja_JP` samples, where missing coverage produces asks.
+abstained; and the `ja_JP` samples, where missing coverage produces asks.
 
 ## What external accuracy numbers can and cannot tell us
 
@@ -227,23 +252,26 @@ not a claim that this repository beats a published benchmark. External results
 are context for choosing a test design; they are not interchangeable scores.
 
 **Why it is better.** The public evidence spans incompatible tasks and quality
-levels: an independent review reports pooled per-meal energy MAPE around 18.7%,
-a controlled-kitchen app study reports roughly one-third calorie
-underestimation, and vendor-adjacent benchmark pages claim roughly 1–5%.
+levels: an independent review reports pooled per-meal energy MAPE around
+`<!-- NUMBER: pending measurement refresh -->`, a controlled-kitchen app study
+reports roughly `<!-- NUMBER: pending measurement refresh -->` calorie
+underestimation, and vendor-adjacent benchmark pages claim roughly
+`<!-- NUMBER: pending measurement refresh -->`.
 Presenting that spread honestly is a reason to measure the same inputs, labels,
 coverage rule, and worst-cuisine headline here.
 
-**How it is measured.** The 18.7% figure is from the [independent systematic
-review](https://www.dietaryassessmentinitiative.org/publications/image-based-systematic-review-2025/).
-The one-third result is from an [American Society for Nutrition study release](https://www.eurekalert.org/news-releases/1136415),
+**How it is measured.** The pending external figure is from the [independent
+systematic review](https://www.dietaryassessmentinitiative.org/publications/image-based-systematic-review-2025/).
+The pending result is from an [American Society for Nutrition study release](https://www.eurekalert.org/news-releases/1136415),
 which explicitly says the abstract has not generally undergone journal peer
-review. The 1–5% range is a [vendor-adjacent benchmark claim](https://www.clinicalnutritionreport.com/research/ai-photo-calorie-benchmark-2026/),
-not peer-reviewed evidence, so it is not a target or baseline for mealog. Our current V3 replay is
-the repository's own 12.69% worst-cuisine MAPE at 56% coverage on nine samples,
-with the small label-tier boundary documented in `docs/evaluation.md`.
+review. The pending range is a [vendor-adjacent benchmark claim](https://www.clinicalnutritionreport.com/research/ai-photo-calorie-benchmark-2026/),
+not peer-reviewed evidence, so it is not a target or baseline for mealog. Our
+current V3 replay is the repository's own pending worst-cuisine MAPE at pending
+coverage on a pending sample count, with the small label-tier boundary
+documented in `docs/evaluation.md`.
 
 **Example.** `pkg_0001` demonstrates why a headline without a portion audit is
-misleading: the same identity moved from a historical 433.6% APE to 0.0% after
-the product's printed serving was sourced. That is a repository measurement,
-not evidence that the external 18.7%, one-third, or 1–5% figures apply to this
+misleading: the same identity moved from a historical APE to a pending APE
+after the product's printed serving was sourced. That is a repository
+measurement, not evidence that the external pending figures apply to this
 system.
