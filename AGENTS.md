@@ -81,6 +81,7 @@ labels are ground truth; changing them changes every historical number.
   its author. Replace detection with a ruleset the moment this repository becomes
   public or moves into an organisation.
 - One issue → one branch → one PR. Keep PRs small enough to review in 10 minutes.
+- Reference the claim issue in the PR body as `**Closes:** #<issue>`.
 - Fill in the PR template completely. A PR that does not state its **eval impact**
   will not be merged.
 - Rebase onto `main` before requesting merge. Resolve your own conflicts.
