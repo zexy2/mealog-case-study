@@ -80,3 +80,19 @@ day. Anything written into a script as a number needs a source that can be
 re-read at recording time, which is why this version carries a short
 "what is safe to say out loud" table with the file each figure comes from,
 rather than scattering numbers through the narration.
+
+**The scope gate binds a claim on the word "issue", anywhere in the PR body.**
+My first pull request body said `#129 closed claim #121 rather than task issue
+#118`, and the gate read `issue #118` as a second claim reference:
+
+```
+FAIL: this pull request references multiple distinct claim issues: #170, #118.
+```
+
+`check_claim_scope.py` anchors on `closes|fixes|resolves|issue` and rejects a
+body binding more than one. The failure is correct and the wording was mine —
+prose that happens to put the word "issue" in front of a number is
+indistinguishable from a deliberate reference. Say "the task ticket" instead,
+and run the gate's own regex over the body before opening the pull request
+rather than after CI tells you. Editing the body does not re-run the workflow
+on its own; it needs a new commit.
