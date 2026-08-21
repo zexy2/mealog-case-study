@@ -1,277 +1,280 @@
 # Video walkthrough script
 
-Target runtime: **eight minutes and fifty seconds**, inside the brief's five-to-
-ten-minute window.
+Target runtime: **8:00**. This is a recording script, not a result. Record it
+after code freeze, and keep every scorecard value behind its evidence anchor
+until the refreshed run is committed.
 
-This is a recording script, not an accuracy claim. Every result value below is a
-marked placeholder. Replace a placeholder only after the input, label tier,
-baseline commit, and run command are frozen in the repository. Never read a
-seeded, remembered, or projected value aloud.
+## Run of show
 
-## Brief-question map
-
-| Brief question | Answer moment | Core answer |
+| Time | Content | Evidence / fallback |
 |---|---|---|
-| Biggest trade-off | Shot S08, `05:30` | Closed-set abstention and user correction trade coverage and friction for fewer confident wrong answers. |
-| Top three next accuracy improvements | Shot S09, `06:15` | Better mass evidence, calibrated portion uncertainty, and stronger per-cuisine identity retrieval. |
-| What breaks at scale | Shot S10, `07:10` | In-memory idempotency, synchronous provider calls, retry amplification, and photo-memory/concurrency limits. |
-| Security and privacy | Shot S11, `07:55` | Application-side photo retention is bounded, but demo identity, provider retention, and durable production controls remain explicit boundaries. |
+| 0:00–0:40 | Problem, scope, assumptions | Repository landing page and brief |
+| 0:40–2:20 | Device flow: photo, food, portion range, nutrition | Expo device capture; demo recording if the ported backend is pending |
+| 2:20–2:50 | Live abstention outside the catalogue | `ABSTAIN` question state; deterministic fixture fallback |
+| 2:50–4:00 | Architecture and data flow | One diagram, then the Node/TypeScript entrypoints |
+| 4:00–5:20 | Two decisions | Closed-set numbers and worst-cuisine measurement |
+| 5:20–6:15 | Evaluation harness and regression guard | Scorecard method and CI result, with refreshed values pending |
+| 6:15–6:50 | Security and privacy | Request boundary and secret guard |
+| 6:50–7:30 | Limitations and scorable evidence | `STATUS.md` and the current manifest |
+| 7:30–8:00 | Next work | Prioritised closing card |
+
+Every spoken metric must include its sample size in the same sentence. Never
+read a seeded, remembered, historical, or projected number aloud. Do not call
+the submission complete while the pending evidence remains.
 
 ## Recording rules
 
-- Use Expo demo mode for the happy path. Type `quick simit` for an auto-accepted
-  demo result and `ask baked beans` for the deliberate abstention. These are
-  scripted fixtures, not model-quality evidence.
+- The backend shown on screen is the Node/TypeScript port: `server/src/main.ts`,
+  the Nest application module, and the framework-free domain/pipeline ports.
+  Do not show a Python API terminal. The ported meal endpoint and the mobile
+  connection are not yet on the rehearsal commit, so the affected shots are
+  explicitly marked `<!-- PENDING -->` below.
 - Do not record an API key, a real person's photo, a personal identifier, or a
-  provider response envelope. If a live-provider shot is added later, record it
-  separately and redact secrets before editing.
-- Keep the terminal on commands and architecture, not on unquotable scorecard
-  rows. Show the metric labels with placeholders:
-  `[METRIC: worst-cuisine kcal MAPE]`, `[METRIC: coverage]`,
-  `[METRIC: Item F1]`, `[METRIC: false-positive rate]`.
-- Before final export, replace placeholders only with values traceable to
-  `[COMMIT: frozen baseline]`, `[RUN: reproducible command]`,
-  `[LABEL TIER: source-backed tier]`, and `[CI: linked result]`.
+  raw provider response envelope. Keep the terminal on commands and the device
+  on the product state.
+- For a clean backend rehearsal, show the commands from `server/`:
 
-## Shot-by-shot run of show
+  ```text
+  npm ci
+  npm run build
+  npm run lint
+  npm run test
+  ```
 
-### S01 — The promise and the boundary (`00:00–00:30`)
+  For the device rehearsal, show the commands from `apps/mobile/`:
 
-**Picture:** Face-cam or title card, then the repository name and the three
-mobile screens in a quick, quiet montage.
+  ```text
+  npm ci
+  npm run verify
+  npm start
+  ```
 
-**Say:**
+- The fallback recording is the Expo fixture/demo path: it is useful for showing
+  the interaction and the abstention state, but it is not live-provider
+  evidence. If the device or ported endpoint is unavailable, show the recorded
+  device clip and label it **fixture/demo path** in the edit.
 
-> Mealog turns a photo or a short description into catalogue foods, a portion
-> distribution, and nutrition. The important design choice is what it refuses
-> to fake: the model observes food; retrieval chooses from a closed set; one
-> pure nutrition stage does the arithmetic. This walkthrough shows the working
-> path, the deliberate failure, and the boundaries I would not call production
-> complete yet.
+## Script
 
-**On-screen proof:** `STATUS.md`, then the mobile app. Do not show a scorecard
-number in this shot.
+### 0:00–0:40 — The problem and the boundary
 
-### S02 — Cold start and honest setup (`00:30–01:10`)
-
-**Picture:** Terminal. Run the documented fixture/demo setup, then open Expo Go
-on the device or simulator. Keep the command readable; hide the home directory
-and any environment values.
+**Picture:** Title card, repository name, then the three mobile screens.
 
 **Say:**
 
-> The reviewer can start without a provider key. The offline evaluation and the
-> mobile demo use recorded or deterministic inputs. That makes the walkthrough
-> repeatable, but it does not make a fixture a live-provider accuracy result.
-> The final evidence anchor will be `[COMMIT: frozen baseline]`, with
-> `[METRIC: current evidence summary]` filled only after the run is quotable.
+> A meal photo is an uncertain observation, but a nutrition log needs an
+> inspectable decision. Mealog narrows that problem to catalogue foods, an
+> explicit portion range, and nutrition computed from the selected food. The
+> scope is deliberately small: capture, inspect, correct, and save. Where the
+> brief was silent, I chose recorded offline evidence, locale packs as data,
+> and abstention instead of a confident guess.
 
-**On-screen proof:** the clean start command, `VISION_PROVIDER=fixture` or the
-demo-mode setting, and the app opening. Do not display `.env` contents.
+**On-screen proof:** the repository landing page, the brief, and `STATUS.md`.
+Do not show a scorecard value in this opening.
 
-### S03 — Capture: photo and text share one contract (`01:10–02:10`)
+### 0:40–2:20 — The device flow
 
-**Picture:** Mobile `Capture` screen. Show camera permission state, the photo
-frame, then the text field. Type `quick simit` and submit.
-
-**Say:**
-
-> Photo and text enter through the same capture boundary. The mobile client
-> creates an idempotency key before submission and keeps a pending capture if
-> the request fails. I am using text here because this is a deterministic demo;
-> the photo path is the same product boundary with multipart validation on the
-> API.
-
-**On-screen proof:** `apps/mobile/App.tsx`, then `apps/mobile/src/api.ts` if a
-cutaway is useful. Show the transition into the analysis state, not a provider
-key or raw image bytes.
-
-### S04 — Review is a trust boundary (`02:10–03:00`)
-
-**Picture:** `Review` screen. Expand one item, show candidate alternatives,
-the confidence/action banner, and the portion control. Save, then show `Day`.
+**Picture:** Expo app on a device. Start on `Capture`, take a plate photo, show
+the analysis state, then open `Review` and `Day`.
 
 **Say:**
 
-> A catalogue match is visible and editable. The user can correct the food or
-> portion before it lands in the day view. This is where the system keeps a
-> model suggestion from becoming an invisible nutrition fact. The pipeline
-> computes nutrients from the selected catalogue food and portion; the model
-> does not get to write a calorie number.
+> I start without a provider key. The app can run its deterministic demo path,
+> and the backend checks can run from a clean Node installation. I capture a
+> meal, inspect the proposed catalogue food, see the portion as a range rather
+> than a false point of certainty, and save the nutrition result only after the
+> review state. The same capture boundary accepts text for a deterministic
+> rehearsal; a photo is the intended input.
 
-**On-screen proof:** candidate food IDs, the editable review state, then the
-`Day` screen. If the UI displays a value, describe it as demo data, not as a
-measured metric.
+> The app creates an idempotency key before submitting and retains a pending
+> capture when a request fails. That makes retry behavior visible without
+> recording a provider key or a photograph in the repository.
 
-### S05 — Deliberate failure: abstain instead of invent (`03:00–03:50`)
+<!-- PENDING -->
 
-**Picture:** Return to `Capture`. Type `ask baked beans` and submit. Pause on
-the review/question state. Do not edit the result into a happy path.
+The mobile client against the ported Node/TypeScript meal endpoint is not yet on
+the rehearsal commit. Record this beat against that endpoint after the port
+lands; until then, use the Expo fixture/demo clip and label it as such.
+
+**On-screen proof:** `apps/mobile/App.tsx` for capture, pending, retry, and
+review transitions; `apps/mobile/src/api.ts` for the two request shapes; then
+the device screens. Do not show an API response envelope.
+
+### 2:20–2:50 — Abstention, live on the device
+
+**Picture:** In the same app, submit `baked beans` and pause on the question
+state. Keep the `ABSTAIN` item and candidate list visible.
 
 **Say:**
 
-> This is the failure case I want to show. The system does not have enough
-> confidence to commit this description to a canonical food, so it returns
-> `ABSTAIN` and asks, “Is this kuru fasulye, or another bean dish?” That adds a
-> user step and reduces immediate coverage. It is still preferable to inventing
-> a food ID and presenting made-up nutrition as certain. I will not turn this
-> one scripted demo into an accuracy percentage.
+> Here the food is outside the catalogue, or close enough to a known confusion
+> that the resolver will not commit it. The result is `ABSTAIN`: the user sees
+> a question and the candidates that caused it, rather than a made-up food ID
+> and made-up nutrition. This costs a step and some coverage. It is the failure
+> mode I want the reviewer to see, not an error to cut from the video.
+
+<!-- PENDING -->
+
+Replay this against the ported backend once the endpoint is on the device path.
+The current deterministic Expo branch is the fallback recording, not a claim
+about provider accuracy.
 
 **On-screen proof:** `food_id: ABSTAIN`, the question, and the candidate list.
-Label this shot **deliberate failure / correct abstention** in the edit.
+Label the shot **deliberate failure / correct abstention**.
 
-### S06 — What the system actually computes (`03:50–04:45`)
+### 2:50–4:00 — Architecture and data flow
 
-**Picture:** Architecture diagram or a slow terminal scroll through the stage
-names:
+**Picture:** One diagram, then only the Node/TypeScript files that support it.
 
 ```text
-input -> perception -> normalize -> retrieval -> resolve -> portion -> nutrition -> gate
+Expo capture
+    -> POST /v1/meals
+    -> NestJS edge (`server/src/main.ts`)
+    -> app module / ports
+    -> framework-free domain and pipeline
+    -> locale catalogue + portion
+    -> pure nutrition
+    -> review / abstain / save in the app
 ```
 
-**Say:**
+<!-- PENDING -->
 
-> Perception returns observed items only. Locale data normalizes language and
-> units. Retrieval proposes catalogue candidates, resolution chooses a closed
-> food ID or abstains, portion returns a median and uncertainty band, and only
-> `pipeline/nutrition.py` produces nutrient numbers. The gate decides whether
-> to auto-accept, review, or ask. This separation is the anti-hallucination
-> guarantee, not a prompt instruction.
-
-**On-screen proof:** `README.md` architecture, `server/src/mealog/pipeline/runner.py`,
-and `server/src/mealog/pipeline/nutrition.py`. Avoid showing unrelated logs or
-unredacted request payloads.
-
-### S07 — Measurement: show method before result (`04:45–05:30`)
-
-**Picture:** Evaluation command and scorecard headings. If the scorecard is
-not yet frozen for the submission, leave the values covered by placeholder
-cards.
+The ported meal route and the end-to-end mobile connection are not present on
+the rehearsal commit yet. Keep the diagram, but render that edge as a pending
+implementation beat until it is real.
 
 **Say:**
 
-> The evaluation is stratified by cuisine and reads error beside coverage. The
-> headline is `[METRIC: worst-cuisine kcal MAPE]`, followed by
-> `[METRIC: worst-to-best spread]`; secondary context includes
-> `[METRIC: covered mean MAPE]`, `[METRIC: coverage]`, and
-> `[METRIC: Item F1]`. The result is only quotable with its sample count,
-> label tiers, fixture provenance, baseline commit, and reproducible command.
-> Until those fields are frozen, this video shows the method, not a number.
+> The edge starts in the Nest bootstrap and hands work to framework-free
+> modules. The domain owns the contract, the ports keep provider and transport
+> details at the boundary, retrieval proposes catalogue candidates, and
+> resolution returns a catalogue ID or `ABSTAIN`. Portion keeps an uncertainty
+> band. Only the nutrition stage is allowed to produce nutrient numbers. The
+> diagram is the whole story; I am entering a file only to prove one boundary,
+> not taking a folder-by-folder tour.
 
-**On-screen proof:** `docs/evaluation.md`, the harness command, and
-`[RUN: scorecard command]`. Do not read any value from memory.
+**On-screen proof:** `server/src/main.ts`, the app module, the domain models,
+and `server/src/pipeline/ports.ts` from the Node/TypeScript port. Show the CI
+architecture invariant that keeps Nest imports out of the pure directories.
 
-### S08 — Brief question: biggest trade-off (`05:30–06:15`)
+### 4:00–5:20 — Two decisions that make the result trustworthy
 
-**Picture:** Split screen: the deliberate `ABSTAIN` question beside the review
-screen's correction controls.
-
-**Say:**
-
-> My biggest trade-off is selective honesty versus friction. A system that must
-> answer every plate can hide identity and portion errors behind a precise-looking
-> total. This system accepts lower apparent coverage and an occasional question
-> so uncertainty remains visible and the user can correct the decision. The
-> cost is real: `[METRIC: coverage]` may move when the gate changes, and a user
-> may leave before correcting a meal. The decision is intentional, and the
-> scorecard must show both sides rather than optimize one number.
-
-**Question label:** Add a visible lower-third: **Biggest trade-off — coverage
-versus trustworthy abstention.**
-
-### S09 — Brief question: top three next accuracy improvements (`06:15–07:10`)
-
-**Picture:** A three-row priority card. No projected gains.
+**Picture:** Split screen: the `ABSTAIN` state and the evaluation method card.
 
 **Say:**
 
-> My next accuracy work is ranked by evidence, not by model novelty.
+> The first decision came from a caught failure. The early baseline let the
+> vision response carry a calorie number. We could not audit that guess against
+> a catalogue food and a measured portion, so the contract was changed: the
+> model observes items, resolution chooses from a closed set or abstains, and
+> nutrition computes the number from trusted catalogue data. The model no
+> longer gets a field in which to hide a calorie hallucination.
 
-> First, grow the source-backed golden set across cuisines and add defensible
-> mass evidence, so identity and portion are not mixed into one vague label.
-> Exit evidence: `[METRIC: per-cuisine result by label tier]` against
-> `[COMMIT: frozen baseline]`.
->
-> Second, make portion uncertainty more food-specific and calibrated: use the
-> sourced density path, improve mass intervals, and ship the confidence gate
-> only after it demonstrates selective risk reduction on real fixtures. Exit
-> evidence: `[METRIC: risk-coverage comparison]` with density ignorance
-> separated from identity uncertainty.
->
-> Third, improve per-cuisine identity recall through alias coverage and a held-out
-> visual retrieval adapter, while keeping the closed-set resolver and abstention
-> boundary. Exit evidence: `[METRIC: per-cuisine identity precision/recall/F1]`
-> and `[METRIC: abstention rate]`, not a single aggregate.
+> The second decision is how I read accuracy. A mean can hide the cuisine that
+> is failing, so the headline is the worst cuisine bucket, with coverage beside
+> it. The committed manifest currently has n=9 samples; the refreshed scorecard
+> is pending, and I will speak each result only with its own sample size and
+> label tier.
 
-**Question label:** Add a visible lower-third: **Top three next accuracy
-improvements — labels, portion calibration, identity retrieval.**
+<!-- PENDING -->
 
-### S10 — Brief question: what breaks at scale (`07:10–07:55`)
+Replace the method card with refreshed scorecard values only after the input,
+labels, baseline commit, and run command are frozen.
 
-**Picture:** Architecture cutaway. Highlight API cache, provider call, image
-boundary, and logs in sequence.
+**On-screen proof:** D1 and D3 in `docs/decisions.md`, the closed-set resolver,
+`pipeline/nutrition.py`, and the harness output schema. Do not show stale
+historical values from `docs/evaluation.md`.
 
-**Say:**
+### 5:20–6:15 — Evaluation and the regression guard
 
-> The first scale break is the in-memory idempotency cache. It is honest for a
-> demo, but replicas need a durable store and a unique key over user identity
-> and idempotency key. The next break is synchronous provider work: retries and
-> fallback can multiply provider calls, so quota, latency, backpressure, and
-> circuit breaking become operational requirements. Concurrent photo uploads
-> also multiply memory use even when each request has a hard byte cap. Finally,
-> structured logs need redaction, sampling, and a durable trace path before
-> they become a useful fleet signal.
-
-**On-screen proof:** `server/src/mealog/api/main.py` cache boundary, the mobile
-retry path, and the Gemini adapter's bounded ladder. Label the durable database,
-queue, circuit breaker, and object-storage path as **next architecture work**,
-not shipped features.
-
-### S11 — Brief question: security and privacy (`07:55–08:35`)
-
-**Picture:** Security/privacy checklist over the capture screen and API boundary.
+**Picture:** Show the evaluation method in the repository and the green CI
+checks in the browser. Keep result cells covered until the refresh is committed.
 
 **Say:**
 
-> The application-side privacy boundary is deliberate. The API validates image
-> type and size, holds bytes for the provider call, and does not record the
-> photograph or raw provider envelope in a fixture. Fixture lookup uses a
-> content hash. The provider key stays server-side and is never bundled into
-> the mobile app or shown in this recording.
+> The harness replays recorded provider responses offline. It separates cuisine
+> buckets, reports coverage next to error, and keeps label tiers visible. The
+> regression guard compares the candidate with the stored baseline and fails if
+> any cuisine gets worse. That is what makes a green aggregate insufficient.
 
-> I am also explicit about what is not solved. The demo `X-User-Id` fallback is
-> an identity convenience, not authentication. The in-memory replay cache is
-> not a production retention or deletion system. Provider-side retention,
-> access controls, consent, and deletion depend on the provider and deployment
-> policy; this repository does not claim to control them. Those gaps belong in
-> the security review before real personal photos are enabled.
+> The current number cells are deliberately pending measurement refresh. When
+> they are filled, the sentence will name the metric, its sample size, the label
+> tier, the baseline commit, and the exact command. Until then, this shot proves
+> the method and the guard, not a new performance claim.
 
-**On-screen proof:** allow-list and byte-cap validation, server-side key
-configuration, the absence of image files in recorded fixtures, and the
-`X-User-Id` demo-default comment. Do not show secret values or a real image.
+<!-- PENDING -->
 
-### S12 — Close with evidence boundary (`08:35–08:50`)
+Refresh the scorecard and record the final evidence anchors before reading any
+result aloud. A browser view of CI is the fallback if the local rehearsal
+cannot be shown.
 
-**Picture:** Return to the day view, then end on the repository's evidence links.
+**On-screen proof:** `docs/evaluation.md`, `eval/harness.py`, the regression
+check, and the linked CI run. Do not run or show the old Python API server.
+
+### 6:15–6:50 — Security and privacy
+
+**Picture:** Request-boundary checklist, then the secret-guard CI result.
 
 **Say:**
 
-> The product path is small and demoable: capture, inspect, correct, and save.
-> Its credibility comes from the boundaries: closed-set resolution, visible
-> abstention, reproducible evaluation, and explicit scale and privacy gaps.
-> Final result references are `[PR: walkthrough evidence]`,
-> `[COMMIT: frozen baseline]`, `[CI: linked result]`, and
-> `[METRIC: final quotable scorecard]`. If any one is missing, I will say that
-> plainly instead of filling the gap with a clean-looking number.
+> Food photos are health-adjacent data sent to a third-party provider. The
+> request contract validates the image type and size, holds bytes only for the
+> provider call, and records neither the photograph nor the raw provider
+> envelope in a fixture. The provider key stays server-side. User-scoped
+> idempotency prevents one tenant's replay from being returned to another, and
+> the tracked-secret guard scans both the tree and the diff.
+
+<!-- PENDING -->
+
+Show the Node/TypeScript request validator and the live device boundary after
+the ported endpoint lands. Until then, show the contract and the CI guard
+without implying that this rehearsal exercised a live provider.
+
+**On-screen proof:** the D5 contract, the server-side configuration boundary,
+the CI secret-guard result, and the absence of photos from recorded fixtures.
+Never show a key, a personal photo, or a user identifier.
+
+### 6:50–7:30 — Limitations and scorable evidence
+
+**Picture:** `STATUS.md`, then the golden manifest and the fixture directory.
+
+**Say:**
+
+> This is a small evidence set, not a claim about every cuisine or every plate.
+> The current manifest has n=9 golden samples, and the catalogue can only score
+> foods it contains; everything else must abstain. The mobile-to-ported-backend
+> path and the refreshed result cells are still pending. Those limits are part
+> of the submission evidence, so I show them instead of smoothing them away.
+
+**On-screen proof:** `STATUS.md`, `eval/golden/manifest.jsonl`, and the recorded
+fixture mapping. Do not invent a coverage or accuracy percentage for a pending
+run.
+
+### 7:30–8:00 — What comes next
+
+**Picture:** A closing card with three priorities, then the abstention screen.
+
+**Say:**
+
+> Next I would finish the ported meal endpoint and run the device path, refresh
+> the scorecard on real labels, and then measure the scale curve before changing
+> retrieval. The order protects the evidence: first the same contract end to
+> end, then the numbers, then the cost of a larger catalogue. The product is
+> small by design, but every boundary is visible: capture, correction,
+> abstention, reproducible measurement, and an explicit privacy limit.
+
+**On-screen proof:** the Node/TypeScript CI result, the pending markers to be
+cleared by their owning work, and the final `ABSTAIN` screen.
 
 ## Final edit checklist
 
-- [ ] Run through all shots once with a clean demo state.
+- [ ] Rehearse the full run once from a clean checkout after code freeze.
+- [ ] Confirm the backend visible in the recording is Node/TypeScript; do not
+      show a Python API terminal.
+- [ ] Confirm the abstention shot remains in the final cut and is labelled as a
+      deliberate failure / correct abstention.
+- [ ] Confirm every spoken metric has its sample size in the same sentence.
+- [ ] Replace `<!-- PENDING -->` beats only when the corresponding endpoint or
+      scorecard evidence exists in the repository.
 - [ ] Confirm no API key, personal photo, user identifier, or raw provider
-      payload appears in screen recording, terminal, or narration.
-- [ ] Mark the deliberate abstention shot in the timeline; do not cut it as an
-      “error” during editing.
-- [ ] Replace only approved `[METRIC: ...]` placeholders, each with its source
-      commit, command, label tier, and CI/eval evidence.
-- [ ] Rehearse the four brief questions from S08–S11 without adding unsupported
-      performance, readiness, scale, or privacy claims.
+      payload appears in the recording, terminal, or narration.
