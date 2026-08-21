@@ -70,10 +70,10 @@ the text input. Camera and text share the same client-generated idempotency key.
 
 | Brief item | Status | Note |
 |---|---|---|
-| End-to-end meal logging flow | Partial | Pipeline, API, and Expo client exist; device and live-provider execution are unclaimed. |
+| End-to-end meal logging flow | Partial | Pipeline, API, and Expo client exist, and provider responses are recorded; the device-to-live-provider path has not been run. |
 | Mobile app experience (not web) | Partial | Three Expo screens export in CI; device execution is unverified. |
 | AI path: **hybrid (rules + retrieval + LLM)** | Implemented | Rules, retrieval, closed-set resolution, and provider boundary exist; fixtures are offline default. |
-| Accuracy evaluation (metrics, test set, error taxonomy) | Partial | Metrics and taxonomy exist; the nine-sample fixtures remain synthetic. |
+| Accuracy evaluation (metrics, test set, error taxonomy) | Partial | Metrics, taxonomy, and recorded non-synthetic provider fixtures exist; the golden set is still small. |
 | Hallucination reduction | Implemented | Closed-set resolution is enforced; only `pipeline/nutrition.py` produces nutrition. |
 | Reliability (idempotency, retries, errors) | Partial | Idempotency and errors exist; durable storage and degradation are omitted. |
 | Observability (simple is fine) | Implemented | JSON logs include request IDs and stage timings. |
@@ -169,12 +169,14 @@ everything:
 
 ## Testing
 
-`make test` currently runs 80 tests. They are selected by risk rather than
-coverage: nutrition arithmetic (the only place numbers are made), locale-pack
-integrity, the closed-set guarantee, API contracts, pipeline stages, and
-idempotent replay. `docs/evaluation.md` covers accuracy evaluation separately.
-Deliberately untested are live-provider calls, Expo device behaviour, and
-production multi-process behaviour; those require external services or hardware.
+`make test` runs the suite under `server/tests` and prints the count on every
+run, so no number is repeated here to go stale. Tests are selected by risk
+rather than coverage: nutrition arithmetic (the only place numbers are made),
+locale-pack integrity, the closed-set guarantee, API contracts, pipeline stages,
+and idempotent replay. `docs/evaluation.md` covers accuracy evaluation
+separately. Deliberately untested are live-provider calls, Expo device
+behaviour, and production multi-process behaviour; those require external
+services or hardware.
 
 ## Assumptions
 
@@ -188,31 +190,40 @@ silent, the ambiguity, evidence, decision, and reversal cost are recorded in
 
 ## Known limitations
 
-The golden set has 9 samples: 2 Tier 1 and 7 Tier 3. Its recorded fixtures are
-synthetic, so the scorecard is harness evidence rather than real-provider
-accuracy. The idempotency store is in memory and process-local; a restart or
+The golden set is small; `STATUS.md` carries its current size, and per-cuisine
+buckets are correspondingly thin. Its fixtures are recorded from a real
+provider rather than seeded, but they are keyed by `sample_id`, not by image
+content hash — so the scorecard is evidence about offline replay, not proof
+that the photo path has run against a live provider. The D10 full-Flash
+comparison strip is incomplete: recording stopped on repeated provider HTTP 503
+responses. The idempotency store is in memory and process-local; a restart or
 another replica loses its keys. Nothing is trained: D8 rents the frontier VLM,
 specifies a locale adapter and a mass regressor, and deliberately trains neither.
-The confidence gate is held at its current operating point while portion
-uncertainty is reviewed. Live-provider and device execution remain unverified.
+Per D11 the confidence gate is held at its current operating point while portion
+uncertainty is reviewed. Device execution remains unverified.
 
 ## With more time
 
-1. Replace synthetic fixtures and labels with source-backed inputs first; this is
-   the riskiest assumption behind any accuracy claim.
-2. Run the live provider and Expo client on real devices, recording failures and
-   latency rather than inferring them from offline tests.
-3. Train and evaluate only the D8 locale adapter after the real data and gates
+1. Run the photo path against the live provider end to end, so fixtures are keyed
+   by image content rather than replayed by `sample_id`, and finish the D10
+   full-Flash comparison strip.
+2. Keep growing the golden set, so each cuisine bucket rests on more than a
+   handful of samples; per D3 the headline is the worst bucket, and a thin bucket
+   is a wide interval.
+3. Run the Expo client on real devices, recording failures and latency rather
+   than inferring them from offline tests.
+4. Train and evaluate only the D8 locale adapter after the real data and gates
    are in place; keep the frontier VLM rented.
-4. Replace the process-local idempotency map with durable shared storage and add
+5. Replace the process-local idempotency map with durable shared storage and add
    the provider degradation ladder.
 
 ## Time spent & scope
 
 The work was scoped to the six-day brief window. No hour-by-hour timesheet was
-kept, so I do not claim a precise total. Live provider fixtures, real labels,
-fine-tuning, production persistence, a Loom walkthrough, and the email handoff
-were cut from this repository.
+kept, so I do not claim a precise total. Fine-tuning, production persistence, a
+Loom walkthrough, and the email handoff were cut from this repository.
+Live-provider fixtures and source-backed labels were not cut — they landed; what
+is still missing there is the device-to-live-provider photo path.
 
 ## Tech & dependencies
 
