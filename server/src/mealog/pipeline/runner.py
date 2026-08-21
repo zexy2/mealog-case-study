@@ -77,8 +77,10 @@ def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: C
         r = resolve(item.query, candidates, allow_abstain=config.gating)
         if not r.abstained:
             food = pack.foods[r.food_id]
-            r.grams, r.grams_p10, r.grams_p90 = portion.estimate(
-                food, item.quantity, item.unit, pack)
+            estimate = portion.estimate(food, item.quantity, item.unit, pack)
+            r.grams, r.grams_p10, r.grams_p90 = estimate
+            r.portion_source = estimate.source
+            r.portion_provenance = estimate.provenance
             r.nutrients = nutrition.scale_per_100g(food.per_100g, r.grams).rounded()
         resolved.append(r)
 
