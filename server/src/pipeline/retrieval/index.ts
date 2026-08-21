@@ -25,6 +25,8 @@
 import { createHash } from 'node:crypto';
 
 import type { Candidate } from '../../domain/models';
+import type { LocalePack } from '../../locales/loader';
+import { fold } from '../normalize';
 import { TfidfVectoriser, charWbAnalyzer, wordAnalyzer } from './tfidf';
 
 /**
@@ -45,31 +47,6 @@ export const CONFUSION_SCORE = 0.3;
 
 /** Below this share of the query accounted for, a match is noise. */
 export const MIN_SIGNAL = 0.15;
-
-/** Locale-aware folding. Owned by the normalize module, injected here. */
-export type FoldFn = (text: string, pack: RetrievalPack) => string;
-
-/** The single field retrieval reads off a catalogue entry. */
-export interface RetrievalFood {
-  readonly name: string;
-}
-
-/**
- * The shape of a locale pack, as retrieval sees it.
- *
- * Declared structurally rather than imported so this module compiles and is
- * testable on its own while the loader is ported in parallel. The real
- * `LocalePack` satisfies it without modification, and the field names are the
- * Python ones deliberately — a rename would surface as a diff at the parity
- * gate.
- */
-export interface RetrievalPack {
-  readonly locale: string;
-  readonly foods: Readonly<Record<string, RetrievalFood>>;
-  readonly aliases: Readonly<Record<string, readonly string[]>>;
-  readonly negative_aliases: Readonly<Record<string, readonly string[]>>;
-  readonly [extra: string]: unknown;
-}
 
 /** Per-pack search structures. Built once per pack content identity. */
 export interface RetrievalIndex {
@@ -109,7 +86,7 @@ function stableStringify(value: unknown): string {
  * the same process. Content, never mtime — mtime is wrong in CI, where every
  * file is checked out at the same moment.
  */
-export function packIdentity(pack: RetrievalPack): string {
+export function packIdentity(pack: LocalePack): string {
   return createHash('sha256').update(stableStringify(pack), 'utf8').digest('hex');
 }
 
@@ -160,7 +137,7 @@ export function roundHalfEven(value: number, digits: number): number {
   return negative ? -result : result;
 }
 
-export function buildIndex(pack: RetrievalPack, identity: string, fold: FoldFn): RetrievalIndex {
+export function buildIndex(pack: LocalePack, identity: string): RetrievalIndex {
   const cached = INDEX_CACHE.get(identity);
   if (cached !== undefined) {
     return cached;
@@ -308,15 +285,10 @@ export function similarities(index: RetrievalIndex, query: string): number[] {
 }
 
 /**
- * Folding is owned by the normalize module (#122) and injected here rather
- * than imported, so retrieval stays independently testable while the two
- * modules are ported in parallel. `createRetrieval` is the only way to reach
- * `search`, so a caller cannot reach retrieval without supplying one.
+ * Folding is owned by the normalize module (#122) and imported directly now
+ * that both Wave 1 modules are on main. The loader's LocalePack is the single
+ * pack type shared by the pipeline.
  */
-export interface RetrievalDeps {
-  readonly fold: FoldFn;
-}
-
 export interface Retrieval {
   /**
    * Return up to `k` canonical candidates for a query string.
@@ -324,18 +296,18 @@ export interface Retrieval {
    * An empty list is a valid, meaningful answer: it makes the resolver
    * abstain, which is the correct behaviour for food we do not carry.
    */
-  search(query: string, pack: RetrievalPack, k?: number): Candidate[];
+  search(query: string, pack: LocalePack, k?: number): Candidate[];
 }
 
-export function createRetrieval(deps: RetrievalDeps): Retrieval {
+export function createRetrieval(): Retrieval {
   return {
-    search(rawQuery: string, pack: RetrievalPack, k = 5): Candidate[] {
-      const query = deps.fold(rawQuery, pack);
+    search(rawQuery: string, pack: LocalePack, k = 5): Candidate[] {
+      const query = fold(rawQuery, pack);
       if (!query) {
         return [];
       }
 
-      const index = buildIndex(pack, packIdentity(pack), deps.fold);
+      const index = buildIndex(pack, packIdentity(pack));
       const scores = new Map<string, number>();
 
       // 1. Exact surface hit. Unambiguous, so it outranks everything fuzzy.

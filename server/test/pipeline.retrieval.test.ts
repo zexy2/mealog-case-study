@@ -7,11 +7,9 @@
  * properties so a later change cannot quietly undo one while the aggregate
  * still looks fine.
  *
- * Fixtures are hand-built rather than loaded from `locale_packs/`: the loader
- * is a sibling Wave 1 module and is not on `main` yet, and unit tests should
- * not depend on catalogue data that other agents are actively growing.
- * `fold` is likewise supplied here as a stand-in for the normalize module,
- * which is exactly what the dependency seam is for.
+ * Fixtures are hand-built rather than loaded from `locale_packs/`, but they
+ * use the real LocalePack class so retrieval exercises the same type boundary
+ * as the loader. The real normalize.fold implementation is used directly.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -27,49 +25,55 @@ import {
   packIdentity,
   roundHalfEven,
   similarities,
-  type RetrievalPack,
 } from '../src/pipeline/retrieval/index';
+import { LicenseTerm, LocalePack } from '../src/locales/loader';
+import { makeNutrients, type CanonicalFood } from '../src/domain/models';
 import {
   TfidfVectoriser,
   charWbAnalyzer,
   wordAnalyzer,
 } from '../src/pipeline/retrieval/tfidf';
 
-/**
- * Stand-in for `normalize.fold` until #122 lands. Implements the same folding
- * contract the locale packs describe: character map, lowercase, accent strip,
- * whitespace collapse.
- */
-function fold(text: string, pack: RetrievalPack): string {
-  const rules = (pack.text_rules ?? {}) as {
-    char_map?: Record<string, string>;
-    lowercase?: boolean;
-    strip_accents?: boolean;
+function makeFood(food_id: string, name: string, locale: string): CanonicalFood {
+  return {
+    food_id,
+    name,
+    per_100g: makeNutrients(),
+    default_serving_g: 100,
+    default_serving_name: '100 g',
+    source: 'test',
+    locale,
+    packaged: false,
+    serving_size_g: null,
+    serving_size_name: null,
+    serving_size_source: null,
+    net_weight_g: null,
+    net_weight_source: null,
+    density_g_per_ml: null,
+    density_source: null,
   };
-  let out = text;
-  for (const [src, dst] of Object.entries(rules.char_map ?? {})) {
-    out = out.split(src).join(dst);
-  }
-  if (rules.lowercase ?? true) {
-    out = out.toLowerCase();
-  }
-  if (rules.strip_accents ?? false) {
-    out = out.normalize('NFD').replace(/\p{Mn}/gu, '');
-  }
-  return out.replace(/\s+/g, ' ').trim();
 }
 
-/**
- * Fixtures are mutable so individual tests can vary one field; `RetrievalPack`
- * itself is read-only, and a mutable object satisfies it.
- */
-interface MutablePack {
+function makePack(init: {
   locale: string;
   text_rules: Record<string, unknown>;
-  foods: Record<string, { name: string }>;
+  foods: Record<string, string>;
   aliases: Record<string, string[]>;
   negative_aliases: Record<string, string[]>;
-  [extra: string]: unknown;
+}): LocalePack {
+  return new LocalePack({
+    locale: init.locale,
+    cuisine_bucket: 'other_mixed',
+    nutrition_source: 'test',
+    license: LicenseTerm.PUBLIC_DOMAIN,
+    license_note: null,
+    foods: Object.fromEntries(
+      Object.entries(init.foods).map(([food_id, name]) => [food_id, makeFood(food_id, name, init.locale)]),
+    ),
+    aliases: init.aliases,
+    negative_aliases: init.negative_aliases,
+    text_rules: init.text_rules,
+  });
 }
 
 const TR_RULES = {
@@ -79,15 +83,15 @@ const TR_RULES = {
 };
 
 /** Modelled on `locale_packs/tr`, including its real negative aliases. */
-function trPack(): MutablePack {
-  return {
+function trPack(): LocalePack {
+  return makePack({
     locale: 'tr',
     text_rules: TR_RULES,
     foods: {
-      'tr.pilav': { name: 'Pilav' },
-      'tr.kuru_fasulye': { name: 'Kuru Fasulye' },
-      'tr.ekmek_beyaz': { name: 'Beyaz Ekmek' },
-      'tr.mercimek_corbasi': { name: 'Mercimek Çorbası' },
+      'tr.pilav': 'Pilav',
+      'tr.kuru_fasulye': 'Kuru Fasulye',
+      'tr.ekmek_beyaz': 'Beyaz Ekmek',
+      'tr.mercimek_corbasi': 'Mercimek Çorbası',
     },
     aliases: {
       'tr.pilav': ['pilav', 'pilavi', 'pirinc', 'pirinc pilavi', 'sade pirinc pilavi'],
@@ -101,29 +105,29 @@ function trPack(): MutablePack {
       'tr.kuru_fasulye': ['baked beans', 'baked bean', 'etli ekmek'],
       'tr.ekmek_beyaz': ['etli ekmek'],
     },
-  };
+  });
 }
 
 /** Minimal English pack for the token-boundary case. */
-function enPack(): MutablePack {
-  return {
+function enPack(): LocalePack {
+  return makePack({
     locale: 'en_US',
     text_rules: { lowercase: true },
     foods: {
-      'us.rice_white_cooked': { name: 'White rice, cooked' },
-      'us.cauliflower_riced': { name: 'Riced cauliflower' },
+      'us.rice_white_cooked': 'White rice, cooked',
+      'us.cauliflower_riced': 'Riced cauliflower',
     },
     aliases: {
       'us.rice_white_cooked': ['rice', 'white rice', 'steamed rice'],
       'us.cauliflower_riced': ['riced cauliflower'],
     },
     negative_aliases: {},
-  };
+  });
 }
 
 function retrieval() {
   clearIndexCache();
-  return createRetrieval({ fold });
+  return createRetrieval();
 }
 
 // ---------------------------------------------------------------- analyzers
@@ -200,7 +204,7 @@ describe('unseen n-grams are charged at maximum IDF in the denominator', () => {
 
   it('is what keeps that score low — dropping unseen grams reintroduces the bug', () => {
     const pack = trPack();
-    const index = buildIndex(pack, packIdentity(pack), fold);
+    const index = buildIndex(pack, packIdentity(pack));
     const query = 'pizza margherita';
 
     // Reproduce both denominators directly, so the regression is pinned to the
@@ -233,7 +237,7 @@ describe('unseen n-grams are charged at maximum IDF in the denominator', () => {
 
   it('charges every unseen n-gram, so the score falls as the query gets more foreign', () => {
     const pack = trPack();
-    const index = buildIndex(pack, packIdentity(pack), fold);
+    const index = buildIndex(pack, packIdentity(pack));
     const near = Math.max(...similarities(index, 'pilav'));
     const foreign = Math.max(...similarities(index, 'pizza margherita'));
     expect(near).toBeGreaterThan(foreign);
@@ -276,7 +280,7 @@ describe('negative_alias eliminates every food carrying the matched alias', () =
     // An exact surface hit is stronger evidence than a generic confusion note.
     const pack = trPack();
     pack.negative_aliases['tr.pilav'] = ['pilav'];
-    const cands = createRetrieval({ fold }).search('pilav', pack);
+    const cands = createRetrieval().search('pilav', pack);
     expect(cands[0]?.food_id).toBe('tr.pilav');
     expect(cands[0]?.score).toBe(1.0);
   });
@@ -289,7 +293,7 @@ describe('sub-phrase matching respects token boundaries', () => {
     const pack = enPack();
     pack.negative_aliases['us.rice_white_cooked'] = ['rice'];
     // "rice" occurs inside "riced", but not as a whole token.
-    const cands = createRetrieval({ fold }).search('riced cauliflower', pack);
+    const cands = createRetrieval().search('riced cauliflower', pack);
     const white = cands.find((c) => c.food_id === 'us.rice_white_cooked');
     expect(white?.score).not.toBe(CONFUSION_SCORE);
     expect(cands[0]?.food_id).toBe('us.cauliflower_riced');
@@ -352,7 +356,7 @@ describe('search', () => {
     // Verified against the Python implementation on the same fixture.
     const pack = enPack();
     pack.aliases['us.cauliflower_riced'] = ['riced cauliflower', 'cauliflower rice'];
-    const cands = createRetrieval({ fold }).search('rice', pack);
+    const cands = createRetrieval().search('rice', pack);
     expect(cands.map((c) => [c.food_id, c.score])).toEqual([
       ['us.cauliflower_riced', 1.0],
       ['us.rice_white_cooked', 1.0],
@@ -368,11 +372,11 @@ describe('index cache', () => {
     const b = trPack();
     expect(packIdentity(a)).toBe(packIdentity(b));
 
-    b.foods['tr.injected'] = { name: 'Injected' };
+    b.foods['tr.injected'] = makeFood('tr.injected', 'Injected', 'tr');
     b.aliases['tr.injected'] = ['injected food'];
     expect(packIdentity(b)).not.toBe(packIdentity(a));
 
-    const r = createRetrieval({ fold });
+    const r = createRetrieval();
     expect(r.search('injected food', a)).toEqual([]);
     expect(r.search('injected food', b)[0]?.food_id).toBe('tr.injected');
   });
@@ -380,7 +384,7 @@ describe('index cache', () => {
   it('does not key on the locale name, which is not an identity', () => {
     const a = trPack();
     const b = trPack();
-    b.foods['tr.pilav'] = { name: 'Something else entirely' };
+    b.foods['tr.pilav'] = makeFood('tr.pilav', 'Something else entirely', 'tr');
     expect(a.locale).toBe(b.locale);
     expect(packIdentity(a)).not.toBe(packIdentity(b));
   });
