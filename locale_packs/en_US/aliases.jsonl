@@ -29,3 +29,5 @@
 {"food_id": "us.lasagna_meat", "alias": ["lasagna", "lasagne", "lasagna with meat sauce"], "negative_alias": ["meat", "rice with meat"]}
 {"food_id": "us.leaf_lettuce_raw", "alias": ["green salad", "leaf salad", "salada de folhas", "leafy greens"], "negative_alias": ["salad", "caesar salad", "arugula salad", "chickpea salad"]}
 {"food_id": "us.arugula_raw", "alias": ["arugula", "arugula salad", "rocket"], "negative_alias": ["salad", "caesar salad", "chickpea salad"]}
+{"food_id": "us.spinach_raw", "alias": ["spinach", "raw spinach"]}
+{"food_id": "us.brussels_sprouts_cooked", "alias": ["brussels sprouts", "brussel sprouts", "roasted brussels sprouts"]}
