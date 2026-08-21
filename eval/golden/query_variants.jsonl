@@ -34,7 +34,7 @@
 {"query": "sarma", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "partial"}
 {"query": "yaprak sarma", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "alias"}
 {"query": "yaprak dolmasi", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "alias"}
-{"query": "baked beans", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "confusion"}
+{"query": "baked beans", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "confusable_food_id": "tr.kuru_fasulye", "role": "confusion", "kind": "confusion"}
 {"query": "steamed rice", "locale": "ja_JP", "expected_food_id": "jp.rice_steamed", "kind": "exact"}
 {"query": "rice", "locale": "ja_JP", "expected_food_id": "jp.rice_steamed", "kind": "partial"}
 {"query": "gohan", "locale": "ja_JP", "expected_food_id": "jp.rice_steamed", "kind": "translit"}
@@ -61,3 +61,85 @@
 {"query": "lahmacun", "locale": "ja_JP", "expected_food_id": null, "kind": "absent"}
 {"query": "tacos", "locale": "ja_JP", "expected_food_id": null, "kind": "absent"}
 {"query": "spaghetti carbonara", "locale": "ja_JP", "expected_food_id": null, "kind": "absent"}
+{"query": "mercimek corbasi", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "exact"}
+{"query": "kuru fasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "exact"}
+{"query": "pilav", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "exact"}
+{"query": "lahmacun", "locale": "tr", "expected_food_id": "tr.lahmacun", "kind": "exact"}
+{"query": "menemen", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "exact"}
+{"query": "simit", "locale": "tr", "expected_food_id": "tr.simit", "kind": "exact"}
+{"query": "ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "exact"}
+{"query": "yaprak sarma", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "exact"}
+{"query": "kirmizi mercimek corbasi", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "diacritic_free"}
+{"query": "zeytinyagli yaprak dolmasi", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "diacritic_free"}
+{"query": "pirinc pilavi", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "diacritic_free"}
+{"query": "yumurtali menemen", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "diacritic_free"}
+{"query": "susamli simit", "locale": "tr", "expected_food_id": "tr.simit", "kind": "diacritic_free"}
+{"query": "yogurt icecegi", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "diacritic_free"}
+{"query": "Mercimek Çorbası", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "diacritics"}
+{"query": "Kırmızı Mercimek Çorbası", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "diacritics"}
+{"query": "Zeytinyağlı Yaprak Dolması", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "diacritics"}
+{"query": "Pirinç Pilavı", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "diacritics"}
+{"query": "Yumurtalı Menemen", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "diacritics"}
+{"query": "Susamlı Simit", "locale": "tr", "expected_food_id": "tr.simit", "kind": "diacritics"}
+{"query": "Yoğurt İçeceği", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "diacritics"}
+{"query": "mercmek", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "misspelling"}
+{"query": "lahmakun", "locale": "tr", "expected_food_id": "tr.lahmacun", "kind": "misspelling"}
+{"query": "menmen", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "misspelling"}
+{"query": "kur fasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "misspelling"}
+{"query": "sarmasi", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "misspelling"}
+{"query": "pilavi", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "misspelling"}
+{"query": "simitci simidi", "locale": "tr", "expected_food_id": "tr.simit", "kind": "misspelling"}
+{"query": "pinar ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "misspelling"}
+{"query": "bi simit", "locale": "tr", "expected_food_id": "tr.simit", "kind": "colloquial"}
+{"query": "bi ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "colloquial"}
+{"query": "sade pilav", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "colloquial"}
+{"query": "etli fasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "colloquial"}
+{"query": "domatesli yumurta", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "colloquial"}
+{"query": "sarma yaprak", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "colloquial"}
+{"query": "bir simit", "locale": "tr", "expected_food_id": "tr.simit", "kind": "colloquial"}
+{"query": "bir ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "colloquial"}
+{"query": "ev yapimi mercimek", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "colloquial"}
+{"query": "kahvaltilik menemen", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "colloquial"}
+{"query": "2 adet lahmacun", "retrieval_query": "lahmacun", "locale": "tr", "expected_food_id": "tr.lahmacun", "kind": "quantified"}
+{"query": "yarim porsiyon pilav", "retrieval_query": "pilav", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "quantified"}
+{"query": "bir kase mercimek", "retrieval_query": "mercimek", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "quantified"}
+{"query": "3 tane simit", "retrieval_query": "simit", "locale": "tr", "expected_food_id": "tr.simit", "kind": "quantified"}
+{"query": "iki bardak ayran", "retrieval_query": "ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "quantified"}
+{"query": "1 porsiyon kuru fasulye", "retrieval_query": "kuru fasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "quantified"}
+{"query": "4 adet sarma", "retrieval_query": "sarma", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "quantified"}
+{"query": "2 porsiyon menemen", "retrieval_query": "menemen", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "quantified"}
+{"query": "bir tabak pilav", "retrieval_query": "pilav", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "quantified"}
+{"query": "yarim kase mercimek corbasi", "retrieval_query": "mercimek corbasi", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "quantified"}
+{"query": "Antep lahmacun", "locale": "tr", "expected_food_id": "tr.lahmacun", "kind": "regional"}
+{"query": "Urfa lahmacun", "locale": "tr", "expected_food_id": "tr.lahmacun", "kind": "regional"}
+{"query": "Istanbul simidi", "locale": "tr", "expected_food_id": "tr.simit", "kind": "regional"}
+{"query": "yayla kuru fasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "regional"}
+{"query": "ev yapimi kuru fasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "regional"}
+{"query": "ev yapimi sarma", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "regional"}
+{"query": "anne usulu menemen", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "regional"}
+{"query": "zeytinyagli sarma", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "regional"}
+{"query": "sade pirinc", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "regional"}
+{"query": "lentil soup", "locale": "tr", "expected_food_id": "tr.mercimek_corbasi", "kind": "english_mixed"}
+{"query": "rice pilaf", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "english_mixed"}
+{"query": "plain rice", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "english_mixed"}
+{"query": "bean stew", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "english_mixed"}
+{"query": "Turkish pizza", "locale": "tr", "expected_food_id": "tr.lahmacun", "kind": "english_mixed"}
+{"query": "stuffed vine leaves", "locale": "tr", "expected_food_id": "tr.yaprak_sarma", "kind": "english_mixed"}
+{"query": "Turkish yogurt drink", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "english_mixed"}
+{"query": "Turkish scrambled eggs", "locale": "tr", "expected_food_id": "tr.menemen", "kind": "english_mixed"}
+{"query": "Simit Sarayı simidi", "locale": "tr", "expected_food_id": "tr.simit", "kind": "brand"}
+{"query": "Sütaş ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "brand"}
+{"query": "Pınar ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "brand"}
+{"query": "Yayla kuru fasulye", "locale": "tr", "expected_food_id": "tr.kuru_fasulye", "kind": "brand"}
+{"query": "Hazır pilav", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "brand"}
+{"query": "bi simit bi ayran", "retrieval_query": "simit", "locale": "tr", "expected_food_id": "tr.simit", "kind": "colloquial_compound"}
+{"query": "bi simit bi ayran", "retrieval_query": "ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "colloquial_compound"}
+{"query": "etli ekmek", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.lahmacun", "tr.kuru_fasulye"], "role": "negative", "kind": "regional_negative"}
+{"query": "su böreği", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.yaprak_sarma"], "confusable_food_id": "tr.yaprak_sarma", "role": "confusion", "kind": "regional_negative"}
+{"query": "sigara böreği", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.yaprak_sarma"], "confusable_food_id": "tr.yaprak_sarma", "role": "confusion", "kind": "regional_negative"}
+{"query": "çay", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.ayran"], "confusable_food_id": "tr.ayran", "role": "confusion", "kind": "negative_drink"}
+{"query": "yoğurt", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.ayran"], "confusable_food_id": "tr.ayran", "role": "confusion", "kind": "negative_drink"}
+{"query": "sucuklu yumurta", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.menemen"], "confusable_food_id": "tr.menemen", "role": "confusion", "kind": "regional_negative"}
+{"query": "kokoreç", "locale": "tr", "expected_food_id": null, "kind": "absent"}
+{"query": "döner", "locale": "tr", "expected_food_id": null, "kind": "absent"}
+{"query": "mantı", "locale": "tr", "expected_food_id": null, "kind": "absent"}
