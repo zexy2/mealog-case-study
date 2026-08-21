@@ -13,8 +13,9 @@ harness-compatible numeric `grams` field, and `truth_axes` with separate
 identity and portion tiers. Every food ID and mass field carries a provenance
 string in the form `dataset=...; record_id=...; field=...`.
 
-The current manifest contains **n=25** samples. All empirical figures below
-come from a fresh offline run over those 25 recorded fixtures and labels.
+The current manifest contains **n=80** samples. The historical 25-sample
+decomposition below is labelled explicitly; generated scorecards always replay
+the complete committed manifest.
 
 The conservative overall tier does not hide axis differences:
 
@@ -34,6 +35,14 @@ evaluator sentinel)`. Their identity sets are still scored; zero-truth rows
 are excluded from calorie APE/MAPE by the existing zero-truth rule. Traps have
 empty truth and are scored on identity rather than calorie error.
 
+Nutrition5k rows can also contain `unmapped_source_ingredients`. A non-empty
+list means the mapped `truth.items` are only a partial view of the meal: the
+mapped calorie sum is retained for inspection but is not complete meal truth.
+Such rows are `calorie_eligible = false` and are excluded from calorie APE,
+MAPE, and within-20% calculations. They remain in identity, Item F1, coverage,
+FP-rate, and error-tag calculations. Incompleteness is never represented by
+changing calories to zero.
+
 An error against a Tier 3 label is weaker evidence than the same error against
 a Tier 1 label. Tiers are never silently combined: the harness reports the
 same evaluation by the conservative overall tier as well as by cuisine, while
@@ -50,14 +59,18 @@ to expose. This follows [D3](decisions.md#d3--headline-metric-is-the-worst-cuisi
 scorecard also prints overall MAPE as secondary context, but it is not the
 headline.
 
-Calorie MAPE is computed over **covered samples only**. A sample is covered
-when it neither abstains nor asks the user for clarification. Coverage is
-reported next to MAPE because they describe a risk–coverage trade: a system
-can lower its error by answering only the cases it is willing to commit to.
+Calorie MAPE is computed over **covered, calorie-eligible samples only**. A
+sample is covered when it neither abstains nor asks the user for clarification;
+a sample is calorie-eligible only when its truth is complete and its total
+calories are positive. Coverage is reported next to MAPE because they describe
+a risk–coverage trade: a system can lower its error by answering only the cases
+it is willing to commit to.
 Treating a deferred meal as a zero-calorie answer would punish correct
 behaviour, so deferred samples are excluded from calorie MAPE rather than
 scored as wrong zeroes. Samples with zero truth calories have no calorie APE;
-the trap case is therefore represented by identity metrics.
+the trap case is therefore represented by identity metrics. The scorecard's
+`Calorie eligible` count is the complete-positive-truth pool before coverage,
+and `Calorie scored` is the covered subset that contributes APE/MAPE.
 
 The implemented `Bucket` metrics are:
 
@@ -65,8 +78,10 @@ The implemented `Bucket` metrics are:
 |---|---|
 | `precision`, `recall`, `f1` | Set-based identity precision, recall, and F1 over `food_id` |
 | `coverage` | Covered samples as a percentage of all samples in the bucket |
-| `mape` | Mean absolute percentage calorie error over covered samples with positive truth calories |
-| `within_20pct` | Covered samples whose calorie error is at most 20% |
+| `calorie_eligible` | Count of complete-truth samples with positive calories; partial and zero-truth rows are excluded |
+| `calorie_scored` | Count of covered, calorie-eligible rows contributing an APE |
+| `mape` | Mean absolute percentage calorie error over `calorie_scored` rows |
+| `within_20pct` | `calorie_scored` rows whose calorie error is at most 20% |
 | `hallucination_rate` | False positives divided by true positives plus false positives |
 | `error_distribution` | Count of observed error tags, once per sample carrying each tag |
 
@@ -75,13 +90,14 @@ boundary is narrower than a blanket impossibility claim:
 resolver cannot select a `food_id` outside its candidate set, and no model
 emits a nutrition number. The vision stage can still report an item that was
 not on the plate; that report may resolve to a real catalogue entry. That
-perception failure is what `E3` counts in the fresh V3 run on **n=25**.
+perception failure is what `E3` counted in the historical V3 run on **n=25**.
 
 `aggregate()` produces these per-bucket metrics by cuisine and
 `aggregate_by_tier()` applies every one of the same `Bucket` calculations by
 ground-truth tier, so every per-bucket headline metric has a tier slice and the
 definitions cannot silently diverge. The scorecard prints, for each cuisine
-and tier, `n`, coverage, Item F1, kcal MAPE, `within_20pct`, and FP rate.
+and tier, `n`, coverage, calorie eligibility/scored counts, Item F1, kcal
+MAPE, `within_20pct`, and FP rate.
 
 An empty calorie denominator is not a zero-error result. `Bucket.mape` and
 `Bucket.within_20pct` retain numeric zero for regression/JSON compatibility,
@@ -89,7 +105,11 @@ but format as an em dash in scorecard cells when there are no positive-truth
 APE values. A bucket with `coverage > 0%` can still have no calorie score when
 its truth is identity-only; a bucket with `coverage = 0%` has no committed
 calorie predictions at all. Neither should be read as `0.0%` accuracy.
-In the fresh V3 table on **n=25**, `mediterranean` has `n=6` and 50% coverage,
+The regression guard compares only non-empty `calorie_scored` buckets. If a
+bucket that had a positive baseline MAPE has no eligible calorie rows now, the
+guard reports that as unsafe to compare rather than calling an empty denominator
+an accuracy improvement.
+In the historical V3 table on **n=25**, `mediterranean` has `n=6` and 50% coverage,
 `east_asian` has `n=5` and 0% coverage, and `other_mixed` has `n=2` and 0%
 coverage. An em dash in their calorie cells means no positive-truth covered
 rows, not a zero-error result.
@@ -224,11 +244,11 @@ baseline and fails if any cuisine bucket gets worse.
 
 ## Current evidence boundary
 
-The 25 recorded provider responses are real inputs from [#3](../../issues/3),
+The 80 recorded provider responses are real inputs from [#3](../../issues/3),
 and this manifest uses source-backed labels where the upstream datasets provide
-them. The baseline in `eval/reports/baseline.json` is deliberately reset here:
-it is the first baseline with both real inputs and real labels. The label set is
-still small (**n=25**); identity-only rows carry Tier 3 portion truth and do
-not support calorie claims. Read the unedited **12.7%** worst-cuisine MAPE with
-its **n=2** positive-calorie base, 20% coverage, axis tiers and mass-evidence
-boundary. [#2](../../issues/2) still owns golden-set growth.
+them. The baseline in `eval/reports/baseline.json` is deliberately retained
+unchanged here; this evaluator fix does not reset it. The historical 25-sample
+decomposition above remains useful context, while current scorecards replay
+**n=80** and expose complete-positive-truth eligibility separately from
+coverage. Identity-only rows carry Tier 3 portion truth and do not support
+calorie claims.
