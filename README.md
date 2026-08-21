@@ -2,8 +2,8 @@
 
 mealog is a mobile-first meal logging case study: the model sees food, but never produces a calorie number.
 
-<!-- PENDING: walkthrough link, demo gif -->
-<!-- TODO(Tue): Expo QR + deployed API URL -->
+<!-- PENDING: recorded walkthrough link, demo gif -->
+<!-- TODO(when available): Expo QR + deployed API URL -->
 
 ## Run it
 
@@ -44,19 +44,21 @@ npx expo export --platform android
 
 The emulator route is `npm run android` from `apps/mobile` after an Android emulator is configured. The live emulator flow remains pending verification; this README does not claim device execution.
 
-<!-- PENDING: NestJS meal endpoint and keyless mobile-to-edge run after the remaining port work. -->
+The NestJS meal edge and provider adapters are now in the repository. The live
+mobile-to-Node run remains pending verification; the deterministic fixture path
+is the reproducible demo path today.
 
 ## What I built vs the brief
 
 | Brief requirement | Status | Evidence or reason |
 | --- | --- | --- |
-| Mobile app, not a web app | Partial | Expo client has capture, review, and day screens; emulator walkthrough remains pending. |
-| Node.js / TypeScript backend | Partial | NestJS edge and framework-free core ports exist; meal edge wiring and provider adapters remain pending. |
-| Technical write-up | Partial | Repository docs and this reviewer skeleton exist; results and walkthrough evidence remain pending. |
-| Walkthrough video | Deferred | Recording and hosted link are pending. |
+| Mobile app, not a web app | Partial | Expo client has capture, review, and day screens; emulator/device execution remains unverified. |
+| Node.js / TypeScript backend | Working (repository) | NestJS edge, vision adapters, runner, retrieval seam, and evaluator correction are merged; live mobile-to-Node proof remains unverified. |
+| Technical write-up | Partial | README, evaluation, comparison, and walkthrough documents exist; final calorie figures await the evaluation-document refresh, and recording evidence is pending. |
+| Walkthrough video | Partial | The [8:00 recording script](docs/walkthrough.md) is merged; recording and hosted link are pending. |
 | Email summary | Deferred | Summary has not been drafted. |
-| Explicit EatBetter comparison | Partial | Comparison is kept as a separate evidence document; its link is pending. |
-| AI / LLM path | Partial | Model perception is separated from closed-set resolution and deterministic nutrition; live provider path remains pending. |
+| Explicit EatBetter comparison | Working (document) | The evidence-led comparison is merged in [docs/comparison.md](docs/comparison.md); it does not claim live-provider accuracy. |
+| AI / LLM path | Partial | Model perception is separated from closed-set resolution and deterministic nutrition; live provider accuracy remains unverified. |
 
 ## Architecture
 
@@ -84,13 +86,12 @@ The delivered service is Node.js / TypeScript. NestJS owns the edge boundary; pu
 
 ## Results
 
-<!-- PENDING: measurement refresh -->
+<!-- RESULTS: filled by #57 -->
+<!-- PENDING: final calorie metrics after evaluation-document refresh -->
 
 ## Compare EatBetter
 
-EatBetter comparison will stay short and evidence-led: product behavior, workflow, and explicit trade-offs belong in the dedicated [comparison document](docs/comparison.md), not in a marketing paragraph here.
-
-<!-- PENDING: comparison document link after its owning change merges -->
+EatBetter comparison is complete and stays short and evidence-led: product behavior, workflow, and explicit trade-offs belong in the dedicated [comparison document](docs/comparison.md), not in a marketing paragraph here.
 
 ## Testing
 
@@ -102,17 +103,17 @@ The offline evaluation harness is separate from the unit-test suite: it is Pytho
 
 ## Known limitations
 
-<!-- PENDING: golden-set size and scorable count -->
-<!-- PENDING: catalogue coverage -->
-<!-- PENDING: locale coverage -->
-<!-- PENDING: abstention rate -->
+The committed golden set contains 80 samples with recorded fixtures; final calorie metrics and scorable count await the evaluation-document refresh.
+<!-- PENDING: catalogue coverage; PR #158 remains pending rebase/verification -->
+<!-- PENDING: locale coverage beyond the current packs -->
+<!-- PENDING: live-device/mobile-to-Node proof and final abstention rate -->
 
 ## With more time
 
-- Finish edge runner and provider adapters, then require parity evidence before removing any Python serving path.
-- Run the complete emulator flow and publish a walkthrough with the exact review and abstention states.
-- Expand source-backed golden data, refresh measurements, and document the remaining failure modes.
-- Add durable idempotency and explicit provider degradation behavior at the edge.
+- Rehearse the live mobile-to-Node path and publish a deployment URL only after the external proof exists.
+- Record the complete emulator flow from the merged walkthrough script and publish exact review and abstention states.
+- Verify the pending catalogue expansion, refresh the evaluation document, and document the remaining failure modes.
+- Exercise the merged idempotency and provider-degradation paths against a live deployment when that environment exists.
 - Follow the [D8](docs/decisions.md#d8) training plan only after data provenance and evaluation gates are ready. D8 is a specified, measured path, not permission to tune against a headline.
 
 ## AI usage
