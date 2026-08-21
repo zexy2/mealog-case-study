@@ -1,0 +1,37 @@
+{
+  "_synthetic": false,
+  "sample_id": "n5k_0026",
+  "input_sha256": "7b9a82e5588b9a066041301c0d40293e793f80a926442a409049f5e23ba8c4e5",
+  "provider": "gemini",
+  "model_id": "gemini-flash-lite-latest",
+  "prompt_version": "p2",
+  "degraded": false,
+  "rung": "configured_model",
+  "attempts": 1,
+  "items": [
+    {
+      "surface_form": "cauliflower",
+      "cooking_method": "boiled",
+      "portion_hint": "handful",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "bulgur wheat",
+      "cooking_method": "cooked",
+      "portion_hint": "handful",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "salad greens",
+      "cooking_method": "raw",
+      "portion_hint": "handful",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "chicken",
+      "cooking_method": "grilled",
+      "portion_hint": "small pieces",
+      "confidence": 0.85
+    }
+  ]
+}
