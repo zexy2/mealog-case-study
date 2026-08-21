@@ -38,3 +38,10 @@ the Turkish dotted/dotless `i` rule is data and the Python order is observable.
 Do not expect `parsePortion` to validate a unit against catalogue data here: it
 returns the folded token, and the later portion stage owns the pack lookup. Keep
 `server/dist/` out of commits after `npm run build`.
+
+## Rebase refresh
+
+`origin/main` advanced to `af59065` while the branch was being pushed. After
+rebasing, the detached-main and branch scorecards still matched with the same
+SHA-256 and zero-line diff; Node build/lint/test and the full Python `make check`
+were rerun successfully against that current base.
