@@ -6,7 +6,7 @@
 
 ## Is this ready to submit?
 
-**No.** 8 of 8 deliverables are still outstanding. What exists today is the measurement layer and the architecture; the photo path and the app do not exist yet.
+**No.** 7 of 8 deliverables are still outstanding. What exists today is the measurement layer and the architecture; the photo path and the app do not exist yet.
 
 ## Deliverables
 
@@ -14,22 +14,12 @@
 |---|---|---|
 | Mobile app experience (not a web app) | 🚧 partial | Expo app present; CI typechecks and bundles it; running on a device is shown in the walkthrough, not provable from the repository |
 | Photo ingest (end-to-end flow) | 🚧 partial | API accepts an image; the path has not run against a live provider |
-| Real vision provider | 🚧 partial | adapter implemented, never executed — no recorded provider response |
-| Accuracy evaluation (metrics, test set, taxonomy) | 🚧 partial | harness runs offline; 9 golden samples, 9/9 fixtures still synthetic — [#3](../../issues/3), [#2](../../issues/2) |
+| Real vision provider | ✅ working | 9 recorded non-synthetic provider response(s) |
+| Accuracy evaluation (metrics, test set, taxonomy) | 🚧 partial | harness runs offline; 9 golden samples, 0/9 fixtures still synthetic |
 | Fine-tuning | 🚧 partial | plan in `docs/finetuning-plan.md`; nothing trained (the brief marks implementation optional) |
 | Technical write-up | 🚧 partial | README + 5 documents; 1 section group(s) still TODO |
 | Loom walkthrough | ⬜ not started | recorded after code freeze |
 | Email summary | ⬜ not started | sent with the submission |
-
-## Read the numbers with this in mind
-
-**9 of 9 recorded fixtures are seeded placeholders**, flagged in each file with `"_synthetic": true`.
-
-Nothing in `eval/reports/` is yet a claim about how accurately this
-system reads a real plate. The harness, the metrics and the per-cuisine
-breakdown are real and reproducible; the inputs they run on are not.
-That changes when [#3](../../issues/3) records real provider responses
-and [#2](../../issues/2) grows the golden set.
 
 ## Measured
 
