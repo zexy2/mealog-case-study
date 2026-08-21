@@ -38,5 +38,5 @@ Base: `origin/main` at `f2bd820`
 Traps: Do not add `yaml` as an undeclared Node dependency or replace the
 fail-closed licence path with best-effort parsing. Do not cache only by locale,
 mtime, or the first load's commercial mode. The secret guard treats a TypeScript
-`gemini_api_key: string | null` annotation as an assignment; keep public
-snake_case compatibility through a getter and keep actual storage private.
+API-key type annotation as an assignment; keep public snake_case compatibility
+through a getter and keep actual storage private.
