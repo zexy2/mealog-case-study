@@ -1,0 +1,49 @@
+{
+  "_synthetic": false,
+  "sample_id": "n5k_0005",
+  "input_sha256": "f040af5a2af7dd6f20037cc7dbc1c94ee5ed2d79240381754e71d7f99f33eaa5",
+  "provider": "gemini",
+  "model_id": "gemini-flash-lite-latest",
+  "prompt_version": "p2",
+  "degraded": false,
+  "rung": "configured_model",
+  "attempts": 1,
+  "items": [
+    {
+      "surface_form": "watermelon",
+      "cooking_method": "raw",
+      "portion_hint": "cubed",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "pineapple",
+      "cooking_method": "raw",
+      "portion_hint": "cubed",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "raspberries",
+      "cooking_method": "raw",
+      "portion_hint": "handful",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "blackberries",
+      "cooking_method": "raw",
+      "portion_hint": "handful",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "sweet potato",
+      "cooking_method": "roasted",
+      "portion_hint": "cubed",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "scrambled eggs",
+      "cooking_method": "scrambled",
+      "portion_hint": "serving",
+      "confidence": 0.9
+    }
+  ]
+}

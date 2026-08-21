@@ -14,8 +14,8 @@
 |---|---|---|
 | Mobile app experience (not a web app) | 🚧 partial | Expo app present; CI typechecks and bundles it; running on a device is shown in the walkthrough, not provable from the repository |
 | Photo ingest (end-to-end flow) | 🚧 partial | API accepts an image; the path has not run against a live provider |
-| Real vision provider | ✅ working | 9 recorded non-synthetic provider response(s) |
-| Accuracy evaluation (metrics, test set, taxonomy) | 🚧 partial | harness runs offline; 9 golden samples, 0/9 fixtures still synthetic |
+| Real vision provider | ✅ working | 25 recorded non-synthetic provider response(s) |
+| Accuracy evaluation (metrics, test set, taxonomy) | 🚧 partial | harness runs offline; 25 golden samples, 0/25 fixtures still synthetic |
 | Fine-tuning | 🚧 partial | plan in `docs/finetuning-plan.md`; nothing trained (the brief marks implementation optional) |
 | Technical write-up | 🚧 partial | README + 6 documents; 1 section group(s) still TODO |
 | Loom walkthrough | ⬜ not started | recorded after code freeze |
@@ -27,7 +27,7 @@
 |---|---:|
 | Locale packs | 3 (en_US, ja_JP, tr) |
 | Canonical foods | 69 |
-| Golden-set samples | 9 |
+| Golden-set samples | 25 |
 
 ## Order of work
 
