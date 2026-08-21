@@ -1,16 +1,16 @@
 {
-  "_synthetic": true,
-  "_note": "SEEDED placeholder so the harness runs on day 0. Replaced by real recorded provider responses via `make eval-live --record` on Friday.",
+  "_synthetic": false,
   "sample_id": "tr_0001",
-  "provider": "seed",
-  "prompt_version": "p1",
+  "input_sha256": "5e3e061d133a4e68fb77b9db9259c318c3dfb1380163a4c6e96e6f5eeac6a18a",
+  "provider": "gemini",
+  "model_id": "gemini-flash-lite-latest",
+  "prompt_version": "p2",
   "items": [
     {
-      "surface_form": "Mercimek çorbası",
+      "surface_form": "etli kuru fasulye",
       "cooking_method": "boiled",
-      "portion_hint": "2 kepçe",
-      "confidence": 0.74,
-      "ungrounded_kcal": 150
+      "portion_hint": "one bowl",
+      "confidence": 0.95
     }
   ]
 }

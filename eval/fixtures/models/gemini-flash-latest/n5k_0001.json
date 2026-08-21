@@ -3,19 +3,19 @@
   "sample_id": "n5k_0001",
   "input_sha256": "2742ad6f049b8e62885c8f3bfd7b43f39e3d4dc50486e471596275abbd9763bf",
   "provider": "gemini",
-  "model_id": "gemini-flash-lite-latest",
+  "model_id": "gemini-flash-latest",
   "prompt_version": "p2",
   "items": [
     {
-      "surface_form": "breaded chicken breast",
-      "cooking_method": "breaded and fried",
-      "portion_hint": "several slices",
+      "surface_form": "breaded chicken cutlet",
+      "cooking_method": "fried",
+      "portion_hint": "sliced portion",
       "confidence": 0.95
     },
     {
       "surface_form": "white rice",
-      "cooking_method": "boiled",
-      "portion_hint": "medium serving",
+      "cooking_method": "steamed",
+      "portion_hint": "small serving",
       "confidence": 0.95
     },
     {
@@ -27,7 +27,7 @@
     {
       "surface_form": "spinach",
       "cooking_method": "raw",
-      "portion_hint": "few leaves",
+      "portion_hint": "a few leaves",
       "confidence": 0.8
     }
   ]
