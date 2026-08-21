@@ -38,6 +38,7 @@ class SampleResult:
     pred_ids: set[str]
     truth_kcal: float
     pred_kcal: float
+    calorie_eligible: bool = True
     abstained: int = 0
     asked: bool = False
     truth_grams: dict[str, float] = field(default_factory=dict)
@@ -80,9 +81,13 @@ class SampleResult:
 
     @property
     def ape(self) -> float | None:
-        """Absolute percentage error on calories. Undefined for zero-truth
-        samples (traps), which are scored on identity only."""
-        if self.truth_kcal <= 0:
+        """Absolute percentage error for complete, positive-calorie truth.
+
+        A manifest row can contain mapped truth items while still omitting
+        source ingredients.  Its mapped total is useful evidence, but it is
+        not the meal's calorie truth and must not enter this denominator.
+        """
+        if not self.calorie_eligible or self.truth_kcal <= 0:
             return None
         return abs(self.pred_kcal - self.truth_kcal) / self.truth_kcal * 100.0
 
@@ -98,6 +103,7 @@ class Bucket:
     apes: list[float] = field(default_factory=list)
     abstained: int = 0
     asked: int = 0
+    calorie_eligible: int = 0
     error_counts: dict[str, int] = field(default_factory=dict)
 
     @property
@@ -173,6 +179,8 @@ def aggregate(
             b.asked += int(r.asked)
             for code in r.error_codes:
                 b.error_counts[code] = b.error_counts.get(code, 0) + 1
+            if r.calorie_eligible and r.truth_kcal > 0:
+                b.calorie_eligible += 1
             if r.covered:
                 b.n_covered += 1
                 if (a := r.ape) is not None:
