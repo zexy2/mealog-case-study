@@ -52,6 +52,40 @@ jobs:
       - name: eval regression guard
         run: python eval/harness.py --configs V0,V1,V2,V3 --check-regression
 
+  # Node gates for the TypeScript backend (port epic #106), running *alongside*
+  # the Python gates above rather than replacing them. Nothing Python is
+  # removed: the Python backend stays the parity reference until the Wave 3
+  # parity gate passes.
+  #
+  # The `invariants` step in the check job already enforces that src/domain/ and
+  # src/pipeline/ import no framework, and it needs no Node, so that boundary is
+  # still guarded even if this job is skipped.
+  server-node:
+    name: server (node)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Pinned to the same major as `engines.node` in server/package.json,
+          # so the reviewer's machine and CI agree.
+          node-version: "22"
+          cache: npm
+          # server and apps/mobile are independent workspaces with their own
+          # lockfiles; no monorepo tool is introduced for this.
+          cache-dependency-path: server/package-lock.json
+      - name: install server dependencies
+        run: npm ci
+      - name: build
+        run: npm run build
+      - name: lint
+        run: npm run lint
+      - name: tests
+        run: npm run test
+
   mobile:
     name: mobile
     runs-on: ubuntu-latest

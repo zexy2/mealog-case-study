@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* NestJS decorators. emitDecoratorMetadata stays on so that when Wave 2
+       introduces constructor injection, providers resolve by type without the
+       scaffold having to change. */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+
+    "declaration": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+
+    /* rootDir is the workspace root rather than src/ so that test/ is
+       type-checked by the same `npm run build` gate. Emitted entrypoint is
+       therefore dist/src/main.js. */
+    "rootDir": ".",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist", "src/mealog", "tests"]
+}
