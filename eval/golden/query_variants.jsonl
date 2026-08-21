@@ -134,12 +134,12 @@
 {"query": "Hazır pilav", "locale": "tr", "expected_food_id": "tr.pilav", "kind": "brand"}
 {"query": "bi simit bi ayran", "retrieval_query": "simit", "locale": "tr", "expected_food_id": "tr.simit", "kind": "colloquial_compound"}
 {"query": "bi simit bi ayran", "retrieval_query": "ayran", "locale": "tr", "expected_food_id": "tr.ayran", "kind": "colloquial_compound"}
-{"query": "etli ekmek", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.lahmacun", "tr.kuru_fasulye"], "role": "negative", "kind": "regional_negative"}
+{"query": "etli ekmek", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.lahmacun", "tr.kuru_fasulye", "tr.ekmek_beyaz"], "confusable_food_id": "tr.ekmek_beyaz", "role": "confusion", "kind": "regional_negative"}
 {"query": "su böreği", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.yaprak_sarma"], "confusable_food_id": "tr.yaprak_sarma", "role": "confusion", "kind": "regional_negative"}
 {"query": "sigara böreği", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.yaprak_sarma"], "confusable_food_id": "tr.yaprak_sarma", "role": "confusion", "kind": "regional_negative"}
-{"query": "çay", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.ayran"], "confusable_food_id": "tr.ayran", "role": "confusion", "kind": "negative_drink"}
-{"query": "yoğurt", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.ayran"], "confusable_food_id": "tr.ayran", "role": "confusion", "kind": "negative_drink"}
-{"query": "sucuklu yumurta", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.menemen"], "confusable_food_id": "tr.menemen", "role": "confusion", "kind": "regional_negative"}
+{"query": "çay", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.ayran", "tr.cay_siyah_kuru"], "confusable_food_id": "tr.cay_siyah_kuru", "role": "confusion", "kind": "negative_drink"}
+{"query": "şalgam", "locale": "tr", "expected_food_id": null, "kind": "absent"}
+{"query": "sucuklu yumurta", "locale": "tr", "expected_food_id": null, "forbidden_food_ids": ["tr.menemen", "tr.yumurta_tavuk"], "confusable_food_id": "tr.yumurta_tavuk", "role": "confusion", "kind": "regional_negative"}
 {"query": "kokoreç", "locale": "tr", "expected_food_id": null, "kind": "absent"}
 {"query": "döner", "locale": "tr", "expected_food_id": null, "kind": "absent"}
-{"query": "mantı", "locale": "tr", "expected_food_id": null, "kind": "absent"}
+{"query": "pide", "locale": "tr", "expected_food_id": null, "kind": "absent"}
