@@ -26,3 +26,7 @@ Methodology, tier definitions, thresholds, reproducible unchanged rows, and the 
 No device, provider, fixture, or network evaluation was performed. No eval metric changes are expected.
 
 Traps: Do not replace a stale marker with the current `12.69%`, `12.7%`, `170.0 g`, or any other locally observed result; measurement refresh owns new numbers. Do not restore `229.49%`, `433.6%`, or the old `0.818` retrieval score. Do not turn the pending scorable-count marker into a guessed golden-set size before the measurement refresh settles.
+
+## Rebase and container verification
+
+While preparing the PR, `origin/main` advanced from `263c159` to `8f3e53f` when the TypeScript scaffold merged. The branch was rebased without force-pushing; the claim now names `agent/codex3/strip-invalidated-eval-numbers-rebased`. After rebase, the throwaway venv gates passed again: 249 tests, Ruff, invariants, STATUS, and regression guard. A fresh `python:3.12-slim` container copied the branch into an internal writable Git repository, installed `server[dev]`, and passed the same five checks.
