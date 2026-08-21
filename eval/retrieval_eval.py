@@ -29,6 +29,33 @@ from mealog.pipeline.retrieval import search          # noqa: E402
 VARIANTS = REPO / "eval" / "golden" / "query_variants.jsonl"
 
 
+def variant_rows() -> list[dict]:
+    """Read the variant set fresh so tests and reports see the same rows."""
+    return [json.loads(line) for line in VARIANTS.read_text(encoding="utf-8").splitlines()
+            if line.strip()]
+
+
+def is_positive(row: dict) -> bool:
+    """Only ordinary expected IDs contribute to recall.
+
+    A confusion row names the food we must surface to explain a trap, not the
+    food the user actually meant. Counting it as a positive would reward the
+    wrong-match behaviour this evaluation exists to catch.
+    """
+    return row.get("role", "positive") == "positive" and row.get("expected_food_id") is not None
+
+
+def retrieval_query(row: dict, pack: LocalePack) -> str:
+    """Return text at retrieval's input boundary.
+
+    Quantity words belong to the existing normalization boundary. Variants keep
+    the full user input in ``query`` and may record the already-separated
+    ``retrieval_query`` so this retrieval-only test does not pretend retrieval
+    parses portions itself.
+    """
+    return fold(row.get("retrieval_query", row["query"]), pack)
+
+
 def baseline_search(query: str, pack: LocalePack, k: int = 5) -> list[Candidate]:
     """The original day-0 implementation, kept here purely as the comparison row.
 
@@ -99,14 +126,11 @@ def run(impl) -> tuple[Tally, dict[str, Tally], dict[str, Tally], list[str]]:
     by_kind: dict[str, Tally] = defaultdict(Tally)
     misses: list[str] = []
 
-    for line in VARIANTS.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        row = json.loads(line)
-        if row["expected_food_id"] is None:
-            continue  # absent foods are scored by false_accepts(), not by recall
+    for row in variant_rows():
+        if not is_positive(row):
+            continue  # absent/confusion rows have separate negative checks
         pack = load(row["locale"])
-        query = fold(row["query"], pack)
+        query = retrieval_query(row, pack)
         cands = impl(query, pack)
 
         for t in (overall, by_cuisine[pack.cuisine_bucket], by_kind[row["kind"]]):
@@ -131,20 +155,18 @@ def false_accepts(impl) -> tuple[int, int, list[str]]:
     impossible, and this is where that shows up.
     """
     total, bad, detail = 0, 0, []
-    for line in VARIANTS.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        row = json.loads(line)
-        if row["expected_food_id"] is not None:
+    for row in variant_rows():
+        if row.get("expected_food_id") is not None:
             continue
         pack = load(row["locale"])
-        query = fold(row["query"], pack)
+        query = retrieval_query(row, pack)
         r = resolve(query, impl(query, pack), allow_abstain=True)
         total += 1
-        if not r.abstained:
+        forbidden = set(row.get("forbidden_food_ids", []))
+        if not r.abstained or r.food_id in forbidden:
             bad += 1
             detail.append(f"{row['locale']:6} '{row['query']}' -> accepted "
-                          f"{r.food_id} (conf {r.confidence})")
+                          f"{r.food_id} (conf {r.confidence}; forbidden={sorted(forbidden)})")
     return bad, total, detail
 
 
@@ -155,18 +177,16 @@ def confusion_behaviour_ok() -> list[str]:
     a failure here — that distinction is the whole point of `negative_alias`.
     """
     problems = []
-    for line in VARIANTS.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        row = json.loads(line)
-        if row["kind"] != "confusion":
+    for row in variant_rows():
+        if row.get("role") != "confusion":
             continue
         pack = load(row["locale"])
-        query = fold(row["query"], pack)
+        query = retrieval_query(row, pack)
         cands = search(query, pack)
         r = resolve(query, cands, allow_abstain=True)
         ids = [c.food_id for c in cands]
-        if row["expected_food_id"] not in ids:
+        expected = row.get("confusable_food_id", row.get("expected_food_id"))
+        if expected not in ids:
             problems.append(f"'{row['query']}': confusable food not surfaced")
         elif not r.abstained:
             problems.append(f"'{row['query']}': accepted instead of asking")
@@ -174,11 +194,17 @@ def confusion_behaviour_ok() -> list[str]:
 
 
 def report() -> str:
-    base, base_cu, base_kind, base_miss = run(baseline_search)
+    base, base_cu, base_kind, _base_miss = run(baseline_search)
     new, new_cu, new_kind, new_miss = run(search)
 
+    rows = variant_rows()
+    positive_n = sum(is_positive(row) for row in rows)
+    negative_n = len(rows) - positive_n
+    tr_positive_n = sum(is_positive(row) and row["locale"] == "tr" for row in rows)
     L = ["# Retrieval scorecard", "",
-         f"{base.n} query variants over 3 locale packs. Measured independently of the",
+         (f"{len(rows)} query variants ({tr_positive_n} positive Turkish inputs, "
+          f"{positive_n} positive inputs overall, {negative_n} negative/confusion cases) "
+          "over 3 locale packs. Measured independently of the"),
          "vision stage — see the header of `eval/retrieval_eval.py` for why.", "",
          "## Overall", "",
          "| Implementation | Recall@1 | Recall@5 | MRR | Accept@1 |",
@@ -195,16 +221,17 @@ def report() -> str:
          "|---|---:|---:|---:|---:|---:|"]
 
     for cuisine in sorted(new_cu):
-        b, a = base_cu[cuisine], new_cu[cuisine]
+        b, a = base_cu.get(cuisine, Tally()), new_cu[cuisine]
         L.append(f"| {cuisine} | {a.n} | {b.r1:.1f}% | {a.r1:.1f}% | "
                  f"{a.r1 - b.r1:+.1f} | {a.acc:.1f}% |")
 
     L += ["", "## Per query kind", "",
-          "| Kind | n | Recall@1 before | after | Δ |",
-          "|---|---:|---:|---:|---:|"]
-    for kind in sorted(new_kind, key=lambda k: -(new_kind[k].r1 - base_kind[k].r1)):
-        b, a = base_kind[kind], new_kind[kind]
-        L.append(f"| {kind} | {a.n} | {b.r1:.1f}% | {a.r1:.1f}% | {a.r1 - b.r1:+.1f} |")
+          "| Kind | n | Recall@1 before | after | Recall@5 before | after | MRR before | after |",
+          "|---|---:|---:|---:|---:|---:|---:|---:|"]
+    for kind in sorted(new_kind, key=lambda k: -(new_kind[k].r1 - base_kind.get(k, Tally()).r1)):
+        b, a = base_kind.get(kind, Tally()), new_kind[kind]
+        L.append(f"| {kind} | {a.n} | {b.r1:.1f}% | {a.r1:.1f}% | "
+                 f"{b.r5:.1f}% | {a.r5:.1f}% | {b.mrr:.3f} | {a.mrr:.3f} |")
 
     problems = confusion_behaviour_ok()
     L += ["", "## Known-confusion behaviour", "",
@@ -217,14 +244,18 @@ def report() -> str:
     base_bad, absent_n, _ = false_accepts(baseline_search)
     new_bad, _, new_detail = false_accepts(search)
     L += ["", "## False accepts (the counterweight to recall)", "",
-          f"{absent_n} queries for food that is deliberately **not** in any pack.",
+          f"{absent_n} negative queries for food that is deliberately **not** a valid match.",
           "Correct behaviour is to abstain. Recall on its own is a metric you can",
           "cheat by matching more loosely, so it is only meaningful read next to this.",
           "",
           "| Implementation | False accepts | Rate |",
           "|---|---:|---:|",
           f"| baseline | {base_bad}/{absent_n} | {base_bad / absent_n * 100:.1f}% |",
-          f"| **blended** | **{new_bad}/{absent_n}** | **{new_bad / absent_n * 100:.1f}%** |"]
+          f"| **blended** | **{new_bad}/{absent_n}** | **{new_bad / absent_n * 100:.1f}%** |",
+          "",
+          f"Negative cases held: **{negative_n}**. Confusion rows must surface the",
+          "documented wrong neighbour and still abstain; absent rows must not accept",
+          "their nearest catalogue item."]
     if new_detail:
         L += ["", "```"] + new_detail + ["```"]
 
@@ -233,12 +264,10 @@ def report() -> str:
         L += new_miss + ["```"]
 
     L += ["", "---", "",
-          "> **Read the headline number with suspicion.** Each locale pack currently",
-          "> holds 8 foods, and these query variants were written against that",
-          "> catalogue, so a high Recall@1 says the matcher handles inflection,",
-          "> casing and partial names — it does not say the matcher scales to a",
-          "> catalogue of thousands, where near-neighbour foods compete. The honest",
-          "> next test is a real catalogue, not more variants against a toy one."]
+          "> **Read the headline number with suspicion.** This branch evaluates the",
+          "> current catalogue. The variants show whether messy surface forms reach",
+          "> the closed set; they do not establish accuracy on a larger catalogue,",
+          "> where near-neighbour foods compete. Re-run after catalogue growth."]
 
     return "\n".join(L) + "\n"
 
