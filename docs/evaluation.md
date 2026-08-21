@@ -8,21 +8,33 @@ recorded fixtures offline; the live-provider path is separate as required by
 ## Golden set
 
 Each line in `eval/golden/manifest.jsonl` is one sample. It carries a cuisine
-bucket, a ground-truth tier, and truth items as `food_id` plus grams. The
-harness derives truth calories from the catalogue before scoring them. Traps
-have empty truth; they are scored on identity rather than calorie error.
+bucket, a conservative overall tier, truth items as `food_id` plus the
+harness-compatible numeric `grams` field, and `truth_axes` with separate
+identity and portion tiers. Every food ID and mass field carries a provenance
+string in the form `dataset=...; record_id=...; field=...`.
 
-Every sample carries one of these ground-truth tiers:
+The conservative overall tier does not hide axis differences:
 
-| Tier | Meaning |
-|---|---|
-| Tier 1 | Packaged label or lab/scale-weighed source, including Nutrition5k |
-| Tier 2 | Self-cooked food measured with a kitchen scale and per-ingredient computation |
-| Tier 3 | Two-rater consensus estimate, with disagreement recorded |
+| Axis/source | Tier | Meaning |
+|---|---|---|
+| Nutrition5k identity + mass | Tier 1 | Official per-ingredient class/name and scale-weighed grams. |
+| Open Food Facts identity | Tier 1 | Product identity and per-100g label fields. |
+| Open Food Facts portion | Tier 2 | Printed serving applied as an assumption; eaten mass is not observed. |
+| TurkishFoods-15 / UEC-Food 256 identity | Tier 1 | Official class label. |
+| TurkishFoods-15 / UEC-Food 256 portion | Tier 3 | Dataset supplies no mass. No plausible gram value is claimed. |
+| Two-rater text consensus | Tier 3 | Identity and portion are consensus labels, not instrument measurements. |
+
+For identity-only rows, `grams: 0` is a non-scoring sentinel required by the
+current offline harness. It is not source truth and does not mean an empty
+portion. `grams_provenance` explicitly records `mass_g (not provided; 0 is
+evaluator sentinel)`. Their identity sets are still scored; zero-truth rows
+are excluded from calorie APE/MAPE by the existing zero-truth rule. Traps have
+empty truth and are scored on identity rather than calorie error.
 
 An error against a Tier 3 label is weaker evidence than the same error against
 a Tier 1 label. Tiers are never silently combined: the harness reports the
-same evaluation by ground-truth tier as well as by cuisine.
+same evaluation by the conservative overall tier as well as by cuisine, while
+the manifest preserves the per-axis distinction for review.
 
 ## Headline and per-sample metrics
 
@@ -105,9 +117,13 @@ coverage, Item F1, and FP rate. `python eval/harness.py --check-regression`
 compares the selected configuration's per-cuisine MAPE with the stored
 baseline and fails if any cuisine bucket gets worse.
 
-## Not yet measured
+## Current evidence boundary
 
-> **Input state today:** all recorded fixtures are synthetic placeholders. No
-> number in `eval/reports/` is yet a claim about how accurately the system
-> reads a real plate. That changes when [#3](../../issues/3) records real
-> provider responses and [#2](../../issues/2) grows the golden set.
+The nine recorded provider responses are real inputs from [#3](../../issues/3),
+and this manifest now uses source-backed labels where the upstream datasets
+provide them. The first baseline with both real inputs and real labels is
+reset in `eval/reports/baseline.json`; earlier values were harness validation
+against seeded truth. The label set remains small (`n=9`), and five rows have
+identity-only truth: their portion axis is Tier 3 and contributes no calorie
+claim. Read the unedited worst-cuisine MAPE beside coverage, axis tiers and
+this mass-evidence boundary. [#2](../../issues/2) still owns golden-set growth.

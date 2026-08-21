@@ -93,7 +93,7 @@ the text input. Camera and text share the same client-generated idempotency key.
 | End-to-end meal logging flow | 🚧 | pipeline + API done; mobile app Mon |
 | Mobile app experience (not web) | 🚧 | Expo/React Native, 3 screens |
 | AI path: **hybrid (rules + retrieval + LLM)** | 🚧 | chosen path; see Key decisions |
-| Accuracy evaluation (metrics, test set, error taxonomy) | 🚧 | harness runs; golden set seeded (n=9 → 80) |
+| Accuracy evaluation (metrics, test set, error taxonomy) | 🚧 | first real-input/real-label baseline; n=9, identity-only rows remain portion-unscored |
 | Hallucination reduction | ✅ | closed-set resolution, structurally enforced + tested |
 | Reliability (idempotency, retries, errors) | 🚧 | idempotent POST + test; retry/fallback Mon |
 | Observability (simple is fine) | ✅ | structured JSON logs, request_id, per-stage timings |
@@ -104,9 +104,13 @@ the text input. Camera and text share the same client-generated idempotency key.
 
 ## Results
 
-<!-- TODO(Sun): paste eval/reports/scorecard.md ablation table here -->
-Run `make eval`. Current output is **harness validation only** — fixtures are
-seeded placeholders, so the numbers are not yet claims about the system.
+`make eval` now replays nine real provider responses against source-backed
+labels. V3's current worst-cuisine result is **56.6% kcal MAPE (western)**,
+with 78% coverage, 0.70 Item F1, and 38.5% FP rate. This is the first baseline
+in the repository where inputs and labels are real; the result is poor and is
+reported unedited. TurkishFoods-15, UEC-Food 256 and the text consensus row
+provide identity labels but no mass, so those portion axes are Tier 3 and do
+not make a calorie claim.
 
 ## Architecture
 
