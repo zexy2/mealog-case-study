@@ -7,7 +7,7 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "test": "node --experimental-strip-types src/locale.test.mjs",
+    "test": "node --experimental-strip-types src/locale.test.mjs && node --experimental-strip-types src/demo-state.test.mjs",
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && expo export --platform android"
   },

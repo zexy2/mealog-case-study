@@ -1,5 +1,7 @@
 export type MealAction = "auto_accept" | "review" | "ask";
 
+export type DemoScenario = "review" | "auto_accept" | "abstain" | "error" | "empty" | "degraded";
+
 export type Candidate = {
   food_id: string;
   name: string;
@@ -32,6 +34,7 @@ export type MealLog = {
   totals: Nutrients;
   action: MealAction;
   question?: string | null;
+  degraded?: boolean;
   config: string;
   createdAt?: string;
 };

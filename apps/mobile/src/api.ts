@@ -1,4 +1,5 @@
 import { buildDemoMeal } from "./demoData";
+import { demoScenarioFor } from "./demoScenarios";
 import { t } from "./strings";
 import { MealLog, PendingCapture } from "./types";
 
@@ -8,10 +9,17 @@ const fixtureSampleId = process.env.EXPO_PUBLIC_FIXTURE_SAMPLE_ID;
 
 export const isDemoMode = demoMode;
 
-export async function submitMeal(capture: PendingCapture): Promise<MealLog> {
+export type SubmitOptions = {
+  demoRetry?: boolean;
+};
+
+export async function submitMeal(capture: PendingCapture, options: SubmitOptions = {}): Promise<MealLog> {
   if (demoMode) {
     await new Promise((resolve) => setTimeout(resolve, 850));
-    return buildDemoMeal(capture.text, capture.idempotencyKey);
+    if (demoScenarioFor(capture.text) === "error" && !options.demoRetry) {
+      throw new Error(t("demoProviderError"));
+    }
+    return buildDemoMeal(options.demoRetry ? "pilav" : capture.text, capture.idempotencyKey);
   }
 
   if (!apiUrl) {
