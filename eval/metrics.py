@@ -12,9 +12,21 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Literal, Self
 
 from mealog.domain.taxonomy import tag_errors
+
+
+class _DisplayMetric(float):
+    """Keep empty metrics numerically compatible while rendering them as —."""
+
+    def __new__(cls, value: float, display: str = "—") -> Self:
+        metric = super().__new__(cls, value)
+        metric._display = display
+        return metric
+
+    def __format__(self, format_spec: str) -> str:
+        return self._display
 
 
 @dataclass
@@ -109,15 +121,19 @@ class Bucket:
     @property
     def mape(self) -> float:
         """Calorie error over COVERED samples only. Read together with coverage:
-        a low MAPE at 40% coverage is a different product than one at 95%."""
-        return sum(self.apes) / len(self.apes) if self.apes else 0.0
+        a low MAPE at 40% coverage is a different product than one at 95%.
+        An empty calorie denominator is rendered as —, while retaining a
+        numeric zero for regression and JSON compatibility."""
+        if not self.apes:
+            return _DisplayMetric(0.0)
+        return sum(self.apes) / len(self.apes)
 
     @property
     def within_20pct(self) -> float:
         """Share of meals whose calorie estimate lands within +/-20%. More
         product-meaningful than MAPE: it is the number a user actually feels."""
         if not self.apes:
-            return 0.0
+            return _DisplayMetric(0.0)
         return sum(1 for a in self.apes if a <= 20.0) / len(self.apes) * 100.0
 
     #: False positives are hallucinations only once resolution is closed-set;
