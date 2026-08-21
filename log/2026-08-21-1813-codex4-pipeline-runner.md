@@ -21,13 +21,17 @@ Branch: `agent/codex4/pipeline-runner`
 
 ## Verification
 
-- Branch base commit: `81309f7eebec44ddfd2a8626d2b850ff88b0f283`.
-- Base V0–V3 scorecard SHA-256:
+- Task base commit: `81309f7eebec44ddfd2a8626d2b850ff88b0f283`.
+- Task-base V0–V3 scorecard SHA-256:
   `4ee38f55ee522126699d68b320af7ee038de2092d2fcc547e2cbe3b85ab9ff59`.
-- Final commit: `654770a24581f5259cfcebbba9fc7cfe17f7da17`.
-- Branch V0–V3 scorecard SHA-256:
+- Before opening the PR, `origin/main` advanced with the merged comparison
+  document to `d8a53398532a9cf7f1bc515be97466a6cd542629`; the branch was
+  rebased without conflict. The actual PR-base V0–V3 scorecard SHA-256 and
+  the rebased branch SHA-256 are both
   `4ee38f55ee522126699d68b320af7ee038de2092d2fcc547e2cbe3b85ab9ff59`.
-- `diff -u` between base and branch scorecards exited 0 with 0 lines.
+- `diff -u` between the actual PR base and rebased branch scorecards exited 0
+  with 0 lines. Rebased implementation head at this verification:
+  `2153dd3`; rebased log head: `c034d97`.
 - Fresh throwaway venv: `/tmp/mealog-codex4-155-venv`.
 - `make check` — Ruff passed; 249 Python tests passed; invariants passed;
   `STATUS.md` matched; V3 regression passed.
