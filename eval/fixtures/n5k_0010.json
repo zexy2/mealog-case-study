@@ -1,0 +1,43 @@
+{
+  "_synthetic": false,
+  "sample_id": "n5k_0010",
+  "input_sha256": "cf992b64df306eec146a47b539a78bd492dc3d986ef9ffbccf04355fbf5919d9",
+  "provider": "gemini",
+  "model_id": "gemini-flash-lite-latest",
+  "prompt_version": "p2",
+  "degraded": false,
+  "rung": "configured_model",
+  "attempts": 1,
+  "items": [
+    {
+      "surface_form": "tofu",
+      "cooking_method": "pan-fried",
+      "portion_hint": "several cubes",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "beef",
+      "cooking_method": "cooked",
+      "portion_hint": "small portion",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "rice",
+      "cooking_method": "boiled",
+      "portion_hint": "small amount",
+      "confidence": 0.85
+    },
+    {
+      "surface_form": "tomatoes",
+      "cooking_method": "roasted",
+      "portion_hint": "few pieces",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "mushrooms",
+      "cooking_method": "sauted",
+      "portion_hint": "small portion",
+      "confidence": 0.9
+    }
+  ]
+}
