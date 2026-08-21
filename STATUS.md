@@ -12,7 +12,7 @@
 
 | Deliverable | State | Evidence |
 |---|---|---|
-| Mobile app experience (not a web app) | ⬜ not started | no app project in the tree |
+| Mobile app experience (not a web app) | 🚧 partial | Expo app present; CI typechecks and bundles it; running on a device is shown in the walkthrough, not provable from the repository |
 | Photo ingest (end-to-end flow) | 🚧 partial | API accepts an image; the path has not run against a live provider |
 | Real vision provider | 🚧 partial | adapter implemented, never executed — no recorded provider response |
 | Accuracy evaluation (metrics, test set, taxonomy) | 🚧 partial | harness runs offline; 9 golden samples, 9/9 fixtures still synthetic — [#3](../../issues/3), [#2](../../issues/2) |
@@ -35,7 +35,6 @@ and [#2](../../issues/2) grows the golden set.
 
 | | |
 |---|---:|
-| Test functions | 48 |
 | Locale packs | 3 (en_US, ja_JP, tr) |
 | Canonical foods | 24 |
 | Golden-set samples | 9 |

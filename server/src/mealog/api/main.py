@@ -6,7 +6,7 @@ The client generates the key; the server makes replays free.
 """
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel
 from starlette.datastructures import UploadFile
 
@@ -19,9 +19,11 @@ settings = settings.validated()
 obs.configure(settings.log_level)
 app = FastAPI(title="mealog", version="0.1.0")
 
-#: TODO(Mon): Postgres-backed unique index on idempotency_key.
+#: Mobile demo omits X-User-Id; production callers must supply authenticated identity.
+DEMO_USER_ID = "demo-user"
+#: TODO(Mon): Postgres-backed unique index on (user_id, idempotency_key).
 #: In-memory is honest for day 0 and is called out in README "known limitations".
-_SEEN: dict[str, dict] = {}
+_SEEN: dict[tuple[str, str], dict] = {}
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = frozenset(
     {
@@ -112,11 +114,16 @@ async def _parse_request(request: Request) -> tuple[LogMealRequest, VisionInput]
 
 
 @app.post("/v1/meals")
-async def log_meal(request: Request) -> dict:
+async def log_meal(
+    request: Request,
+    user_id: str = Header(default=DEMO_USER_ID, alias="X-User-Id"),
+) -> dict:
     req, input_ref = await _parse_request(request)
     config = _config_for(req.config)
-    if req.idempotency_key in _SEEN:
-        cached = _SEEN[req.idempotency_key]
+    user_id = user_id.strip() or DEMO_USER_ID
+    cache_key = (user_id, req.idempotency_key)
+    if cache_key in _SEEN:
+        cached = _SEEN[cache_key]
         obs.event("idempotent_replay", key=req.idempotency_key)
         return cached
     if settings.vision_provider != "fixture" and input_ref.sample_id:
@@ -126,5 +133,5 @@ async def log_meal(request: Request) -> dict:
         )
     vision = make_vision(settings.vision_provider, settings.gemini_api_key)
     result = run(vision, input_ref, req.locale, config, req.idempotency_key).model_dump()
-    _SEEN[req.idempotency_key] = result
+    _SEEN[cache_key] = result
     return result

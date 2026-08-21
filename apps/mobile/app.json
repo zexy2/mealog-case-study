@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "mealog",
+    "slug": "mealog",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "mealog",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Mealog uses the camera to read your plate.",
+        "NSPhotoLibraryUsageDescription": "Mealog uses a selected photo to read your plate."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F4F1EA"
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Mealog to read your plate with the camera."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Mealog to use a selected plate photo."
+        }
+      ]
+    ]
+  }
+}

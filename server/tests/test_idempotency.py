@@ -92,3 +92,41 @@ def test_replay_returns_identical_result_and_does_not_duplicate():
     second = client.post("/v1/meals", json=body).json()
     assert first == second
     assert first["totals"]["kcal"] == second["totals"]["kcal"]
+
+
+def test_same_key_from_different_users_gets_distinct_results(monkeypatch):
+    api._SEEN.clear()
+    calls = []
+
+    def fake_make_vision(provider, api_key):
+        return object()
+
+    def fake_run(vision, input_ref, locale, config, idempotency_key):
+        calls.append(input_ref.sample_id)
+        return SimpleNamespace(
+            model_dump=lambda: {
+                "sample_id": input_ref.sample_id,
+                "idempotency_key": idempotency_key,
+            }
+        )
+
+    monkeypatch.setattr(api, "make_vision", fake_make_vision)
+    monkeypatch.setattr(api, "run", fake_run)
+
+    first = client.post(
+        "/v1/meals",
+        headers={"X-User-Id": "user-a"},
+        json={"idempotency_key": "shared-key", "sample_id": "tr_0001"},
+    )
+    second = client.post(
+        "/v1/meals",
+        headers={"X-User-Id": "user-b"},
+        json={"idempotency_key": "shared-key", "sample_id": "tr_0002"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["sample_id"] == "tr_0001"
+    assert second.json()["sample_id"] == "tr_0002"
+    assert first.json() != second.json()
+    assert calls == ["tr_0001", "tr_0002"]

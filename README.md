@@ -39,6 +39,17 @@ make check                              # 4. everything CI runs
 Optional: `make db && make api` for the HTTP surface, `make eval-live` to hit the
 real provider (needs `GEMINI_API_KEY`; see `.env.example`).
 
+## Mobile app
+
+```bash
+cd apps/mobile && npm install && npm start  # scan QR with Expo Go
+```
+
+The app opens in fixture-shaped demo mode with no API key. To exercise the API,
+set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_DEMO_MODE=false`; for a recorded
+fixture smoke test, also set `EXPO_PUBLIC_FIXTURE_SAMPLE_ID=tr_0001` and use
+the text input. Camera and text share the same client-generated idempotency key.
+
 ## What I built vs. the brief
 
 | Brief item | Status | Note |

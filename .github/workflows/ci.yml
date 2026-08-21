@@ -50,6 +50,26 @@ jobs:
       - name: eval regression guard
         run: python eval/harness.py --configs V0,V1,V2,V3 --check-regression
 
+  mobile:
+    name: mobile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - name: install mobile dependencies
+        run: npm ci
+      - name: typecheck mobile app
+        run: npx tsc --noEmit
+      - name: bundle Expo mobile app
+        run: npx expo export
+
   # Rulesets would prevent this, but GitHub does not enforce them on private
   # repositories outside a Team plan. Detection is the available substitute:
   # a direct push still lands, but main goes red and names the commit.

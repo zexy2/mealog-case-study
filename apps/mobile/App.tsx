@@ -1,0 +1,213 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { AnalysisState, ANALYSIS_STEPS } from "./components/AnalysisState";
+import { Banner } from "./components/Banner";
+import { BottomNav, Screen } from "./components/BottomNav";
+import { CaptureScreen } from "./screens/Capture";
+import { DayScreen } from "./screens/Day";
+import { ReviewScreen } from "./screens/Review";
+import { submitMeal } from "./src/api";
+import { initialDayMeals } from "./src/demoData";
+import { Candidate, MealLog, PendingCapture } from "./src/types";
+
+const PENDING_KEY = "@mealog/pending-capture";
+
+function newIdempotencyKey() {
+  return `meal-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export default function App() {
+  const cameraRef = useRef<CameraView>(null);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [screen, setScreen] = useState<Screen>("capture");
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingCapture | null>(null);
+  const [meal, setMeal] = useState<MealLog | null>(null);
+  const [dayMeals, setDayMeals] = useState<MealLog[]>(initialDayMeals);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [expandedItem, setExpandedItem] = useState<number | null>(null);
+  const [portionEdits, setPortionEdits] = useState<Record<number, number>>({});
+  const [selectedCandidates, setSelectedCandidates] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    AsyncStorage.getItem(PENDING_KEY)
+      .then((raw) => {
+        if (raw) setPending(JSON.parse(raw) as PendingCapture);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (screen === "capture" && permission && !permission.granted && !permission.canAskAgain) return;
+    if (screen === "capture" && permission && !permission.granted) {
+      requestPermission().catch(() => undefined);
+    }
+  }, [permission, requestPermission, screen]);
+
+  useEffect(() => {
+    if (!busy) return undefined;
+    const timer = setInterval(() => {
+      setAnalysisStep((step) => Math.min(step + 1, ANALYSIS_STEPS.length - 1));
+    }, 720);
+    return () => clearInterval(timer);
+  }, [busy]);
+
+  useEffect(() => {
+    if (!banner) return undefined;
+    const timer = setTimeout(() => setBanner(null), 3600);
+    return () => clearTimeout(timer);
+  }, [banner]);
+
+  async function persistPending(next: PendingCapture) {
+    setPending(next);
+    await AsyncStorage.setItem(PENDING_KEY, JSON.stringify(next));
+  }
+
+  async function clearPending() {
+    setPending(null);
+    await AsyncStorage.removeItem(PENDING_KEY);
+  }
+
+  async function submit(source: Omit<PendingCapture, "idempotencyKey">, retryKey?: string) {
+    const capture: PendingCapture = { ...source, idempotencyKey: retryKey ?? newIdempotencyKey() };
+    setError(null);
+    setAnalysisStep(0);
+    setBusy(true);
+    await persistPending(capture);
+    try {
+      const result = await submitMeal(capture);
+      await clearPending();
+      setMeal(result);
+      setPortionEdits({});
+      setSelectedCandidates({});
+      setExpandedItem(null);
+      setBusy(false);
+      if (result.action === "auto_accept") {
+        appendMeal(result);
+        setBanner("Meal added to today");
+        setScreen("day");
+      } else {
+        setScreen("review");
+      }
+    } catch (caught) {
+      setBusy(false);
+      setScreen("capture");
+      setError(caught instanceof Error ? caught.message : "Upload failed. Your draft is safe.");
+    }
+  }
+
+  async function capturePhoto() {
+    if (!cameraRef.current) return;
+    try {
+      const picture = await cameraRef.current.takePictureAsync({ quality: 0.82 });
+      if (picture?.uri) await submit({ photo: { uri: picture.uri, mimeType: "image/jpeg" } });
+    } catch {
+      setError("Camera could not capture this plate. Try the text input instead.");
+    }
+  }
+
+  async function choosePhoto() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.82,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      await submit({ photo: { uri: result.assets[0].uri, mimeType: result.assets[0].mimeType } });
+    }
+  }
+
+  function appendMeal(next: MealLog) {
+    setDayMeals((current) => {
+      if (current.some((item) => item.idempotency_key === next.idempotency_key)) return current;
+      return [{ ...next, createdAt: next.createdAt ?? new Date().toISOString() }, ...current];
+    });
+  }
+
+  function saveReview() {
+    if (!meal) return;
+    appendMeal({ ...meal, createdAt: meal.createdAt ?? new Date().toISOString() });
+    setBanner(meal.action === "ask" ? "Saved with question open" : "Meal added to today");
+    setScreen("day");
+  }
+
+  function chooseCandidate(itemIndex: number, candidate: Candidate) {
+    setSelectedCandidates((current) => ({ ...current, [itemIndex]: candidate.food_id }));
+    setMeal((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        items: current.items.map((item, index) =>
+          index === itemIndex ? { ...item, food_id: candidate.food_id, confidence: candidate.score } : item,
+        ),
+      };
+    });
+  }
+
+  const totalCalories = useMemo(() => dayMeals.reduce((sum, item) => sum + item.totals.kcal, 0), [dayMeals]);
+  const totalProtein = useMemo(() => dayMeals.reduce((sum, item) => sum + item.totals.protein_g, 0), [dayMeals]);
+
+  if (busy) {
+    return <AppShell><AnalysisState step={analysisStep} /></AppShell>;
+  }
+
+  return (
+    <AppShell>
+      {banner ? <Banner message={banner} /> : null}
+      {screen === "capture" ? (
+        <CaptureScreen
+          cameraRef={cameraRef}
+          permissionGranted={permission?.granted ?? false}
+          requestPermission={requestPermission}
+          text={text}
+          setText={setText}
+          error={error}
+          pending={pending}
+          onCapture={capturePhoto}
+          onChoosePhoto={choosePhoto}
+          onSubmitText={() => submit({ text: text.trim() || "plate" })}
+          onRetry={() => pending && submit(pending, pending.idempotencyKey)}
+        />
+      ) : null}
+      {screen === "review" && meal ? (
+        <ReviewScreen
+          meal={meal}
+          expandedItem={expandedItem}
+          setExpandedItem={setExpandedItem}
+          portionEdits={portionEdits}
+          setPortionEdits={setPortionEdits}
+          selectedCandidates={selectedCandidates}
+          onChooseCandidate={chooseCandidate}
+          onSave={saveReview}
+          onBack={() => setScreen("capture")}
+        />
+      ) : null}
+      {screen === "day" ? <DayScreen meals={dayMeals} totalCalories={totalCalories} totalProtein={totalProtein} onCapture={() => setScreen("capture")} /> : null}
+      <BottomNav screen={screen} canReview={Boolean(meal)} onChange={setScreen} />
+    </AppShell>
+  );
+}
+
+function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <SafeAreaView style={styles.root}>
+      <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <StatusBar style="dark" />
+        {children}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#F4F1EA" },
+});
