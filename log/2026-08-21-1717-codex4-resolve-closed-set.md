@@ -27,6 +27,10 @@ Task baseline: `8f3e53f` (merged PR #115)
 - V0–V3 scorecard against task baseline `8f3e53f`: SHA-256
   `f376607c97ca6379ced8733d9043b39225606e341186743257bda32d39d6b434` before
   and after; `diff -u` exit 0.
+- After rebasing onto the moving PR base `f2bd820`, the same scorecard remains
+  byte-identical at SHA-256
+  `4ee38f55ee522126699d68b320af7ee038de2092d2fcc547e2cbe3b85ab9ff59` before
+  and after; `diff -u` exit 0.
 
 Traps: Do not compare the scorecard to a moving `origin/main` without recording
 the base commit. During this session main advanced beyond `8f3e53f` with golden
