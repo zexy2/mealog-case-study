@@ -18,8 +18,8 @@ from mealog.adapters.vision_gemini import (
     RUNG_TEXT_ONLY,
     GeminiVision,
 )
-from mealog.pipeline.ports import VisionInput
 from mealog.domain.models import PerceivedItem
+from mealog.pipeline.ports import VisionInput
 
 
 class FakeResponse:
@@ -131,6 +131,7 @@ def test_retry_after_is_honoured_without_extra_network_call():
         sleep_fn=delays.append,
         jitter_fn=lambda _cap: 0.0,
         max_attempts=2,
+        request_interval=0,
     )
 
     vision.perceive(VisionInput(text="rice"))

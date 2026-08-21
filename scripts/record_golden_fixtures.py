@@ -133,6 +133,9 @@ def record_model(
     vision = GeminiVision(
         api_key,
         model_id=model_id,
+        # Recording compares exact model IDs. A degradation fallback would
+        # produce a fixture for another model under this run's directory.
+        secondary_model=None,
         request_interval=request_interval,
     )
     recorded = 0
