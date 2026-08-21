@@ -10,7 +10,7 @@ from scripts.check_claim_scope import claim_issue_number, claim_issue_references
 
 
 def test_pr_template_shape_binds_claim_issue() -> None:
-    template = (ROOT / ".github/PULL_REQUEST_TEMPLATE.md").read_text(encoding="utf-8")
+    template = (ROOT / ".github/pull_request_template.md").read_text(encoding="utf-8")
     body = template.replace("**Closes:** #<issue>", "**Closes:** #71")
 
     assert claim_issue_number(body) == "71"
