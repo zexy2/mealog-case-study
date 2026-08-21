@@ -29,9 +29,30 @@ API = "https://api.github.com"
 # and should not be silently changed outside a declared scope.
 ALWAYS_ALLOWED = ("log/", "STATUS.md")
 
-ISSUE_REF = re.compile(r"(?:closes|fixes|resolves|issue)[:\s]+#(\d+)", re.IGNORECASE)
+# Claim references stay keyword-anchored. The optional emphasis covers the
+# repository's Markdown template (`**Closes:** #N`) without treating prose
+# such as `see #123` as a lock.
+ISSUE_REF = re.compile(
+    r"(?<!\w)[*_]*(?:closes|fixes|resolves|issue)"
+    r"(?:[*_]*\s*:?[ \t]*[*_]*)\s*#(\d+)",
+    re.IGNORECASE,
+)
 SCOPE_BLOCK = re.compile(r"##\s*Scope.*?\n(.*?)(?=\n##\s|\Z)", re.DOTALL | re.IGNORECASE)
 PATHS = re.compile(r"`([^`]+)`")
+
+
+def claim_issue_references(body: str) -> list[str]:
+    """Return distinct keyword-anchored claim issue numbers, in body order."""
+    return list(dict.fromkeys(ISSUE_REF.findall(body or "")))
+
+
+def claim_issue_number(body: str) -> str | None:
+    """Return one claim issue number, rejecting ambiguous PR bodies."""
+    references = claim_issue_references(body)
+    if len(references) > 1:
+        formatted = ", ".join(f"#{number}" for number in references)
+        raise ValueError(f"multiple distinct claim issues: {formatted}")
+    return references[0] if references else None
 
 
 def gh(path: str, token: str) -> dict:
@@ -98,15 +119,19 @@ def main() -> int:
               "  permissions:\n    contents: read\n    pull-requests: read\n    issues: read")
         return 1
 
-    ref = ISSUE_REF.search(pr.get("body") or "")
-    if not ref:
-        print("FAIL: this pull request references no claim issue.\n\n"
-              "AGENTS.md section 3: open a claim issue declaring the files you\n"
-              "will touch, then reference it here as 'Closes #N'. That claim is\n"
-              "the only thing stopping two agents editing the same file.")
+    try:
+        issue_number = claim_issue_number(pr.get("body") or "")
+    except ValueError as exc:
+        print(f"FAIL: this pull request references {exc}. "
+              "Use exactly one '**Closes:** #N' reference.")
         return 1
 
-    issue_number = ref.group(1)
+    if not issue_number:
+        print("FAIL: this pull request references no claim issue.\n\n"
+              "AGENTS.md section 3: open a claim issue declaring the files you\n"
+              "will touch, then reference it here as '**Closes:** #N'. That claim is\n"
+              "the only thing stopping two agents editing the same file.")
+        return 1
     try:
         issue = gh(f"/repos/{repo}/issues/{issue_number}", token)
     except urllib.error.HTTPError as exc:
