@@ -4,7 +4,7 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Candidate, MealLog } from "../src/types";
-import { t } from "../src/strings";
+import { questionText, t } from "../src/strings";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -47,6 +47,7 @@ export function ReviewScreen({
   onBack,
 }: ReviewScreenProps) {
   const tone = actionTone(meal.action);
+  const askText = questionText(meal.items[0]);
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header eyebrow={t("reviewEyebrow")} title={t("reviewTitle")} subtitle={t("reviewSubtitle")} />
@@ -56,7 +57,7 @@ export function ReviewScreen({
         </View>
         <View style={styles.actionBannerCopy}>
           <Text style={[styles.actionBannerTitle, { color: tone.color }]}>{actionLabel(meal.action)}</Text>
-          <Text style={styles.actionBannerText}>{meal.action === "ask" ? meal.question : t("editableMatch")}</Text>
+          <Text style={styles.actionBannerText}>{meal.action === "ask" ? askText : t("editableMatch")}</Text>
         </View>
       </View>
 
@@ -75,10 +76,10 @@ export function ReviewScreen({
               <View style={styles.confidencePill}><Text style={styles.confidenceText}>{Math.round(item.confidence * 100)}%</Text></View>
             </View>
 
-            {meal.action === "ask" && meal.question ? (
+            {meal.action === "ask" ? (
               <View style={styles.questionCard}>
                 <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
-                <Text style={styles.questionText}>{meal.question}</Text>
+                <Text style={styles.questionText}>{askText}</Text>
               </View>
             ) : null}
 
