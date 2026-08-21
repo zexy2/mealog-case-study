@@ -255,3 +255,38 @@ then.
 runtime. Current coverage is preserved at the cost of accepting some answers the
 future gate may withhold; real provider fixtures and density evidence are
 required before this decision can be revisited.
+
+---
+
+## D12 — Node.js + TypeScript backend with a parity gate
+
+**Decision.** The backend is Node.js + TypeScript. NestJS at the edge only —
+controllers and providers. `src/domain/` and `src/pipeline/` stay
+framework-agnostic plain TypeScript with zero NestJS imports, enforced by a CI
+invariant, so the evaluation harness imports the same modules without booting the
+framework. The harness is ported too, because it imports the pipeline and leaving
+it in Python would mean maintaining the pipeline in two languages. Python remains
+only where it is not the backend: repository tooling, dataset fetch scripts, the
+fine-tuning plan. The port is not merged on inspection — the TypeScript harness
+must replay the same recorded fixtures and reproduce the Python scorecard field
+for field against a committed `eval/reports/parity-baseline.json`, and the Python
+backend is deleted only after that check passes.
+
+**Rejected.** Keeping Python and explaining the deviation — the brief says *"Do
+not use ... or other backend stacks"* and names stack fit rather than technical
+merit as the reason, so a merit argument does not answer it. A thin TypeScript
+proxy in front of the Python pipeline — satisfies the letter, fails the intent,
+since the logic under evaluation would still be Python. Fastify or Express —
+quicker to stand up, but NestJS modules map 1:1 onto the existing pipeline
+boundaries, which is the property the architecture criterion asks to see.
+
+**Constraint.** `scikit-learn` has no Node equivalent worth depending on. The
+word and character TF-IDF vectorisers and the IDF-weighted asymmetric coverage
+score are implemented in-house. Only the vectoriser is new code; the scoring
+layer was already custom (D6).
+
+**Cost.** Roughly two of the five remaining days spent on a port rather than new
+capability, and D11's confidence gate stays parked. Bought back by the parity
+gate, which turns the boundary claims in D1, D2 and D6 into a demonstrated
+property: the entire backend changed language and the measured numbers did not
+move.
