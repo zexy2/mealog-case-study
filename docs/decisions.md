@@ -258,35 +258,57 @@ required before this decision can be revisited.
 
 ---
 
-## D12 — Node.js + TypeScript backend with a parity gate
+## D12 — Node.js + TypeScript backend, NestJS edge, Python eval harness
 
-**Decision.** The backend is Node.js + TypeScript. NestJS at the edge only —
-controllers and providers. `src/domain/` and `src/pipeline/` stay
-framework-agnostic plain TypeScript with zero NestJS imports, enforced by a CI
-invariant, so the evaluation harness imports the same modules without booting the
-framework. The harness is ported too, because it imports the pipeline and leaving
-it in Python would mean maintaining the pipeline in two languages. Python remains
-only where it is not the backend: repository tooling, dataset fetch scripts, the
-fine-tuning plan. The port is not merged on inspection — the TypeScript harness
-must replay the same recorded fixtures and reproduce the Python scorecard field
-for field against a committed `eval/reports/parity-baseline.json`, and the Python
-backend is deleted only after that check passes.
+**Decision.** The backend is Node.js and TypeScript. NestJS sits at the edge only
+— controllers and providers. `src/domain/` and `src/pipeline/` carry no framework
+imports, enforced by an invariant in `scripts/check_invariants.py` that was
+broken deliberately, in both the `import` and `require` forms, to prove it fires.
+That boundary is what lets the evaluation harness import the same modules the API
+serves without booting the framework. The harness therefore **stays in Python**
+and drives the pipeline through an eval CLI exposed by the TypeScript side; the
+README states plainly that it is offline research tooling and that the delivered
+service is Node/TypeScript. The port is gated on parity: the scoring code does not
+change, so the same recorded fixtures must produce the same scorecard with the
+pipeline as the only variable. The Python serving path is deleted only after
+parity passes. The 249 Python tests are not transcribed; roughly eight to twelve
+behaviours move across, among them the abstention threshold, refusal to resolve a
+food outside the catalogue, numeric equality of the deterministic nutrition
+function, the empty-vision path, and the regression guard firing on a threshold
+breach.
 
-**Rejected.** Keeping Python and explaining the deviation — the brief says *"Do
-not use ... or other backend stacks"* and names stack fit rather than technical
-merit as the reason, so a merit argument does not answer it. A thin TypeScript
-proxy in front of the Python pipeline — satisfies the letter, fails the intent,
-since the logic under evaluation would still be Python. Fastify or Express —
-quicker to stand up, but NestJS modules map 1:1 onto the existing pipeline
-boundaries, which is the property the architecture criterion asks to see.
+**Rejected.** *Fastify.* This was not rejected once but twice, and the second time
+is the one worth recording. Mid-port the choice was reopened on the argument that
+NestJS module and decorator ceremony is a poor risk four days from submission,
+because the property that cannot be compensated for is the repository starting
+from a clean clone. It was closed again on measurement rather than preference:
+the scaffold installs, builds, lints and tests from a clean clone with an empty
+npm cache in seconds on the pinned Node version, boots over HTTP, and the
+framework is fenced out of the pure core by an invariant demonstrated to fail
+the build. The risk the alternative existed to avoid had already been measured
+away, and rewriting would have spent critical-path time removing a hazard that
+was no longer there. *Porting the harness as well* — roughly a day for close to
+no additional signal, and it would have changed the scoring code and the
+pipeline at the same time, leaving the parity comparison with two variables
+instead of one. *Staying on Python* — the brief says "Do not use ... or other
+backend stacks" and names stack fit rather than technical merit as the reason,
+so a merit argument does not answer it. *A thin TypeScript proxy in front of the
+Python pipeline* — satisfies the letter and fails the intent, since the logic
+under evaluation would still be Python.
 
 **Constraint.** `scikit-learn` has no Node equivalent worth depending on. The
 word and character TF-IDF vectorisers and the IDF-weighted asymmetric coverage
 score are implemented in-house. Only the vectoriser is new code; the scoring
-layer was already custom (D6).
+layer was already custom (D6). Domain field names stay snake_case across the
+port, because those objects cross the API and fixture boundary where the wire
+shape is the contract, and a rename would read as a diff at the parity gate.
 
-**Cost.** Roughly two of the five remaining days spent on a port rather than new
-capability, and D11's confidence gate stays parked. Bought back by the parity
-gate, which turns the boundary claims in D1, D2 and D6 into a demonstrated
-property: the entire backend changed language and the measured numbers did not
-move.
+**Cost.** Two languages remain in the repository, and that has to be justified in
+the README rather than left for a reviewer to notice — an unexplained second
+language reads as redefining the brief in silence. The edge layer carries
+decorator and dependency-injection ceremony a smaller framework would not
+require; the invariant confines it but does not remove it. D7's portion
+distribution remains visible across the boundary, and D11's confidence gate
+stays parked. In exchange the parity gate turns the boundary claims in D1, D2
+and D6 into a demonstrated property: the served pipeline changes language and
+the measured numbers do not move.
