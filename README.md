@@ -1,269 +1,122 @@
 # mealog — Full Stack Developer take-home for EatBetter
 
-Photo- and text-based meal logging where the model never produces a calorie number: nutrition is resolved from canonical foods, and accuracy is measured per cuisine.
+mealog is a mobile-first meal logging case study: the model sees food, but never produces a calorie number.
 
-<!-- TODO(Tue): demo.gif + Expo QR + deployed API URL -->
+<!-- PENDING: walkthrough link, demo gif -->
+<!-- TODO(Tue): Expo QR + deployed API URL -->
 
 ## Run it
 
-Requires Python 3.11. Use the versioned interpreter name below on systems where
-`python` is not installed. **No API key is needed** for this path: the default
-provider replays recorded responses, so the scorecard is reproducible offline.
+Runtime versions are pinned by the project workflow: Python 3.11 for the offline research harness and Node.js 22 for the delivered TypeScript service and mobile app.
 
-```bash
-python3.11 --version                    # 1. verify the pinned interpreter
-python3.11 -m venv .venv                # 2. create an isolated environment
-. .venv/bin/activate                    # 3. activate it
-python -m pip install -e "server[dev]"  # 4. install the declared dependencies
-make eval                               # 5. reproduce the scorecard offline
-make test                               # 6. run the tests
-make check                              # 7. everything CI runs
+### Offline research path
+
+This path is keyless. It replays repository fixtures from `eval/fixtures/` against locale and golden-set data; no provider token or network call is required.
+
+```sh
+MEALOG_VENV="$(mktemp -d)/venv"
+python3.11 -m venv "$MEALOG_VENV"
+. "$MEALOG_VENV/bin/activate"
+python -m pip install -e "server[dev]"
+make check
 ```
 
-`make eval`, `make test`, and `make check` do not call a provider or need network
-access after installation. `make eval-live` calls the real provider and needs
-`GEMINI_API_KEY`; see `.env.example`.
+`make eval` runs the offline evaluation harness directly when a scorecard refresh is needed.
 
-### Docker API path
+### TypeScript service
 
-Docker Engine/Desktop with Compose v2 is optional. This path uses the fixture
-provider, so it needs no API key. From the repository root:
-
-```bash
-unset GEMINI_API_KEY
-docker compose up -d --wait
-curl -fsS -w '\n' http://localhost:8000/health
-curl -fsS -w '\n' -X POST http://localhost:8000/v1/meals \
-  -H 'content-type: application/json' \
-  -d '{"idempotency_key":"reviewer-smoke-1","sample_id":"n5k_0001","text":"rice","locale":"en_US","config":"V3"}'
-docker compose down --volumes
+```sh
+cd server
+npm ci
+npm run build
+npm run lint
+npm run test
 ```
-
-The request includes `text` and the fixture-only `sample_id` so the clean-clone
-smoke test can replay a recorded response without an image or provider key. A
-live request uses an image or text with `VISION_PROVIDER=gemini` instead.
-
-### Troubleshooting
-
-- **`python: command not found`:** use `python3.11` for the venv command above;
-  after activation, `python` points to that venv.
-- **`GEMINI_API_KEY` errors:** keep the default `VISION_PROVIDER=fixture` for
-  offline eval and the Docker smoke path. Only `make eval-live` and a live API
-  run need a key.
-- **Port 8000 or 5432 is busy:** stop the conflicting process, then rerun
-  `docker compose up -d --wait`; use `docker compose down --volumes` to clean up.
-- **Docker is unavailable:** use the Python path above. Docker is only required
-  for the API smoke path, not for the offline scorecard or tests.
 
 ### Mobile app
 
-```bash
-cd apps/mobile && npm install && npm start  # scan QR with Expo Go
+```sh
+cd apps/mobile
+npm ci
+npm run typecheck
+npx expo export --platform android
 ```
 
-The app opens in fixture-shaped demo mode with no API key. To exercise the API,
-set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_DEMO_MODE=false`; for a recorded
-fixture smoke test, also set `EXPO_PUBLIC_FIXTURE_SAMPLE_ID=tr_0001` and use
-the text input. Camera and text share the same client-generated idempotency key.
+The emulator route is `npm run android` from `apps/mobile` after an Android emulator is configured. The live emulator flow remains pending verification; this README does not claim device execution.
 
-## What I built vs. the brief
+<!-- PENDING: NestJS meal endpoint and keyless mobile-to-edge run after the remaining port work. -->
 
-| Brief item | Status | Note |
-|---|---|---|
-| End-to-end meal logging flow | Partial | Pipeline, API, and Expo client exist, and provider responses are recorded; the device-to-live-provider path has not been run. |
-| Mobile app experience (not web) | Partial | Three Expo screens export in CI; device execution is unverified. |
-| AI path: **hybrid (rules + retrieval + LLM)** | Implemented | Rules, retrieval, closed-set resolution, and provider boundary exist; fixtures are offline default. |
-| Accuracy evaluation (metrics, test set, error taxonomy) | Partial | Metrics, taxonomy, and recorded non-synthetic provider fixtures exist; the golden set is still small. |
-| Hallucination reduction | Implemented | Closed-set resolution is enforced; only `pipeline/nutrition.py` produces nutrition. |
-| Reliability (idempotency, retries, errors) | Partial | Idempotency and errors exist; durable storage and degradation are omitted. |
-| Observability (simple is fine) | Implemented | JSON logs include request IDs and stage timings. |
-| Fine-tuning plan | Specified, not trained | D8 rents the VLM, specifies one adapter, and trains nothing. |
-| Technical write-up / Loom / email | Partial; Loom and email omitted | README/docs exist; external handoff artifacts are not claimed. |
+## What I built vs the brief
 
-## Results
-
-<!-- RESULTS: filled by #57 -->
-
-## Interview answers
-
-### What is the biggest trade-off?
-
-This is a closed-set resolver. Retrieval can propose catalogue entries, but
-`resolve.py` can return only one of those `food_id` values or `ABSTAIN`, so a
-hallucinated food (and therefore a hallucinated nutrient source) is
-architecturally impossible. The cost is coverage: anything outside the
-catalogue can only be abstained from. That is exactly what happened to both
-Japanese samples in the nine-sample evaluation in [#87](https://github.com/zexy2/mealog-case-study/pull/87).
-
-### What are the top three accuracy improvements?
-
-In order: **portion, portion, coverage**. The counterfactuals in [#87](https://github.com/zexy2/mealog-case-study/pull/87)
-make the ordering measurable: replacing predicted grams with the observed
-grams reduced MAPE to **0.00%** on the exact-alignment rows, while replacing
-predicted identities with the observed identities left the aggregate error
-unchanged. The first portion improvement is reading a printed serving mass for
-packaged food; the second is estimating the mass distribution of cooked dishes
-more accurately. Coverage is third because the two Japanese out-of-catalogue
-samples abstained, while identity was already correct on covered positive rows.
-
-### What breaks at scale?
-
-The retrieval scorer is linear in the catalogue: `_similarities` scores each
-query against every food document, and `_build` creates the word and character
-matrices for every food. That makes the current coverage scorer the first
-algorithmic limit as the pack grows. The other two limits are visible at the
-system boundary rather than in the nine-sample accuracy number: the VLM incurs
-a provider call (with retries or fallback possible) per photo, and changing the
-nutrition database can change the calculation for an old log unless the log
-records the catalogue version.
-The repository has not measured a numeric catalogue-size breakpoint yet, so I
-would not claim one from the current evaluation.
-
-### What are the security and privacy risks?
-
-Food photos are health-adjacent data sent to a third-party VLM provider, so the
-provider boundary is a privacy risk rather than an implementation detail. The
-user-scoped idempotency fix in [#54](https://github.com/zexy2/mealog-case-study/issues/54)
-closed a cross-tenant replay/data leak. The CI secret guard in [#86](https://github.com/zexy2/mealog-case-study/pull/86)
-exists because development had a real credential exposure; it scans tracked
-content so that an old credential is still caught after the introducing change
-has disappeared from the diff.
-
-## Why worst-cuisine is the headline metric
-
-Published accuracy for photo-based dietary assessment is measured on evaluation
-sets that are ~62% Western. Independent re-analysis puts the worst-to-best error
-ratio across cuisines at **1.6x–2.4x**. For a product expanding into new markets,
-that gap is the largest unmeasured risk — so the headline metric here is the
-**worst cuisine bucket**, not the mean, and a new market ships as a data pack with
-a measured onboarding cost.
+| Brief requirement | Status | Evidence or reason |
+| --- | --- | --- |
+| Mobile app, not a web app | Partial | Expo client has capture, review, and day screens; emulator walkthrough remains pending. |
+| Node.js / TypeScript backend | Partial | NestJS edge and framework-free core ports exist; meal edge wiring and provider adapters remain pending. |
+| Technical write-up | Partial | Repository docs and this reviewer skeleton exist; results and walkthrough evidence remain pending. |
+| Walkthrough video | Deferred | Recording and hosted link are pending. |
+| Email summary | Deferred | Summary has not been drafted. |
+| Explicit EatBetter comparison | Partial | Comparison is kept as a separate evidence document; its link is pending. |
+| AI / LLM path | Partial | Model perception is separated from closed-set resolution and deterministic nutrition; live provider path remains pending. |
 
 ## Architecture
 
-```
-input ──▶ perception ──▶ normalize ──▶ retrieval ──▶ resolve ──▶ portion ──▶ nutrition ──▶ gate
-         (VLM/text)     (locale pack)  (catalogue)  (closed set) (distribution) (pure fn)  (route)
+```text
+photo or text
+     |
+perception -> normalize -> retrieve -> resolve -> portion -> nutrition -> gate
+     |                                             |
+  evidence                                   food_id or ABSTAIN
 ```
 
-| Stage | Responsibility | May produce nutrients? |
-|---|---|---|
-| perception | observe items, cooking method, portion hints | ❌ |
-| normalize | locale text folding, unit lexicon | ❌ |
-| retrieval | candidate canonical foods | ❌ |
-| resolve | pick a `food_id` from candidates, or `ABSTAIN` | ❌ |
-| portion | grams as median + p10/p90 | ❌ |
-| **nutrition** | `Σ (grams/100) × per_100g` | ✅ **only here** |
-| gate | auto-accept / review / ask one question | ❌ |
+Perception may return observed food descriptions and uncertainty. Normalize makes text comparable across spelling, diacritics, and locale. Retrieval proposes catalogue candidates. Resolve accepts only a catalogue `food_id` or `ABSTAIN`; it never emits free text. Portion estimates serving size while retaining uncertainty. Nutrition is the only stage allowed to produce nutrient numbers, using locale-pack data rather than model prose. The final gate decides whether to save, ask for review, or abstain.
+
+The delivered service is Node.js / TypeScript. NestJS owns the edge boundary; pure core stages stay framework-independent so parity tests can compare ports against the Python reference. The Python harness remains research tooling for fixtures, golden labels, and offline evaluation. It is not presented as the delivered API.
 
 ## Key decisions
 
-See [`docs/decisions.md`](docs/decisions.md) for D1–D11. The three that shape
-everything:
+| Decision | Rejected alternative | Constraint | Cost |
+| --- | --- | --- | --- |
+| [D1](docs/decisions.md#d1) — model never produces nutrition | Ask the model for calories directly | Only deterministic nutrition code may produce nutrient numbers | Catalogue misses become review or abstention cases |
+| [D2](docs/decisions.md#d2) — locale data lives in packs | Add market-specific branches to pipeline code | Market variation must remain data, with pack licensing visible | Pack maintenance and legal review grow with markets |
+| [D3](docs/decisions.md#d3) — report worst-case cuisine and coverage | Report only an overall mean | Distribution shift must stay visible to reviewers | Small buckets remain noisy and harder to summarize |
+| [D9](docs/decisions.md#d9) — Expo React Native client with focused screens | Ship a web app or a different mobile stack | Reviewer path must be a real phone flow | Expo and native runtime constraints remain |
+| [D12](docs/decisions.md#d12) — NestJS edge, TypeScript service, Python harness | Rewrite evaluation before parity or keep Python at the edge | Pure-core parity gates the port; Python stays research tooling | Two runtimes create temporary maintenance and release ceremony |
 
-1. **D1: the model never produces a nutrient number.** It proposes observed items;
-   a pure, unit-tested function computes nutrition from the catalogue.
-2. **D2: a locale is data, not code.** Packs carry foods, aliases, units, rules,
-   and licensing; no locale is named in `server/src`.
-3. **D3: the headline metric is the worst cuisine.** Accuracy is read with
-   coverage, and CI fails if *any* bucket regresses, not just the average.
+## Results
+
+<!-- PENDING: measurement refresh -->
+
+## Compare EatBetter
+
+EatBetter comparison will stay short and evidence-led: product behavior, workflow, and explicit trade-offs belong in the dedicated [comparison document](docs/comparison.md), not in a marketing paragraph here.
+
+<!-- PENDING: comparison document link after its owning change merges -->
 
 ## Testing
 
-`make test` runs the suite under `server/tests` and prints the count on every
-run, so no number is repeated here to go stale. Tests are selected by risk
-rather than coverage: nutrition arithmetic (the only place numbers are made),
-locale-pack integrity, the closed-set guarantee, API contracts, pipeline stages,
-and idempotent replay. `docs/evaluation.md` covers accuracy evaluation
-separately. Deliberately untested are live-provider calls, Expo device
-behaviour, and production multi-process behaviour; those require external
-services or hardware.
+`make test` covers the Python reference behavior, locale-pack integrity, closed-set resolution, pipeline contracts, and replay safety. `make lint`, `python scripts/check_invariants.py`, and `python scripts/status.py --check` cover static and repository-level constraints. `make check` combines these checks with the offline regression gate.
 
-## Assumptions
+The TypeScript service has separate build, lint, and test commands. Its focused tests protect port parity and keep framework code at the edge. The mobile job typechecks the Expo client and creates an Android bundle.
 
-The brief was complete, so no clarifying questions were needed. Where it was
-silent, the ambiguity, evidence, decision, and reversal cost are recorded in
-[`docs/assumptions.md`](docs/assumptions.md):
-
-- **A1 Scope:** one narrow end-to-end slice, with depth spent on measurement.
-- **A2 Market:** cuisine-stratified evaluation, led by the worst bucket.
-- **A3 Friction:** the system may ask one question when it is unsure.
+The offline evaluation harness is separate from the unit-test suite: it is Python research tooling that replays fixtures and golden labels. The delivered service is Node.js / TypeScript. Live provider responses, emulator or device execution, and production deployment behavior are intentionally not claimed here.
 
 ## Known limitations
 
-The golden set is small; `STATUS.md` carries its current size, and per-cuisine
-buckets are correspondingly thin. Its fixtures are recorded from a real
-provider rather than seeded, but they are keyed by `sample_id`, not by image
-content hash — so the scorecard is evidence about offline replay, not proof
-that the photo path has run against a live provider. The D10 full-Flash
-comparison strip is incomplete: recording stopped on repeated provider HTTP 503
-responses. The idempotency store is in memory and process-local; a restart or
-another replica loses its keys. Nothing is trained: D8 rents the frontier VLM,
-specifies a locale adapter and a mass regressor, and deliberately trains neither.
-Per D11 the confidence gate is held at its current operating point while portion
-uncertainty is reviewed. Device execution remains unverified.
+<!-- PENDING: golden-set size and scorable count -->
+<!-- PENDING: catalogue coverage -->
+<!-- PENDING: locale coverage -->
+<!-- PENDING: abstention rate -->
 
 ## With more time
 
-1. Run the photo path against the live provider end to end, so fixtures are keyed
-   by image content rather than replayed by `sample_id`, and finish the D10
-   full-Flash comparison strip.
-2. Keep growing the golden set, so each cuisine bucket rests on more than a
-   handful of samples; per D3 the headline is the worst bucket, and a thin bucket
-   is a wide interval.
-3. Run the Expo client on real devices, recording failures and latency rather
-   than inferring them from offline tests.
-4. Train and evaluate only the D8 locale adapter after the real data and gates
-   are in place; keep the frontier VLM rented.
-5. Replace the process-local idempotency map with durable shared storage and add
-   the provider degradation ladder.
-
-## Time spent & scope
-
-The work was scoped to the six-day brief window. No hour-by-hour timesheet was
-kept, so I do not claim a precise total. Fine-tuning, production persistence, a
-Loom walkthrough, and the email handoff were cut from this repository.
-Live-provider fixtures and source-backed labels were not cut — they landed; what
-is still missing there is the device-to-live-provider photo path.
-
-## Tech & dependencies
-
-- Python 3.11: the declared runtime and reproducible reviewer baseline.
-- FastAPI, Uvicorn, Pydantic: typed HTTP contracts and the API server.
-- PyYAML and scikit-learn: locale rules and the n-gram retrieval implementation.
-- python-multipart: bounded multipart photo ingestion.
-- pytest and Ruff: test and lint gates used by CI.
-- Expo, React Native, TypeScript: the required mobile client stack.
-- Docker Compose and Postgres: repeatable API smoke infrastructure.
+- Finish edge runner and provider adapters, then require parity evidence before removing any Python serving path.
+- Run the complete emulator flow and publish a walkthrough with the exact review and abstention states.
+- Expand source-backed golden data, refresh measurements, and document the remaining failure modes.
+- Add durable idempotency and explicit provider degradation behavior at the edge.
+- Follow the [D8](docs/decisions.md#d8) training plan only after data provenance and evaluation gates are ready. D8 is a specified, measured path, not permission to tune against a headline.
 
 ## AI usage
 
-Several coding agents worked this repository in parallel under a written
-contract (`AGENTS.md`) with issue-based claims, CI-enforced scope, append-only
-session logs, and human-reviewed merges. The human decided the constraints that
-the model never produces a nutrient number, a locale is a data pack, the
-worst-cuisine bucket is the headline metric, evaluation replays fixtures
-offline, and every entry in [`docs/decisions.md`](docs/decisions.md). The agents
-implemented within those decisions; ownership stayed with the human.
+Human decisions define the closed-set boundary, provenance rules, locale-pack structure, abstention behavior, and evaluation gates. Models assist with implementation and review, but their suggestions are overridden when they conflict with those constraints.
 
-<!-- HUMAN OVERRIDE EXAMPLE: @zexy2 to add one concrete case where an agent's output was overruled. -->
-
-## Project structure
-
-```
-locale_packs/{en_US,tr,ja_JP}/   market data: foods, aliases, units, text rules
-server/src/mealog/
-  domain/        models + error taxonomy (shared with eval)
-  pipeline/      one module per stage; nutrition.py is pure
-  adapters/      vision providers (live + fixture replay)
-  locales/       pack loader
-  api/           FastAPI surface, idempotency
-eval/
-  harness.py     runs configs over the golden set → scorecard
-  metrics.py     per-cuisine aggregation, coverage, worst-bucket
-  golden/        manifest + labelling protocol
-  fixtures/      recorded provider responses (offline reproducibility)
-docs/            decisions · evaluation · finetuning-plan
-AGENTS.md        coordination contract for multi-agent work
-log/             append-only session logs (one file per session)
-AGENT_LOG.md     compatibility pointer; do not append
-```
+<!-- PENDING: one concrete model error, how it was caught, and the human override -->
