@@ -1,0 +1,49 @@
+{
+  "_synthetic": false,
+  "sample_id": "n5k_0071",
+  "input_sha256": "ac1bbfdc030ea75888eca919b84ce31d0b9a783b3a7d096c79ec3351f8c5773e",
+  "provider": "gemini",
+  "model_id": "gemini-flash-lite-latest",
+  "prompt_version": "p2",
+  "degraded": false,
+  "rung": "configured_model",
+  "attempts": 1,
+  "items": [
+    {
+      "surface_form": "chicken",
+      "cooking_method": "diced",
+      "portion_hint": "large portion",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "mushrooms",
+      "cooking_method": "sauteed",
+      "portion_hint": "moderate portion",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "brussels sprouts",
+      "cooking_method": "roasted",
+      "portion_hint": "small portion",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "zucchini",
+      "cooking_method": "roasted",
+      "portion_hint": "moderate portion",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "rice",
+      "cooking_method": "boiled",
+      "portion_hint": "moderate portion",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "pizza",
+      "cooking_method": "baked",
+      "portion_hint": "one slice",
+      "confidence": 0.95
+    }
+  ]
+}

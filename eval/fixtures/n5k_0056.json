@@ -1,0 +1,49 @@
+{
+  "_synthetic": false,
+  "sample_id": "n5k_0056",
+  "input_sha256": "c054bb2d15e00215b754ce5a9eb2fa766f77eac20c51ba5f22e10d0035fd21fb",
+  "provider": "gemini",
+  "model_id": "gemini-flash-lite-latest",
+  "prompt_version": "p2",
+  "degraded": false,
+  "rung": "configured_model",
+  "attempts": 1,
+  "items": [
+    {
+      "surface_form": "spinach salad",
+      "cooking_method": "raw",
+      "portion_hint": "side portion",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "chicken",
+      "cooking_method": "baked",
+      "portion_hint": "several slices",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "pizza roll",
+      "cooking_method": "baked",
+      "portion_hint": "one piece",
+      "confidence": 0.85
+    },
+    {
+      "surface_form": "carrots",
+      "cooking_method": "roasted",
+      "portion_hint": "few slices",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "zucchini",
+      "cooking_method": "steamed",
+      "portion_hint": "several slices",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "broccoli",
+      "cooking_method": "steamed",
+      "portion_hint": "small serving",
+      "confidence": 0.85
+    }
+  ]
+}

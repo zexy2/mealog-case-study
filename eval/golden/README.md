@@ -74,6 +74,12 @@ lane and therefore has no image fields.
 - `n5k_0012`–`n5k_0014`: South Asian ingredient-pattern plates with scale-weighed rice/oil labels; the bucket is explicitly an evaluator stratification, not a Nutrition5k class.
 - `n5k_0015`–`n5k_0017`: Latin American ingredient-pattern plates with tortilla/chili/cilantro evidence and exact oil labels; non-catalogue ingredients remain unmapped.
 - `n5k_0018`: other-mixed plate with scale-weighed white rice and olive oil.
+- `n5k_0019`–`n5k_0024`: western scrambled-egg and Greek-yogurt plates; exact catalogue-covered masses are retained.
+- `n5k_0025`–`n5k_0030`: Mediterranean chickpea, bulgur and herb patterns; exact catalogue-covered masses are retained.
+- `n5k_0031`–`n5k_0041`: East Asian tofu, soy-sauce, bok-choy and rice-noodle patterns; non-catalogue ingredients remain unmapped.
+- `n5k_0042`–`n5k_0054`: South Asian lentil and chickpea patterns; the bucket remains an explicit evaluator stratification, not a Nutrition5k class.
+- `n5k_0055`–`n5k_0067`: Latin American tortilla, black-bean, corn, chile and cilantro patterns; non-catalogue ingredients remain unmapped.
+- `n5k_0068`–`n5k_0073`: other-mixed plates selected without a dominant cuisine signal; the bucket is disclosed as evaluator stratification.
 - `pkg_0001`: Open Food Facts product `0011110107176`, front label image.
 - `tr_0001`, `tr_0002`: TurkishFoods-15 train rows 18 and 12; class labels are kuru fasulye and simit.
 - `tr_0003`: text lane with two-rater consensus identity labels.
@@ -81,9 +87,9 @@ lane and therefore has no image fields.
 - `jp_0002`: UEC category 174 (`pork cutlet`).
 - `trap_0001`: openly licensed empty plate.
 
-The 16 new Nutrition5k rows use the official overhead RGB URL, CC BY 4.0
-licence, and a recorded SHA-256. Their Gemini observations were recorded with
-`gemini-flash-lite-latest` at four-second pacing; the recorder skips the nine
+The 55 new Nutrition5k rows use the official overhead RGB URL, CC BY 4.0
+licence, and a recorded SHA-256. Their Gemini observations are recorded with
+`gemini-flash-lite-latest` at four-second pacing; the recorder skips matching
 existing fixtures idempotently. Images and provider responses remain ignored
-local artifacts. Do not reset `eval/reports/baseline.json` while the current
-score decomposition is being reviewed.
+local artifacts. Do not reset `eval/reports/baseline.json`; adding real rows is
+supposed to move coverage and error counts.
