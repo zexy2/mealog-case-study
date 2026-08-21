@@ -1,3 +1,31 @@
-{"food_id": "us.chicken_breast_grilled", "alias": ["grilled chicken", "chicken breast", "charbroiled chicken"]}
-{"food_id": "us.rice_white_cooked", "alias": ["steamed rice", "white rice", "plain rice"]}
+{"food_id": "us.chicken_breast_grilled", "alias": ["grilled chicken", "chicken breast", "charbroiled chicken"], "negative_alias": ["chicken", "chicken and rice"]}
+{"food_id": "us.rice_white_cooked", "alias": ["steamed rice", "white rice", "plain rice"], "negative_alias": ["biryani", "rice with meat", "chicken and rice"]}
 {"food_id": "us.eggs_scrambled", "alias": ["scrambled egg", "eggs"]}
+{"food_id": "us.potatoes_baked", "alias": ["roasted potatoes", "potatoes", "baked potato", "baked potatoes"], "negative_alias": ["tortilla de patatas"]}
+{"food_id": "us.broccoli_cooked", "alias": ["broccoli", "steamed broccoli", "roasted broccoli", "romanesco broccoli"]}
+{"food_id": "us.strawberries_raw", "alias": ["strawberries", "strawberry"]}
+{"food_id": "us.blueberries_raw", "alias": ["blueberries", "blueberry"]}
+{"food_id": "us.pineapple_raw", "alias": ["pineapple", "fresh pineapple"]}
+{"food_id": "us.grapes_raw", "alias": ["grapes", "grape"]}
+{"food_id": "us.sweet_potato_baked", "alias": ["sweet potato", "sweet potatoes", "roasted sweet potato", "baked sweet potato"]}
+{"food_id": "us.watermelon_raw", "alias": ["watermelon"]}
+{"food_id": "us.raspberries_raw", "alias": ["raspberries", "raspberry"]}
+{"food_id": "us.blackberries_raw", "alias": ["blackberries", "blackberry"]}
+{"food_id": "us.chicken_breaded_fried", "alias": ["breaded chicken", "breaded chicken cutlet", "fried chicken pieces", "frango empanado"], "negative_alias": ["chicken", "chicken and rice"]}
+{"food_id": "us.squash_summer_cooked", "alias": ["squash", "summer squash", "roasted squash"]}
+{"food_id": "us.kale_cooked", "alias": ["kale", "cooked kale"]}
+{"food_id": "us.pork_roasted", "alias": ["pork", "roasted pork", "fried pork"], "negative_alias": ["meat"]}
+{"food_id": "us.tofu_firm", "alias": ["tofu", "firm tofu", "pan-fried tofu"]}
+{"food_id": "us.corn_cooked", "alias": ["corn", "maize", "maiz", "maíz", "cooked corn"], "negative_alias": ["polenta", "unicorn casserole"]}
+{"food_id": "us.beef_cooked", "alias": ["beef", "cooked beef"], "negative_alias": ["meat"]}
+{"food_id": "us.tomatoes_cooked", "alias": ["tomatoes", "tomato", "cooked tomatoes", "roasted tomatoes"]}
+{"food_id": "us.mushrooms_cooked", "alias": ["mushrooms", "mushroom", "sauteed mushrooms", "sautéed mushrooms"]}
+{"food_id": "us.coleslaw", "alias": ["coleslaw"]}
+{"food_id": "us.chickpeas_cooked", "alias": ["chickpeas", "chickpea", "chick peas"], "negative_alias": ["chickpea salad"]}
+{"food_id": "us.salmon_cooked", "alias": ["salmon", "cooked salmon", "baked salmon", "grilled salmon", "pan-fried salmon"], "negative_alias": ["fish"]}
+{"food_id": "us.long_beans_cooked", "alias": ["long beans", "yardlong beans", "yardlong bean"]}
+{"food_id": "us.zucchini_cooked", "alias": ["zucchini", "cooked zucchini", "steamed zucchini", "sauteed zucchini", "sautéed zucchini"]}
+{"food_id": "us.yellow_squash_cooked", "alias": ["yellow squash", "cooked yellow squash"]}
+{"food_id": "us.lasagna_meat", "alias": ["lasagna", "lasagne", "lasagna with meat sauce"], "negative_alias": ["meat", "rice with meat"]}
+{"food_id": "us.leaf_lettuce_raw", "alias": ["green salad", "leaf salad", "salada de folhas", "leafy greens"], "negative_alias": ["salad", "caesar salad", "arugula salad", "chickpea salad"]}
+{"food_id": "us.arugula_raw", "alias": ["arugula", "arugula salad", "rocket"], "negative_alias": ["salad", "caesar salad", "chickpea salad"]}
