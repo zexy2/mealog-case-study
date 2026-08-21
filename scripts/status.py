@@ -6,7 +6,8 @@ claim with extra steps — this repository has already shipped two of those toda
 dependencies). So status is derived from the working tree, not asserted, and CI
 fails if the committed file disagrees with what the probes find.
 
-Probes assert execution artifacts, never source-text presence.
+Probes assert execution artifacts where the repository can prove them. Device
+execution is external and stays partial until the walkthrough.
 
     python scripts/status.py            # regenerate STATUS.md
     python scripts/status.py --check    # fail if STATUS.md is stale
@@ -32,12 +33,14 @@ class Probe:
 
 
 def probe_mobile() -> Probe:
-    found = [p for p in ROOT.glob("**/package.json") if "node_modules" not in str(p)]
-    if not found:
+    app_root = ROOT / "apps/mobile"
+    package = app_root / "package.json"
+    if not package.exists():
         return Probe("Mobile app experience (not a web app)", TODO,
                      "no app project in the tree")
     return Probe("Mobile app experience (not a web app)", PARTIAL,
-                 f"{len(found)} package.json found")
+                 "Expo app present; CI typechecks and bundles it; running on a "
+                 "device is shown in the walkthrough, not provable from the repository")
 
 
 def probe_vision() -> Probe:
@@ -118,13 +121,11 @@ def probe_writeup() -> Probe:
 
 
 def counts() -> dict:
-    tests = sum(len(re.findall(r"^def test_", p.read_text(encoding="utf-8"), re.MULTILINE))
-                for p in (ROOT / "server/tests").glob("test_*.py"))
     packs = sorted(p.name for p in (ROOT / "locale_packs").iterdir()
                    if (p / "pack.yaml").exists())
     foods = sum(len([x for x in (ROOT / "locale_packs" / p / "foods.jsonl")
                      .read_text(encoding="utf-8").splitlines() if x.strip()]) for p in packs)
-    return {"tests": tests, "packs": packs, "foods": foods}
+    return {"packs": packs, "foods": foods}
 
 
 def render() -> str:
@@ -172,7 +173,6 @@ def render() -> str:
 
     L += ["", "## Measured", "",
           "| | |", "|---|---:|",
-          f"| Test functions | {c['tests']} |",
           f"| Locale packs | {len(c['packs'])} ({', '.join(c['packs'])}) |",
           f"| Canonical foods | {c['foods']} |",
           f"| Golden-set samples | {n_golden} |",
