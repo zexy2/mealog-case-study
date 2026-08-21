@@ -28,7 +28,8 @@ def _track(root: Path, relative: str, content: str) -> None:
 def test_synthetic_google_key_fails_the_guard(tmp_path: Path) -> None:
     subprocess.run(["git", "-C", str(tmp_path), "init", "--quiet"], check=True)
     synthetic_key = "AIza" + "A" * 35
-    _track(tmp_path, "leaked.txt", f"GEMINI_API_KEY={synthetic_key}\n")
+    variable_name = "GEMINI" + "_API_KEY"
+    _track(tmp_path, "leaked.txt", f"{variable_name}={synthetic_key}\n")
 
     result = _run_guard(tmp_path)
 
