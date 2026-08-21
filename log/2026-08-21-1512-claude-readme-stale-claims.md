@@ -64,8 +64,24 @@ mechanically against the exact committed bytes:
 - No pipeline, fixture or manifest file is in the diff, so the harness
   regression guard and `check_invariants.py` have nothing new to read.
 
-CI on the pull request is the authority for all five gates; this entry is
-updated with the CI result rather than asserting green from a local run.
+## CI result
+
+Run [32480740956](https://github.com/zexy2/mealog-case-study/actions/runs/32480740956),
+`pull_request`, head `755c8c41` — success. Read from the job log, not the badge:
+
+| Gate | Result |
+|---|---|
+| secret guard | `scanned 166 tracked files and added diff lines` |
+| lint | `All checks passed!` |
+| tests | `249 passed in 2.98s` |
+| invariants | passed |
+| claim scope | `scope OK — all changes within issue #101 (2 declared path(s))` |
+| status | `STATUS.md matches the repository` |
+| eval regression | `no per-cuisine regression in V3` |
+
+`STATUS.md matches the repository` confirms the byte-identical reasoning above.
+`249 passed` confirms the README's `80 tests` was not slightly stale but wrong by
+169.
 
 ## Follow-up left for someone else
 
