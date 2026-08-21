@@ -1,5 +1,6 @@
 import { questionText } from "./strings";
 import type { MealLog, ResolvedItem } from "./types";
+import { demoScenarioFor } from "./demoScenarios";
 
 const sourceDatabase = "TURKOMP";
 
@@ -19,8 +20,8 @@ const reviewItem: ResolvedItem = {
     { food_id: "tr.yaprak_sarma", name: "Zeytinyagli yaprak sarma", score: 0.32 },
   ],
   grams: 180,
-  grams_p10: 135,
-  grams_p90: 245,
+  grams_p10: 140,
+  grams_p90: 230,
   confidence: 0.78,
   nutrients: nutrients(272, 5.4, 50.4, 5.6),
   source_database: sourceDatabase,
@@ -54,8 +55,8 @@ const askItem: ResolvedItem = {
 };
 
 export function buildDemoMeal(text: string | undefined, idempotencyKey: string): MealLog {
-  const prompt = (text ?? "").trim().toLowerCase();
-  if (prompt.includes("ask") || prompt.includes("mystery") || prompt.includes("baked")) {
+  const scenario = demoScenarioFor(text);
+  if (scenario === "abstain") {
     return {
       idempotency_key: idempotencyKey,
       locale: "tr",
@@ -68,7 +69,7 @@ export function buildDemoMeal(text: string | undefined, idempotencyKey: string):
     };
   }
 
-  if (prompt.includes("quick") || prompt.includes("auto") || prompt.includes("simit")) {
+  if (scenario === "auto_accept") {
     return {
       idempotency_key: idempotencyKey,
       locale: "tr",
@@ -81,7 +82,7 @@ export function buildDemoMeal(text: string | undefined, idempotencyKey: string):
     };
   }
 
-  return {
+  const review: MealLog = {
     idempotency_key: idempotencyKey,
     locale: "tr",
     items: [reviewItem],
@@ -91,6 +92,7 @@ export function buildDemoMeal(text: string | undefined, idempotencyKey: string):
     config: "V3",
     createdAt: new Date().toISOString(),
   };
+  return scenario === "degraded" ? { ...review, degraded: true } : review;
 }
 
 export const initialDayMeals: MealLog[] = [

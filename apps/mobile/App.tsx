@@ -9,13 +9,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AnalysisState, ANALYSIS_STEPS } from "./components/AnalysisState";
 import { Banner } from "./components/Banner";
 import { BottomNav, Screen } from "./components/BottomNav";
+import { ErrorState } from "./components/ErrorState";
+import { AbstentionScreen } from "./screens/Abstention";
 import { CaptureScreen } from "./screens/Capture";
 import { DayScreen } from "./screens/Day";
 import { ReviewScreen } from "./screens/Review";
-import { submitMeal } from "./src/api";
+import { isDemoMode, submitMeal } from "./src/api";
 import { initialDayMeals } from "./src/demoData";
+import { demoInput, demoScenarioFor } from "./src/demoScenarios";
 import { t } from "./src/strings";
-import { Candidate, MealLog, PendingCapture } from "./src/types";
+import { Candidate, DemoScenario, MealLog, PendingCapture } from "./src/types";
 
 const PENDING_KEY = "@mealog/pending-capture";
 
@@ -78,31 +81,42 @@ export default function App() {
     await AsyncStorage.removeItem(PENDING_KEY);
   }
 
-  async function submit(source: Omit<PendingCapture, "idempotencyKey">, retryKey?: string) {
+  async function submit(source: Omit<PendingCapture, "idempotencyKey">, retryKey?: string, demoRetry = false) {
     const capture: PendingCapture = { ...source, idempotencyKey: retryKey ?? newIdempotencyKey() };
     setError(null);
     setAnalysisStep(0);
     setBusy(true);
     await persistPending(capture);
     try {
-      const result = await submitMeal(capture);
+      if (isDemoMode && demoScenarioFor(capture.text) === "empty") {
+        await new Promise((resolve) => setTimeout(resolve, 850));
+        await clearPending();
+        setMeal(null);
+        setDayMeals([]);
+        setBusy(false);
+        setScreen("day");
+        return;
+      }
+      const result = await submitMeal(capture, { demoRetry });
       await clearPending();
       setMeal(result);
       setPortionEdits({});
       setSelectedCandidates({});
       setExpandedItem(null);
       setBusy(false);
-      if (result.action === "auto_accept") {
+      if (result.action === "auto_accept" && !result.degraded) {
         appendMeal(result);
         setBanner(t("mealAdded"));
         setScreen("day");
+      } else if (result.action === "ask") {
+        setScreen("abstain");
       } else {
         setScreen("review");
       }
     } catch (caught) {
       setBusy(false);
       setScreen("capture");
-      setError(caught instanceof Error ? caught.message : `${t("uploadFailed")} ${t("draftSafe")}`);
+      setError(isDemoMode && caught instanceof Error ? caught.message : t("uploadFailed"));
     }
   }
 
@@ -154,11 +168,31 @@ export default function App() {
     });
   }
 
+  function retryPending() {
+    if (!pending) return;
+    const { idempotencyKey, ...source } = pending;
+    void submit(source, idempotencyKey, true);
+  }
+
+  function runDemoScenario(scenario: DemoScenario) {
+    setText("");
+    void submit({ text: demoInput(scenario) });
+  }
+
   const totalCalories = useMemo(() => dayMeals.reduce((sum, item) => sum + item.totals.kcal, 0), [dayMeals]);
   const totalProtein = useMemo(() => dayMeals.reduce((sum, item) => sum + item.totals.protein_g, 0), [dayMeals]);
 
   if (busy) {
     return <AppShell><AnalysisState step={analysisStep} /></AppShell>;
+  }
+
+  if (error) {
+    return (
+      <AppShell>
+        <ErrorState message={error} canRetry={Boolean(pending)} onRetry={retryPending} onRetake={() => { setError(null); setScreen("capture"); }} />
+        <BottomNav screen="capture" canReview={Boolean(meal)} onChange={setScreen} />
+      </AppShell>
+    );
   }
 
   return (
@@ -171,13 +205,16 @@ export default function App() {
           requestPermission={requestPermission}
           text={text}
           setText={setText}
-          error={error}
           pending={pending}
           onCapture={capturePhoto}
           onChoosePhoto={choosePhoto}
           onSubmitText={() => submit({ text: text.trim() || "plate" })}
-          onRetry={() => pending && submit(pending, pending.idempotencyKey)}
+          onRetry={retryPending}
+          onDemoScenario={runDemoScenario}
         />
+      ) : null}
+      {screen === "abstain" && meal ? (
+        <AbstentionScreen meal={meal} onChooseManually={() => setScreen("review")} onRetake={() => setScreen("capture")} />
       ) : null}
       {screen === "review" && meal ? (
         <ReviewScreen
