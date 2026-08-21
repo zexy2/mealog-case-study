@@ -16,14 +16,10 @@ import {
   type MealLog,
   type ResolvedItem,
 } from '../domain/models';
-import { load, type LocalePack as LoadedLocalePack } from '../locales/loader';
-import {
-  fold,
-  normalize,
-  type LocalePack as NormalizeLocalePack,
-} from './normalize';
+import { load } from '../locales/loader';
+import { normalize } from './normalize';
 import { estimate } from './portion';
-import { createRetrieval, type RetrievalPack } from './retrieval/index';
+import { createRetrieval } from './retrieval/index';
 import { resolve } from './resolve';
 import { route } from './confidence';
 import { scalePer100g } from './nutrition';
@@ -68,13 +64,7 @@ export const CONFIGS: Readonly<Record<string, Config>> = {
   },
 };
 
-const retrieval = createRetrieval({
-  fold: (text, pack) => fold(text, pack as unknown as NormalizeLocalePack),
-});
-
-function asRetrievalPack(pack: LoadedLocalePack): RetrievalPack {
-  return pack as unknown as RetrievalPack;
-}
+const retrieval = createRetrieval();
 
 function ungroundedLog(
   perceived: Awaited<ReturnType<VisionPort['perceive']>>,
@@ -144,7 +134,7 @@ export async function run(
   const resolved: ResolvedItem[] = [];
 
   for (const item of normalized) {
-    const candidates = retrieval.search(item.query, asRetrievalPack(pack));
+    const candidates = retrieval.search(item.query, pack);
     const result = resolve(item.query, candidates, config.gating);
 
     // Keep ABSTAIN as an item. In particular, do not run it through portion or
