@@ -33,7 +33,10 @@ Nutrition5k selected plates contain ingredients outside this repository's
 24-food catalogue. The manifest records those source ingredients in
 `unmapped_source_ingredients`, with their real source masses and provenance,
 rather than silently dropping them. Only catalogue-covered components enter
-`truth.items` and the closed-set evaluator.
+`truth.items` and the closed-set evaluator. Nutrition5k does not publish a
+cuisine field, so the six `cuisine` values on the new rows are evaluator
+stratification labels; `cuisine_provenance` makes that inference explicit
+instead of presenting it as dataset ground truth.
 
 `pkg_0001` uses the product's exact identity and per-100g label fields, but the
 printed 170g serving is an assumption about portion. TurkishFoods-15 and
@@ -65,6 +68,12 @@ lane and therefore has no image fields.
 
 - `n5k_0001`: official Nutrition5k dish `dish_1563216440`; chicken breast and white rice map, nine other source ingredients are retained as unmapped.
 - `n5k_0002`: official Nutrition5k dish `dish_1562862493`; scrambled eggs only.
+- `n5k_0003`–`n5k_0005`: western scrambled-egg plates, with all source components retained and scrambled eggs/oil mapped where present.
+- `n5k_0006`–`n5k_0008`: Mediterranean plates; chicken breast, apple and olive oil mappings come from exact Nutrition5k ingredient names.
+- `n5k_0009`–`n5k_0011`: East Asian ingredient-pattern plates with scale-weighed rice/oil labels; tofu, pork, vegetables and sauces remain unmapped when they lack an exact catalogue equivalent.
+- `n5k_0012`–`n5k_0014`: South Asian ingredient-pattern plates with scale-weighed rice/oil labels; the bucket is explicitly an evaluator stratification, not a Nutrition5k class.
+- `n5k_0015`–`n5k_0017`: Latin American ingredient-pattern plates with tortilla/chili/cilantro evidence and exact oil labels; non-catalogue ingredients remain unmapped.
+- `n5k_0018`: other-mixed plate with scale-weighed white rice and olive oil.
 - `pkg_0001`: Open Food Facts product `0011110107176`, front label image.
 - `tr_0001`, `tr_0002`: TurkishFoods-15 train rows 18 and 12; class labels are kuru fasulye and simit.
 - `tr_0003`: text lane with two-rater consensus identity labels.
@@ -72,6 +81,9 @@ lane and therefore has no image fields.
 - `jp_0002`: UEC category 174 (`pork cutlet`).
 - `trap_0001`: openly licensed empty plate.
 
-Issue #57 replaces the seeded identity and measured labels without changing
-provider fixtures, images or pipeline code. Issue #3 owns live provider calls
-and fixture recording; do not add provider responses or images to this PR.
+The 16 new Nutrition5k rows use the official overhead RGB URL, CC BY 4.0
+licence, and a recorded SHA-256. Their Gemini observations were recorded with
+`gemini-flash-lite-latest` at four-second pacing; the recorder skips the nine
+existing fixtures idempotently. Images and provider responses remain ignored
+local artifacts. Do not reset `eval/reports/baseline.json` while the current
+score decomposition is being reviewed.

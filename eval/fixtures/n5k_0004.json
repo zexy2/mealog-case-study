@@ -1,0 +1,43 @@
+{
+  "_synthetic": false,
+  "sample_id": "n5k_0004",
+  "input_sha256": "1215171aa64c9781b3bf8b83c9e18b083411ec6eca68653f0afa3a692201e24f",
+  "provider": "gemini",
+  "model_id": "gemini-flash-lite-latest",
+  "prompt_version": "p2",
+  "degraded": false,
+  "rung": "configured_model",
+  "attempts": 1,
+  "items": [
+    {
+      "surface_form": "grapes",
+      "cooking_method": "raw",
+      "portion_hint": "small handful",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "sweet potato",
+      "cooking_method": "roasted",
+      "portion_hint": "diced portion",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "scrambled eggs",
+      "cooking_method": "scrambled",
+      "portion_hint": "small serving",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "cheese",
+      "cooking_method": "none",
+      "portion_hint": "pieces",
+      "confidence": 0.7
+    },
+    {
+      "surface_form": "pineapple",
+      "cooking_method": "raw",
+      "portion_hint": "small pieces on side plate",
+      "confidence": 0.85
+    }
+  ]
+}
