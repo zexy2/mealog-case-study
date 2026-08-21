@@ -3,7 +3,7 @@ to a model is allowed to produce a nutrient number. Models produce *references*
 (a surface form, then a canonical food_id, then grams). Nutrients are computed."""
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .taxonomy import CuisineBucket
 
@@ -36,6 +36,20 @@ class CanonicalFood(BaseModel):
     default_serving_name: str
     source: str
     locale: str
+    density_g_per_ml: float | None = None
+    density_source: str | None = None
+
+    @model_validator(mode="after")
+    def validate_density_provenance(self) -> CanonicalFood:
+        if (self.density_g_per_ml is None) != (self.density_source is None):
+            raise ValueError(
+                "density_g_per_ml and density_source must be provided together"
+            )
+        if self.density_g_per_ml is not None and self.density_g_per_ml <= 0:
+            raise ValueError("density_g_per_ml must be positive")
+        if self.density_g_per_ml is not None and not self.density_source.strip():
+            raise ValueError("density_source must not be empty")
+        return self
 
 
 class PerceivedItem(BaseModel):

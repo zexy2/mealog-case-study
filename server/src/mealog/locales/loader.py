@@ -60,6 +60,8 @@ def load(locale: str, root: str | None = None) -> LocalePack:
             default_serving_g=row["default_serving_g"],
             default_serving_name=row["default_serving_name"],
             source=row["source"], locale=pack.locale,
+            density_g_per_ml=row.get("density_g_per_ml"),
+            density_source=row.get("density_source"),
         )
 
     for row in _jsonl(d / "aliases.jsonl"):
