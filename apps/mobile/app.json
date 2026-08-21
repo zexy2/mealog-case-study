@@ -30,7 +30,8 @@
         {
           "photosPermission": "Allow Mealog to use a selected plate photo."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }
