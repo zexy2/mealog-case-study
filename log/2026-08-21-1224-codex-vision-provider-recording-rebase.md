@@ -19,7 +19,7 @@ recorded non-synthetic provider response(s)`.
 | Model | Recorded | Requests | Wall time | Cost | Result |
 |---|---:|---:|---:|---:|---|
 | `gemini-flash-lite-latest` | 9/9 | 9 | 35.54s | $0.00 | complete |
-| `gemini-flash-latest` | 3/9 | 5 attempts across 3 runs | ~74s | $0.00 | stopped after repeated HTTP 503 high-demand responses at `tr_0001` |
+| `gemini-flash-latest` | 3/9 | 6 attempts across 3 runs | ~74s | $0.00 | stopped after repeated HTTP 503 high-demand responses at `tr_0001` |
 
 Full-Flash fixtures present: `n5k_0001`, `n5k_0002`, `pkg_0001`. Six remain
 missing. No second provider run was possible after rebase because credential is
@@ -53,4 +53,3 @@ Do not force-push rebased history; publish from a new branch. Do not claim
 9/9 Full-Flash: six fixtures remain absent because Gemini returned HTTP 503.
 Do not hand-edit fixture JSON or hide the changed scorecard behind the old
 baseline.
-
