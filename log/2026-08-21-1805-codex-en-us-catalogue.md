@@ -8,7 +8,7 @@ Base: `a8bf11d` (`origin/main`)
 
 ## Change
 
-- Added 28 targeted canonical foods to `locale_packs/en_US/foods.jsonl`, drawn
+- Added 30 targeted canonical foods to `locale_packs/en_US/foods.jsonl`, drawn
   only from the deferred provider names in `docs/evaluation.md`.
 - Every added nutrient row was checked against the USDA FoodData Central SR
   Legacy JSON release, with its FDC ID and official dataset URL in `source`.
@@ -20,7 +20,7 @@ Base: `a8bf11d` (`origin/main`)
   `polenta`, and `tortilla de patatas` traps all abstain. `unicorn casserole`
   was also recorded as a negative alias for the new corn entry after the
   baseline matcher surfaced it as a false accept.
-- Regenerated `STATUS.md`: en_US is 36 foods and the three packs total 97.
+- Regenerated `STATUS.md`: en_US is 38 foods and the three packs total 99.
 
 ## Evaluation
 
@@ -46,12 +46,12 @@ partial truth for many deferred photos and cannot be edited in this issue:
 
 | V3 metric | Before | After |
 |---|---:|---:|
-| Coverage | 20% | 48% |
+| Coverage | 20% | 52% |
 | Worst-cuisine MAPE | 12.7% (western) | 8333.8% (east_asian) |
-| Mean MAPE | 12.7% | 1338.2% |
-| Item F1 | 0.47 | 0.24 |
+| Mean MAPE | 12.7% | 1211.5% |
+| Item F1 | 0.47 | 0.23 |
 
-Coverage by cuisine is western `33% -> 83%`, mediterranean `50% -> 67%`,
+Coverage by cuisine is western `33% -> 83%`, mediterranean `50% -> 83%`,
 east_asian `0% -> 20%`, south_asian `0% -> 33%`, latin_american `0% -> 33%`,
 and other_mixed `0% -> 0%`. The stored regression guard therefore correctly
 fails on the current partial-label baseline; no threshold, metric, truth label,
@@ -62,7 +62,7 @@ refresh must separate coverage gained from unsupported calorie claims.
 
 Throwaway environment: `/tmp/mealog-codex147.UTTTIM/venv`.
 
-- USDA JSON cross-check: 28/28 added rows matched FDC nutrient fields.
+- USDA JSON cross-check: 30/30 added rows matched FDC nutrient fields.
 - `make test`: 249 passed.
 - `make lint`: passed.
 - `python scripts/check_invariants.py`: passed.
