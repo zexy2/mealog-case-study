@@ -19,33 +19,44 @@ export function DayScreen({ meals, totalCalories, totalProtein, onCapture }: Day
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header eyebrow={t("dayEyebrow")} title={t("dayTitle")} subtitle={formatDate()} />
-      <View style={styles.totalCard}>
-        <View>
-          <Text style={styles.totalEyebrow}>{t("loggedSoFar")}</Text>
-          <Text style={styles.totalNumber}>{Math.round(totalCalories)}<Text style={styles.totalUnit}> kcal</Text></Text>
+      {meals.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyIcon}><Ionicons name="sunny-outline" size={28} color={colors.terracotta} /></View>
+          <Text style={styles.emptyEyebrow}>{t("emptyEyebrow")}</Text>
+          <Text style={styles.emptyTitle}>{t("emptyTitle")}</Text>
+          <Text style={styles.emptyCopy}>{t("emptyCopy")}</Text>
         </View>
-        <View style={styles.totalSide}>
-          <Text style={styles.totalSideNumber}>{Math.round(totalProtein)} g</Text>
-          <Text style={styles.totalSideLabel}>{t("protein")}</Text>
-        </View>
-      </View>
+      ) : (
+        <>
+          <View style={styles.totalCard}>
+            <View>
+              <Text style={styles.totalEyebrow}>{t("loggedSoFar")}</Text>
+              <Text style={styles.totalNumber}>{Math.round(totalCalories)}<Text style={styles.totalUnit}> kcal</Text></Text>
+            </View>
+            <View style={styles.totalSide}>
+              <Text style={styles.totalSideNumber}>{Math.round(totalProtein)} g</Text>
+              <Text style={styles.totalSideLabel}>{t("protein")}</Text>
+            </View>
+          </View>
 
-      <View style={styles.listHeader}>
-        <Text style={styles.sectionLabel}>{t("meals")}</Text>
-        <Text style={styles.listCount}>{t("loggedCount", { count: meals.length })}</Text>
-      </View>
-      {meals.map((item, index) => (
-        <View style={styles.mealRow} key={item.idempotency_key}>
-          <View style={[styles.mealTime, index === 0 && styles.mealTimeCurrent]}>
-            <Text style={[styles.mealTimeText, index === 0 && styles.mealTimeTextCurrent]}>{formatTime(item.createdAt)}</Text>
+          <View style={styles.listHeader}>
+            <Text style={styles.sectionLabel}>{t("meals")}</Text>
+            <Text style={styles.listCount}>{t("loggedCount", { count: meals.length })}</Text>
           </View>
-          <View style={styles.mealRowBody}>
-            <Text style={styles.mealTitle}>{item.items[0]?.candidates.find((candidate) => candidate.food_id === item.items[0]?.food_id)?.name ?? item.items[0]?.query ?? t("mealFallback")}</Text>
-            <Text style={styles.mealMeta}>{t("itemCount", { count: item.items.length, plural: item.items.length === 1 ? "" : "s" })} · {actionLabel(item.action)}</Text>
-          </View>
-          <Text style={styles.mealKcal}>{Math.round(item.totals.kcal)} kcal</Text>
-        </View>
-      ))}
+          {meals.map((item, index) => (
+            <View style={styles.mealRow} key={item.idempotency_key}>
+              <View style={[styles.mealTime, index === 0 && styles.mealTimeCurrent]}>
+                <Text style={[styles.mealTimeText, index === 0 && styles.mealTimeTextCurrent]}>{formatTime(item.createdAt)}</Text>
+              </View>
+              <View style={styles.mealRowBody}>
+                <Text style={styles.mealTitle}>{item.items[0]?.candidates.find((candidate) => candidate.food_id === item.items[0]?.food_id)?.name ?? item.items[0]?.query ?? t("mealFallback")}</Text>
+                <Text style={styles.mealMeta}>{t("itemCount", { count: item.items.length, plural: item.items.length === 1 ? "" : "s" })} · {actionLabel(item.action)}</Text>
+              </View>
+              <Text style={styles.mealKcal}>{Math.round(item.totals.kcal)} kcal</Text>
+            </View>
+          ))}
+        </>
+      )}
 
       <View style={styles.dayNote}>
         <Ionicons name="sparkles-outline" size={18} color={colors.terracotta} />
@@ -53,7 +64,7 @@ export function DayScreen({ meals, totalCalories, totalProtein, onCapture }: Day
       </View>
       <Pressable style={styles.primaryButton} onPress={onCapture}>
         <Ionicons name="camera-outline" size={19} color={colors.white} />
-        <Text style={styles.primaryButtonText}>{t("captureNext")}</Text>
+        <Text style={styles.primaryButtonText}>{meals.length === 0 ? t("emptyAction") : t("captureNext")}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -63,6 +74,11 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 22, paddingBottom: 34 },
   totalCard: { backgroundColor: colors.ink, borderRadius: 25, padding: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  emptyCard: { backgroundColor: colors.card, borderRadius: 25, borderWidth: 1, borderColor: colors.line, padding: 24, minHeight: 260, justifyContent: "center" },
+  emptyIcon: { width: 56, height: 56, borderRadius: 19, backgroundColor: colors.terracottaSoft, alignItems: "center", justifyContent: "center", marginBottom: 20 },
+  emptyEyebrow: { color: colors.terracotta, fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
+  emptyTitle: { color: colors.ink, fontSize: 28, lineHeight: 33, fontWeight: "800", letterSpacing: -0.8, marginTop: 10 },
+  emptyCopy: { color: colors.muted, fontSize: 14, lineHeight: 21, marginTop: 9, maxWidth: 280 },
   totalEyebrow: { color: "#AAB5A7", fontSize: 9, letterSpacing: 1.4, fontWeight: "800" },
   totalNumber: { color: colors.white, fontSize: 43, fontWeight: "800", letterSpacing: -1.7, marginTop: 6 },
   totalUnit: { color: "#AAB5A7", fontSize: 17, letterSpacing: 0, fontWeight: "600" },

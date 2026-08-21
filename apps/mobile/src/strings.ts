@@ -14,12 +14,21 @@ export type StringKey =
   | "mealPlaceholder"
   | "sendMealDescription"
   | "demoHint"
+  | "demoPanelTitle"
+  | "demoLoadingNote"
+  | "demoReview"
+  | "demoAbstain"
+  | "demoError"
+  | "demoEmpty"
   | "liveContractHint"
   | "pendingCaptureTitle"
   | "pendingCaptureCopy"
   | "resume"
   | "nothingLost"
   | "retry"
+  | "errorEyebrow"
+  | "errorTitle"
+  | "demoProviderError"
   | "reviewEyebrow"
   | "reviewTitle"
   | "reviewSubtitle"
@@ -31,6 +40,15 @@ export type StringKey =
   | "oneQuestion"
   | "questionPick"
   | "questionConfirm"
+  | "abstainEyebrow"
+  | "abstainTitle"
+  | "abstainCopy"
+  | "abstainObserved"
+  | "abstainCandidates"
+  | "abstainCode"
+  | "abstainNoCandidates"
+  | "chooseManually"
+  | "retakePhoto"
   | "portion"
   | "notEstimated"
   | "portionBand"
@@ -60,6 +78,10 @@ export type StringKey =
   | "mealFallback"
   | "dayNote"
   | "captureNext"
+  | "emptyEyebrow"
+  | "emptyTitle"
+  | "emptyCopy"
+  | "emptyAction"
   | "analysisEyebrow"
   | "analysisTitle"
   | "analysisTitleAccent"
@@ -68,6 +90,8 @@ export type StringKey =
   | "analysisStepMatching"
   | "analysisStepPortion"
   | "analysisFootnote"
+  | "degradedTitle"
+  | "degradedCopy"
   | "navCapture"
   | "navReview"
   | "navDay"
@@ -94,13 +118,22 @@ export const tr: Dictionary = {
   tellMe: "YA DA ANLAT",
   mealPlaceholder: "örn. yediğiniz yemeği yazın",
   sendMealDescription: "Öğün açıklamasını gönder",
-  demoHint: "Demo modu · Bir öğün yazarak deneyin",
+  demoHint: "Demo modu · Aşağıdaki örneklerle dört durumu deneyin",
+  demoPanelTitle: "DEMO AKIŞLARI",
+  demoLoadingNote: "Her akış önce yükleniyor durumunu gösterir.",
+  demoReview: "Kontrol ekranı",
+  demoAbstain: "Emin değilim",
+  demoError: "Hata ve tekrar dene",
+  demoEmpty: "Boş günü göster",
   liveContractHint: "Fotoğraf ve metin aynı öğün akışını kullanır",
   pendingCaptureTitle: "Bekleyen kayıt kaydedildi",
   pendingCaptureCopy: "Aynı anahtarla yeniden deneyebilirsiniz.",
   resume: "Devam et",
   nothingLost: "Hiçbir şey kaybolmadı",
   retry: "Tekrar dene",
+  errorEyebrow: "AKIŞ DURDU",
+  errorTitle: "Bir sorun çıktı.",
+  demoProviderError: "Sağlayıcı yanıt vermedi. Taslağın güvende.",
   reviewEyebrow: "KONTROL ET VE DÜZELT",
   reviewTitle: "Kontrol sende.",
   reviewSubtitle: "Gününe eklemeden önce son bir kez bak.",
@@ -112,9 +145,18 @@ export const tr: Dictionary = {
   oneQuestion: "TEK SORU",
   questionPick: "Bu öğün için aşağıdan bir eşleşme seç.",
   questionConfirm: "{food} doğru mu? Değilse aşağıdan seç.",
+  abstainEyebrow: "GÜVENLİ EŞLEŞME YOK",
+  abstainTitle: "Bu öğünü güvenle tanımlayamadık.",
+  abstainCopy: "Katalogda yeterli kanıt yok. Yakın bir tahmin seçmek yerine senden yardım istiyoruz.",
+  abstainObserved: "GÖRÜLEN",
+  abstainCandidates: "YAKIN ADAYLAR · HİÇBİRİ KABUL EDİLMEDİ",
+  abstainCode: "ABSTAIN · TAHMİN YOK",
+  abstainNoCandidates: "Bu öğün için aday bulunamadı.",
+  chooseManually: "Katalogdan kendim seç",
+  retakePhoto: "Fotoğrafı yeniden çek",
   portion: "PORSİYON",
   notEstimated: "Tahmin edilemedi",
-  portionBand: "yaklaşık {grams} g ({low}-{high} g)",
+  portionBand: "yaklaşık {grams} g ({low}–{high} g)",
   portionFor: "{query} porsiyonu",
   portionLow: "{grams} g alt sınır",
   portionHigh: "{grams} g üst sınır",
@@ -141,6 +183,10 @@ export const tr: Dictionary = {
   mealFallback: "Öğün",
   dayNote: "Her eşleşme izlenebilir. Katalog kararını incelemek için Kontrol et'e dokunabilirsin.",
   captureNext: "Sonraki öğünü ekle",
+  emptyEyebrow: "BUGÜN SESSİZ",
+  emptyTitle: "Henüz bir öğün yok.",
+  emptyCopy: "İlk tabağını ekle; günün kanıtı burada birikmeye başlasın.",
+  emptyAction: "İlk öğünü ekle",
   analysisEyebrow: "TABAK OKUNUYOR",
   analysisTitle: "Biraz sabır.",
   analysisTitleAccent: " Daha iyi kanıt.",
@@ -149,6 +195,8 @@ export const tr: Dictionary = {
   analysisStepMatching: "Katalogda eşleşme aranıyor",
   analysisStepPortion: "Porsiyon tahmin ediliyor",
   analysisFootnote: "Besin değerlerini model hesaplamaz.",
+  degradedTitle: "Yanıt zayıf kanıtla geldi",
+  degradedCopy: "Sağlayıcı geri dönüşü kullanıldı. Kaydetmeden önce sonucu kontrol et.",
   navCapture: "Ekle",
   navReview: "Kontrol et",
   navDay: "Gün",
@@ -173,13 +221,22 @@ export const en: Dictionary = {
   tellMe: "OR TELL ME",
   mealPlaceholder: "e.g. describe what you ate",
   sendMealDescription: "Send meal description",
-  demoHint: "Demo mode · try “quick simit” or “ask baked beans”",
+  demoHint: "Demo mode · use the examples below to visit each state",
+  demoPanelTitle: "DEMO FLOWS",
+  demoLoadingNote: "Every flow shows the loading state first.",
+  demoReview: "Review state",
+  demoAbstain: "I am not sure",
+  demoError: "Error and retry",
+  demoEmpty: "Show empty day",
   liveContractHint: "Photo and text use the same meal contract",
   pendingCaptureTitle: "Pending capture saved",
   pendingCaptureCopy: "The same key is ready to retry.",
   resume: "Resume",
   nothingLost: "Nothing lost",
   retry: "Retry",
+  errorEyebrow: "FLOW PAUSED",
+  errorTitle: "Something went wrong.",
+  demoProviderError: "The provider did not respond. Your draft is safe.",
   reviewEyebrow: "REVIEW & CORRECT",
   reviewTitle: "Make it yours.",
   reviewSubtitle: "One last look before it lands in your day.",
@@ -191,9 +248,18 @@ export const en: Dictionary = {
   oneQuestion: "ONE QUESTION",
   questionPick: "Choose the closest match for this meal below.",
   questionConfirm: "Is {food} correct? If not, choose below.",
+  abstainEyebrow: "NO SAFE MATCH",
+  abstainTitle: "We could not identify this meal safely.",
+  abstainCopy: "The catalogue does not contain enough evidence. We ask you instead of presenting a nearby guess.",
+  abstainObserved: "OBSERVED",
+  abstainCandidates: "NEARBY CANDIDATES · NONE ACCEPTED",
+  abstainCode: "ABSTAIN · NO GUESS",
+  abstainNoCandidates: "No candidates were found for this meal.",
+  chooseManually: "Choose from the catalogue",
+  retakePhoto: "Retake the photo",
   portion: "PORTION",
   notEstimated: "Not estimated",
-  portionBand: "about {grams} g ({low}-{high} g)",
+  portionBand: "about {grams} g ({low}–{high} g)",
   portionFor: "Portion for {query}",
   portionLow: "{grams} g likely minimum",
   portionHigh: "{grams} g upper range",
@@ -220,6 +286,10 @@ export const en: Dictionary = {
   mealFallback: "Meal",
   dayNote: "Every match stays traceable. Tap Review to inspect the catalogue decision.",
   captureNext: "Capture next meal",
+  emptyEyebrow: "A QUIET DAY",
+  emptyTitle: "No meals yet.",
+  emptyCopy: "Capture your first plate and let today's evidence start here.",
+  emptyAction: "Capture first meal",
   analysisEyebrow: "MEALOG IS READING",
   analysisTitle: "A little patience.",
   analysisTitleAccent: " Better evidence.",
@@ -228,6 +298,8 @@ export const en: Dictionary = {
   analysisStepMatching: "Matching to the catalogue",
   analysisStepPortion: "Estimating portion",
   analysisFootnote: "No nutrient numbers come from the model.",
+  degradedTitle: "Response arrived with weak evidence",
+  degradedCopy: "A provider fallback was used. Review this result before saving it.",
   navCapture: "Capture",
   navReview: "Review",
   navDay: "Day",

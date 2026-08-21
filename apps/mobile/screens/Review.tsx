@@ -46,18 +46,28 @@ export function ReviewScreen({
   onSave,
   onBack,
 }: ReviewScreenProps) {
-  const tone = actionTone(meal.action);
+  const displayAction = meal.degraded ? "review" : meal.action;
+  const tone = actionTone(displayAction);
   const askText = questionText(meal.items[0]);
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header eyebrow={t("reviewEyebrow")} title={t("reviewTitle")} subtitle={t("reviewSubtitle")} />
+      {meal.degraded ? (
+        <View style={styles.degradedBanner}>
+          <Ionicons name="warning-outline" size={19} color="#8D641C" />
+          <View style={styles.degradedCopy}>
+            <Text style={styles.degradedTitle}>{t("degradedTitle")}</Text>
+            <Text style={styles.degradedText}>{t("degradedCopy")}</Text>
+          </View>
+        </View>
+      ) : null}
       <View style={[styles.actionBanner, { backgroundColor: tone.backgroundColor }]}>
         <View style={[styles.actionMark, { backgroundColor: tone.color }]}>
-          <Ionicons name={meal.action === "ask" ? "help" : meal.action === "auto_accept" ? "checkmark" : "eye"} size={17} color={colors.white} />
+          <Ionicons name={displayAction === "ask" ? "help" : displayAction === "auto_accept" ? "checkmark" : "eye"} size={17} color={colors.white} />
         </View>
         <View style={styles.actionBannerCopy}>
-          <Text style={[styles.actionBannerTitle, { color: tone.color }]}>{actionLabel(meal.action)}</Text>
-          <Text style={styles.actionBannerText}>{meal.action === "ask" ? askText : t("editableMatch")}</Text>
+          <Text style={[styles.actionBannerTitle, { color: tone.color }]}>{actionLabel(displayAction)}</Text>
+          <Text style={styles.actionBannerText}>{meal.degraded ? t("degradedCopy") : meal.action === "ask" ? askText : t("editableMatch")}</Text>
         </View>
       </View>
 
@@ -148,6 +158,10 @@ export function ReviewScreen({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 22, paddingBottom: 34 },
+  degradedBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FBF1D8", borderRadius: 17, padding: 13, marginBottom: 14 },
+  degradedCopy: { flex: 1 },
+  degradedTitle: { color: "#8D641C", fontSize: 12, fontWeight: "800" },
+  degradedText: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 3 },
   actionBanner: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 20, padding: 15, marginBottom: 17 },
   actionMark: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   actionBannerCopy: { flex: 1 },

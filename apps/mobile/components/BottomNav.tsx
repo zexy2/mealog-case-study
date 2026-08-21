@@ -5,7 +5,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "./theme";
 import { t } from "../src/strings";
 
-export type Screen = "capture" | "review" | "day";
+export type Screen = "capture" | "review" | "abstain" | "day";
 
 export function BottomNav({ screen, canReview, onChange }: { screen: Screen; canReview: boolean; onChange: (screen: Screen) => void }) {
   return (
