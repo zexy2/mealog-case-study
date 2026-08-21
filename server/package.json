@@ -1,0 +1,35 @@
+{
+  "name": "@mealog/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mealog backend. NestJS at the edge; domain and pipeline stay framework-agnostic.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "main": "dist/src/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "start": "node dist/src/main.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@nestjs/testing": "^11.1.6",
+    "@types/node": "^22.18.6",
+    "@types/supertest": "^6.0.3",
+    "eslint": "^9.36.0",
+    "supertest": "^7.1.4",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.1",
+    "vitest": "^3.2.4"
+  }
+}

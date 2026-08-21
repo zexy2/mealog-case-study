@@ -15,6 +15,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "server" / "src" / "mealog"
+TS_SRC = ROOT / "server" / "src"
 PACKS = ROOT / "locale_packs"
 
 sys.path.insert(0, str(SRC.parent))
@@ -99,12 +100,40 @@ def check_resolver_is_closed_set() -> None:
         fail("closed-set", "resolve.py no longer constrains output to candidates")
 
 
+def check_pure_typescript_has_no_framework_import() -> None:
+    """The TypeScript domain and pipeline stay framework-agnostic.
+
+    Proposed D12 (issue #106) puts NestJS at the edge only: controllers and
+    providers. ``src/domain/`` and ``src/pipeline/`` are plain TypeScript so the
+    eval harness can import the same modules the API serves without booting
+    Nest -- which is what makes the parity gate a real comparison rather than
+    two codebases that happen to agree.
+
+    One framework import is enough to end that property, and it would be
+    invisible in review until the harness failed to start. So it fails here.
+    """
+    pattern = re.compile(
+        r"""(?:from|import)\s*\(?\s*['"]@nestjs/|require\s*\(\s*['"]@nestjs/"""
+    )
+    for area in ("domain", "pipeline"):
+        area_root = TS_SRC / area
+        if not area_root.exists():
+            continue
+        for path in sorted(area_root.rglob("*.ts")):
+            for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if pattern.search(line):
+                    fail("D12", f"{path.relative_to(ROOT)}:{i} imports NestJS inside "
+                                f"framework-agnostic src/{area}/. The edge owns the "
+                                f"framework; these modules must import without it.")
+
+
 def main() -> int:
     for check in (check_nutrition_is_the_only_producer,
                   check_no_locale_literals,
                   check_packs_declare_a_known_license,
                   check_every_golden_sample_has_a_fixture,
-                  check_resolver_is_closed_set):
+                  check_resolver_is_closed_set,
+                  check_pure_typescript_has_no_framework_import):
         check()
 
     if failures:
