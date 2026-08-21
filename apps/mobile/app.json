@@ -9,8 +9,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Mealog uses the camera to read your plate.",
-        "NSPhotoLibraryUsageDescription": "Mealog uses a selected photo to read your plate."
+        "NSCameraUsageDescription": "Mealog, tabağını okumak için kamerayı kullanır.",
+        "NSPhotoLibraryUsageDescription": "Mealog, seçtiğin tabak fotoğrafını kullanır."
       }
     },
     "android": {
@@ -22,13 +22,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Mealog to read your plate with the camera."
+          "cameraPermission": "Mealog'un tabağını kamerayla okumasına izin ver."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Mealog to use a selected plate photo."
+          "photosPermission": "Mealog'un seçtiğin tabak fotoğrafını kullanmasına izin ver."
         }
       ],
       "expo-font"

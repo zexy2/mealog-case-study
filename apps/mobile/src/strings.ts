@@ -29,6 +29,8 @@ export type StringKey =
   | "editableMatch"
   | "needsMatch"
   | "oneQuestion"
+  | "questionPick"
+  | "questionConfirm"
   | "portion"
   | "notEstimated"
   | "portionBand"
@@ -108,6 +110,8 @@ export const tr: Dictionary = {
   editableMatch: "Katalog eşleşmesi burada; dilediğin gibi düzenleyebilirsin.",
   needsMatch: "Eşleşme gerekli",
   oneQuestion: "TEK SORU",
+  questionPick: "Bu öğün için aşağıdan bir eşleşme seç.",
+  questionConfirm: "{food} doğru mu? Değilse aşağıdan seç.",
   portion: "PORSİYON",
   notEstimated: "Tahmin edilemedi",
   portionBand: "yaklaşık {grams} g ({low}-{high} g)",
@@ -185,6 +189,8 @@ export const en: Dictionary = {
   editableMatch: "The catalogue match is visible and editable.",
   needsMatch: "Needs a match",
   oneQuestion: "ONE QUESTION",
+  questionPick: "Choose the closest match for this meal below.",
+  questionConfirm: "Is {food} correct? If not, choose below.",
   portion: "PORTION",
   notEstimated: "Not estimated",
   portionBand: "about {grams} g ({low}-{high} g)",
@@ -238,4 +244,14 @@ export const DEFAULT_LOCALE: Locale = "tr";
 
 export function t(key: StringKey, values: Values = {}, locale: Locale = DEFAULT_LOCALE): string {
   return dictionaries[locale][key].replace(/\{(\w+)\}/g, (placeholder, name: string) => String(values[name] ?? placeholder));
+}
+
+type QuestionItem = {
+  food_id: string;
+  candidates: Array<{ food_id: string; name: string }>;
+};
+
+export function questionText(item?: QuestionItem): string {
+  const match = item?.candidates.find((candidate) => candidate.food_id === item.food_id);
+  return match ? t("questionConfirm", { food: match.name }) : t("questionPick");
 }

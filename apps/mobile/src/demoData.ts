@@ -1,4 +1,5 @@
-import { MealLog, ResolvedItem } from "./types";
+import { questionText } from "./strings";
+import type { MealLog, ResolvedItem } from "./types";
 
 const sourceDatabase = "TURKOMP";
 
@@ -61,7 +62,7 @@ export function buildDemoMeal(text: string | undefined, idempotencyKey: string):
       items: [askItem],
       totals: nutrients(0, 0, 0, 0),
       action: "ask",
-      question: "Is this kuru fasulye, or another bean dish?",
+      question: questionText(askItem),
       config: "V3",
       createdAt: new Date().toISOString(),
     };
