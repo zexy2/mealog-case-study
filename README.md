@@ -26,18 +26,54 @@ in aggregate.
 
 ## Run it
 
-Requires Python 3.11. **No API key needed** — the default path replays recorded
-provider responses, so the scorecard below is reproducible offline.
+Requires Python 3.11. Use the versioned interpreter name below on systems where
+`python` is not installed. **No API key is needed** for this path: the default
+provider replays recorded responses, so the scorecard is reproducible offline.
 
 ```bash
-cd server && pip install -e ".[dev]"    # 1. install
-cd .. && make eval                      # 2. reproduce the scorecard
-make test                               # 3. run the tests
-make check                              # 4. everything CI runs
+python3.11 --version                    # 1. verify the pinned interpreter
+python3.11 -m venv .venv                # 2. create an isolated environment
+. .venv/bin/activate                    # 3. activate it
+python -m pip install -e "server[dev]"  # 4. install the declared dependencies
+make eval                               # 5. reproduce the scorecard offline
+make test                               # 6. run the tests
+make check                              # 7. everything CI runs
 ```
 
-Optional: `make db && make api` for the HTTP surface, `make eval-live` to hit the
-real provider (needs `GEMINI_API_KEY`; see `.env.example`).
+`make eval`, `make test`, and `make check` do not call a provider or need network
+access after installation. `make eval-live` calls the real provider and needs
+`GEMINI_API_KEY`; see `.env.example`.
+
+## Docker API path
+
+Docker Engine/Desktop with Compose v2 is optional. This path uses the fixture
+provider, so it needs no API key. From the repository root:
+
+```bash
+unset GEMINI_API_KEY
+docker compose up -d --wait
+curl -fsS -w '\n' http://localhost:8000/health
+curl -fsS -w '\n' -X POST http://localhost:8000/v1/meals \
+  -H 'content-type: application/json' \
+  -d '{"idempotency_key":"reviewer-smoke-1","sample_id":"n5k_0001","text":"rice","locale":"en_US","config":"V3"}'
+docker compose down --volumes
+```
+
+The request includes `text` and the fixture-only `sample_id` so the clean-clone
+smoke test can replay a recorded response without an image or provider key. A
+live request uses an image or text with `VISION_PROVIDER=gemini` instead.
+
+## Troubleshooting
+
+- **`python: command not found`:** use `python3.11` for the venv command above;
+  after activation, `python` points to that venv.
+- **`GEMINI_API_KEY` errors:** keep the default `VISION_PROVIDER=fixture` for
+  offline eval and the Docker smoke path. Only `make eval-live` and a live API
+  run need a key.
+- **Port 8000 or 5432 is busy:** stop the conflicting process, then rerun
+  `docker compose up -d --wait`; use `docker compose down --volumes` to clean up.
+- **Docker is unavailable:** use the Python path above. Docker is only required
+  for the API smoke path, not for the offline scorecard or tests.
 
 ## Mobile app
 
