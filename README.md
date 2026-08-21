@@ -124,7 +124,7 @@ everything:
 
 ## Testing
 
-`make test` currently runs 57 tests. They are selected by risk rather than
+`make test` currently runs 80 tests. They are selected by risk rather than
 coverage: nutrition arithmetic (the only place numbers are made), locale-pack
 integrity, the closed-set guarantee, API contracts, pipeline stages, and
 idempotent replay. `docs/evaluation.md` covers accuracy evaluation separately.
