@@ -4,6 +4,7 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { isDemoMode } from "../src/api";
+import { t } from "../src/strings";
 import { PendingCapture } from "../src/types";
 import { Header } from "../components/Header";
 import { formatDate } from "../components/meal";
@@ -38,7 +39,7 @@ export function CaptureScreen({
 }: CaptureScreenProps) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Header eyebrow="CAPTURE" title="What did you eat?" subtitle={formatDate()} />
+      <Header eyebrow={t("captureEyebrow")} title={t("captureTitle")} subtitle={formatDate()} />
       <View style={styles.cameraFrame}>
         {permissionGranted ? (
           <CameraView ref={cameraRef} facing="back" style={StyleSheet.absoluteFill} />
@@ -47,24 +48,24 @@ export function CaptureScreen({
             <View style={styles.cameraIconCircle}>
               <Ionicons name="camera-outline" size={28} color={colors.terracotta} />
             </View>
-            <Text style={styles.fallbackTitle}>Camera is waiting</Text>
-            <Text style={styles.fallbackCopy}>Allow camera access, or choose a plate photo.</Text>
+            <Text style={styles.fallbackTitle}>{t("cameraWaiting")}</Text>
+            <Text style={styles.fallbackCopy}>{t("cameraPermission")}</Text>
             <Pressable style={styles.smallOutlineButton} onPress={requestPermission}>
-              <Text style={styles.smallOutlineButtonText}>Allow camera</Text>
+              <Text style={styles.smallOutlineButtonText}>{t("allowCamera")}</Text>
             </Pressable>
           </View>
         )}
         <View style={styles.cameraTopRow}>
           <View style={styles.livePill}>
             <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE CAMERA</Text>
+            <Text style={styles.liveText}>{t("liveCamera")}</Text>
           </View>
-          <Pressable style={styles.cameraLibraryButton} onPress={onChoosePhoto}>
+          <Pressable style={styles.cameraLibraryButton} onPress={onChoosePhoto} accessibilityLabel={t("choosePhoto")}>
             <Ionicons name="images-outline" size={18} color={colors.ink} />
           </Pressable>
         </View>
         {permissionGranted ? (
-          <Pressable style={styles.shutter} onPress={onCapture} accessibilityLabel="Take plate photo">
+          <Pressable style={styles.shutter} onPress={onCapture} accessibilityLabel={t("takePlatePhoto")}>
             <View style={styles.shutterInner} />
           </Pressable>
         ) : null}
@@ -72,14 +73,14 @@ export function CaptureScreen({
 
       <View style={styles.orRow}>
         <View style={styles.orLine} />
-        <Text style={styles.orText}>OR TELL ME</Text>
+        <Text style={styles.orText}>{t("tellMe")}</Text>
         <View style={styles.orLine} />
       </View>
       <View style={styles.textInputWrap}>
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder="e.g. rice, lentil soup, ayran"
+          placeholder={t("mealPlaceholder")}
           placeholderTextColor={colors.muted}
           style={styles.textInput}
           returnKeyType="send"
@@ -89,13 +90,13 @@ export function CaptureScreen({
           style={[styles.textSubmit, !text.trim() && styles.textSubmitDisabled]}
           onPress={onSubmitText}
           disabled={!text.trim()}
-          accessibilityLabel="Send meal description"
+          accessibilityLabel={t("sendMealDescription")}
         >
           <Ionicons name="arrow-up" size={20} color={colors.white} />
         </Pressable>
       </View>
       <Text style={styles.demoHint}>
-        {isDemoMode ? "Demo mode · try “quick simit” or “ask baked beans”" : "Photo and text use the same meal contract"}
+        {isDemoMode ? t("demoHint") : t("liveContractHint")}
       </Text>
 
       {pending && !error ? (
@@ -104,11 +105,11 @@ export function CaptureScreen({
             <Ionicons name="cloud-upload-outline" size={18} color={colors.moss} />
           </View>
           <View style={styles.messageWrap}>
-            <Text style={styles.messageTitle}>Pending capture saved</Text>
-            <Text style={styles.messageCopy}>Same idempotency key is ready to retry.</Text>
+            <Text style={styles.messageTitle}>{t("pendingCaptureTitle")}</Text>
+            <Text style={styles.messageCopy}>{t("pendingCaptureCopy")}</Text>
           </View>
           <Pressable onPress={onRetry} style={styles.resumeButton}>
-            <Text style={styles.resumeText}>Resume</Text>
+            <Text style={styles.resumeText}>{t("resume")}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -119,12 +120,12 @@ export function CaptureScreen({
             <Ionicons name="cloud-offline-outline" size={18} color={colors.terracotta} />
           </View>
           <View style={styles.messageWrap}>
-            <Text style={styles.messageTitle}>Nothing lost</Text>
+            <Text style={styles.messageTitle}>{t("nothingLost")}</Text>
             <Text style={styles.messageCopy}>{error}</Text>
           </View>
           {pending ? (
             <Pressable onPress={onRetry} style={styles.retryButton}>
-              <Text style={styles.retryText}>Retry</Text>
+              <Text style={styles.retryText}>{t("retry")}</Text>
             </Pressable>
           ) : null}
         </View>

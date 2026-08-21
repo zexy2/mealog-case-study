@@ -3,12 +3,9 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { colors } from "./theme";
+import { StringKey, t } from "../src/strings";
 
-export const ANALYSIS_STEPS = [
-  "Reading the plate",
-  "Matching to the catalogue",
-  "Estimating portion",
-];
+export const ANALYSIS_STEPS = ["analysisStepReading", "analysisStepMatching", "analysisStepPortion"] as const satisfies readonly StringKey[];
 
 export function AnalysisState({ step }: { step: number }) {
   return (
@@ -16,14 +13,12 @@ export function AnalysisState({ step }: { step: number }) {
       <View style={styles.analysisMark}>
         <Ionicons name="scan-outline" size={30} color={colors.terracotta} />
       </View>
-      <Text style={styles.analysisEyebrow}>MEALOG IS READING</Text>
+      <Text style={styles.analysisEyebrow}>{t("analysisEyebrow")}</Text>
       <Text style={styles.analysisTitle}>
-        A little patience.
-        <Text style={styles.analysisTitleAccent}> Better evidence.</Text>
+        {t("analysisTitle")}
+        <Text style={styles.analysisTitleAccent}>{t("analysisTitleAccent")}</Text>
       </Text>
-      <Text style={styles.analysisCopy}>
-        Your photo stays in the moment while the pipeline makes its decision.
-      </Text>
+      <Text style={styles.analysisCopy}>{t("analysisCopy")}</Text>
       <View style={styles.pipelineCard}>
         {ANALYSIS_STEPS.map((label, index) => {
           const active = index === step;
@@ -33,13 +28,13 @@ export function AnalysisState({ step }: { step: number }) {
               <View style={[styles.pipelineDot, active && styles.pipelineDotActive, done && styles.pipelineDotDone]}>
                 {done ? <Ionicons name="checkmark" size={13} color={colors.white} /> : null}
               </View>
-              <Text style={[styles.pipelineLabel, active && styles.pipelineLabelActive]}>{label}</Text>
+              <Text style={[styles.pipelineLabel, active && styles.pipelineLabelActive]}>{t(label)}</Text>
               {active ? <ActivityIndicator size="small" color={colors.terracotta} /> : null}
             </View>
           );
         })}
       </View>
-      <Text style={styles.analysisFootnote}>No nutrient numbers come from the model.</Text>
+      <Text style={styles.analysisFootnote}>{t("analysisFootnote")}</Text>
     </View>
   );
 }
