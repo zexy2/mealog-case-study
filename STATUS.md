@@ -17,7 +17,7 @@
 | Real vision provider | 🚧 partial | adapter implemented, never executed — no recorded provider response |
 | Accuracy evaluation (metrics, test set, taxonomy) | 🚧 partial | harness runs offline; 9 golden samples, 9/9 fixtures still synthetic — [#3](../../issues/3), [#2](../../issues/2) |
 | Fine-tuning | 🚧 partial | plan in `docs/finetuning-plan.md`; nothing trained (the brief marks implementation optional) |
-| Technical write-up | 🚧 partial | README + 5 documents; 3 section group(s) still TODO |
+| Technical write-up | 🚧 partial | README + 5 documents; 1 section group(s) still TODO |
 | Loom walkthrough | ⬜ not started | recorded after code freeze |
 | Email summary | ⬜ not started | sent with the submission |
 
