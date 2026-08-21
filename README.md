@@ -84,6 +84,51 @@ the text input. Camera and text share the same client-generated idempotency key.
 
 <!-- RESULTS: filled by #57 -->
 
+## Interview answers
+
+### What is the biggest trade-off?
+
+This is a closed-set resolver. Retrieval can propose catalogue entries, but
+`resolve.py` can return only one of those `food_id` values or `ABSTAIN`, so a
+hallucinated food (and therefore a hallucinated nutrient source) is
+architecturally impossible. The cost is coverage: anything outside the
+catalogue can only be abstained from. That is exactly what happened to both
+Japanese samples in the nine-sample evaluation in [#87](https://github.com/zexy2/mealog-case-study/pull/87).
+
+### What are the top three accuracy improvements?
+
+In order: **portion, portion, coverage**. The counterfactuals in [#87](https://github.com/zexy2/mealog-case-study/pull/87)
+make the ordering measurable: replacing predicted grams with the observed
+grams reduced MAPE to **0.00%** on the exact-alignment rows, while replacing
+predicted identities with the observed identities left the aggregate error
+unchanged. The first portion improvement is reading a printed serving mass for
+packaged food; the second is estimating the mass distribution of cooked dishes
+more accurately. Coverage is third because the two Japanese out-of-catalogue
+samples abstained, while identity was already correct on covered positive rows.
+
+### What breaks at scale?
+
+The retrieval scorer is linear in the catalogue: `_similarities` scores each
+query against every food document, and `_build` creates the word and character
+matrices for every food. That makes the current coverage scorer the first
+algorithmic limit as the pack grows. The other two limits are visible at the
+system boundary rather than in the nine-sample accuracy number: the VLM incurs
+a provider call (with retries or fallback possible) per photo, and changing the
+nutrition database can change the calculation for an old log unless the log
+records the catalogue version.
+The repository has not measured a numeric catalogue-size breakpoint yet, so I
+would not claim one from the current evaluation.
+
+### What are the security and privacy risks?
+
+Food photos are health-adjacent data sent to a third-party VLM provider, so the
+provider boundary is a privacy risk rather than an implementation detail. The
+user-scoped idempotency fix in [#54](https://github.com/zexy2/mealog-case-study/issues/54)
+closed a cross-tenant replay/data leak. The CI secret guard in [#86](https://github.com/zexy2/mealog-case-study/pull/86)
+exists because development had a real credential exposure; it scans tracked
+content so that an old credential is still caught after the introducing change
+has disappeared from the diff.
+
 ## Why worst-cuisine is the headline metric
 
 Published accuracy for photo-based dietary assessment is measured on evaluation

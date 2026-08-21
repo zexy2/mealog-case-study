@@ -93,3 +93,102 @@ def test_volume_units_never_carry_density(locale: str):
     for conversion in volume_units:
         assert "density_g_per_ml" not in conversion
         assert "density_source" not in conversion
+
+
+def test_packaged_label_serving_overrides_package_size_hint():
+    pack = load("en_US")
+    food = pack.foods["us.yogurt_greek_plain"]
+
+    estimate_result = estimate(food, 32.0, "oz", pack)
+
+    grams, p10, p90 = estimate_result
+    assert (grams, p10, p90) == pytest.approx((170.0, 153.0, 187.0), abs=0.1)
+    assert estimate_result.source == "label_serving"
+    assert "Open Food Facts" in estimate_result.provenance
+    assert "serving_size" in estimate_result.provenance
+
+
+def test_single_serve_packaged_food_uses_sourced_net_weight():
+    food = CanonicalFood(
+        food_id="test.packaged_single",
+        name="Packaged single serve",
+        per_100g=Nutrients(kcal=100),
+        default_serving_g=999,
+        default_serving_name="catalogue prior",
+        source="test",
+        locale="en_US",
+        packaged=True,
+        net_weight_g=250,
+        net_weight_source="dataset=product-record; field=net_weight",
+    )
+    pack = load("en_US")
+
+    result = estimate(food, None, None, pack)
+
+    assert tuple(result) == pytest.approx((250.0, 225.0, 275.0), abs=0.1)
+    assert result.source == "net_weight"
+    assert result.provenance == "dataset=product-record; field=net_weight"
+
+
+def test_packaged_without_label_serving_marks_catalogue_fallback():
+    food = CanonicalFood(
+        food_id="test.packaged_missing",
+        name="Packaged without serving",
+        per_100g=Nutrients(kcal=100),
+        default_serving_g=250,
+        default_serving_name="catalogue prior",
+        source="test",
+        locale="en_US",
+        packaged=True,
+    )
+    pack = load("en_US")
+
+    result = estimate(food, None, None, pack)
+
+    assert tuple(result) == pytest.approx((250.0, 162.5, 362.5), abs=0.1)
+    assert result.source == "packaged_fallback"
+    assert "fallback=catalogue.default_serving_g" in result.provenance
+
+
+def test_packaged_serving_requires_provenance():
+    with pytest.raises(ValidationError):
+        CanonicalFood(
+            food_id="test.unprovenanced_packaged",
+            name="Unprovenanced packaged food",
+            per_100g=Nutrients(kcal=100),
+            default_serving_g=100,
+            default_serving_name="catalogue prior",
+            source="test",
+            locale="en_US",
+            packaged=True,
+            serving_size_g=170,
+        )
+
+
+def test_portion_provenance_reaches_resolved_item_without_moving_cooked_path():
+    from mealog.adapters.vision_fixture import FixtureVision
+    from mealog.pipeline.runner import CONFIGS, run
+
+    vision = FixtureVision()
+    packaged = run(
+        vision, "pkg_0001", "en_US", CONFIGS["V3"], "test-packaged-serving"
+    )
+    cooked = run(
+        vision, "n5k_0002", "en_US", CONFIGS["V3"], "test-cooked-serving"
+    )
+
+    packaged_item = packaged.items[0]
+    cooked_item = cooked.items[0]
+    assert (packaged_item.grams, packaged_item.grams_p10, packaged_item.grams_p90) == (
+        170.0,
+        153.0,
+        187.0,
+    )
+    assert packaged_item.portion_source == "label_serving"
+    assert "Open Food Facts" in packaged_item.portion_provenance
+    assert (cooked_item.grams, cooked_item.grams_p10, cooked_item.grams_p90) == (
+        100.0,
+        65.0,
+        145.0,
+    )
+    assert cooked_item.portion_source == "catalogue_default"

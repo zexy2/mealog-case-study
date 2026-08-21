@@ -4,6 +4,9 @@ Returns a distribution, not a point. Calorie error is dominated by mass error
 (see docs/finetuning-plan.md), so the honest output is a median with a p10/p90
 band that the UI and the confidence gate can both read.
 """
+from collections.abc import Iterator
+from dataclasses import dataclass
+
 from mealog.domain.models import CanonicalFood
 from mealog.locales.loader import LocalePack
 
@@ -25,27 +28,107 @@ ASSUMED_QUANTITY_SPREAD = DEFAULT_SPREAD
 UNKNOWN_DENSITY_SPREAD = (0.45, 1.75)
 UNKNOWN_DENSITY_MIDPOINT_G_PER_ML = 1.0
 
+# A printed serving or net weight is strong mass evidence. The remaining
+# uncertainty is whether the user consumed exactly that amount, not whether
+# the product record knows its own serving mass.
+LABEL_SERVING_SPREAD = (0.90, 1.10)
+
+
+@dataclass(frozen=True)
+class PortionEstimate:
+    """Portion values plus evidence, iterable as the legacy three-tuple."""
+
+    grams: float
+    p10: float
+    p90: float
+    source: str
+    provenance: str
+
+    def __iter__(self) -> Iterator[float]:
+        yield self.grams
+        yield self.p10
+        yield self.p90
+
 
 def _spread_for_unit(quantity: float | None) -> tuple[float, float]:
     return EXPLICIT_UNIT_SPREAD if quantity is not None else ASSUMED_QUANTITY_SPREAD
 
 
+def _result(
+    grams: float,
+    spread: tuple[float, float],
+    source: str,
+    provenance: str,
+) -> PortionEstimate:
+    return PortionEstimate(
+        grams=round(grams, 1),
+        p10=round(grams * spread[0], 1),
+        p90=round(grams * spread[1], 1),
+        source=source,
+        provenance=provenance,
+    )
+
+
+def _packaged_portion(food: CanonicalFood) -> PortionEstimate | None:
+    """Use product-record mass, or explicitly mark packaged fallback.
+
+    Provider hints such as ``32 oz container`` describe package size, not
+    necessarily one label serving. A product-record serving therefore wins
+    over quantity/unit parsing when present.
+    """
+    if food.serving_size_g is not None:
+        return _result(
+            food.serving_size_g,
+            LABEL_SERVING_SPREAD,
+            "label_serving",
+            food.serving_size_source or "packaged product serving_size_g",
+        )
+    if food.net_weight_g is not None:
+        return _result(
+            food.net_weight_g,
+            LABEL_SERVING_SPREAD,
+            "net_weight",
+            food.net_weight_source or "packaged product net_weight_g",
+        )
+    if food.packaged:
+        return _result(
+            food.default_serving_g,
+            DEFAULT_SPREAD,
+            "packaged_fallback",
+            "fallback=catalogue.default_serving_g; "
+            "product record has no serving_size_g or net_weight_g",
+        )
+    return None
+
+
 def estimate(food: CanonicalFood, quantity: float | None, unit: str | None,
-             pack: LocalePack) -> tuple[float, float, float]:
-    """-> (grams, p10, p90)"""
+             pack: LocalePack) -> PortionEstimate:
+    """Estimate mass and evidence, preserving legacy three-value unpacking."""
+    if packaged := _packaged_portion(food):
+        return packaged
+
     grams = food.default_serving_g
     spread = DEFAULT_SPREAD
+    source = "catalogue_default"
+    provenance = f"catalogue.default_serving_g={food.default_serving_g:g}"
 
     if unit and (conv := pack.units.get(unit)):
         multiplier = quantity if quantity is not None else 1.0
         if conv.get("g"):
             grams = conv["g"] * multiplier
             spread = _spread_for_unit(quantity)
+            source = "explicit_unit" if quantity is not None else "assumed_unit"
+            provenance = f"unit={unit}; quantity={quantity!r}; conversion_g={conv['g']:g}"
         elif conv.get("ml"):
             density = food.density_g_per_ml
             if isinstance(density, (int, float)) and density > 0:
                 grams = conv["ml"] * density * multiplier
                 spread = _spread_for_unit(quantity)
+                source = "known_density" if quantity is not None else "assumed_density"
+                provenance = (
+                    f"unit={unit}; quantity={quantity!r}; density_g_per_ml={density:g}; "
+                    f"density_source={food.density_source}"
+                )
             else:
                 # Do not silently turn volume into mass. The midpoint is an
                 # explicit, documented fallback only; the wide interval is
@@ -53,8 +136,18 @@ def estimate(food: CanonicalFood, quantity: float | None, unit: str | None,
                 grams = (conv["ml"] * UNKNOWN_DENSITY_MIDPOINT_G_PER_ML
                           * multiplier)
                 spread = UNKNOWN_DENSITY_SPREAD
+                source = "unknown_density"
+                provenance = (
+                    f"unit={unit}; quantity={quantity!r}; "
+                    "density_missing; midpoint_g_per_ml=1.0"
+                )
     elif quantity is not None:
         grams = food.default_serving_g * quantity
         spread = (0.75, 1.35)
+        source = "catalogue_default_scaled"
+        provenance = (
+            f"fallback=catalogue.default_serving_g={food.default_serving_g:g}; "
+            f"quantity={quantity:g}; unit=unknown"
+        )
 
-    return round(grams, 1), round(grams * spread[0], 1), round(grams * spread[1], 1)
+    return _result(grams, spread, source, provenance)

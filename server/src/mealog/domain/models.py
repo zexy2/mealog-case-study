@@ -36,11 +36,35 @@ class CanonicalFood(BaseModel):
     default_serving_name: str
     source: str
     locale: str
+    packaged: bool = False
+    serving_size_g: float | None = None
+    serving_size_name: str | None = None
+    serving_size_source: str | None = None
+    net_weight_g: float | None = None
+    net_weight_source: str | None = None
     density_g_per_ml: float | None = None
     density_source: str | None = None
 
     @model_validator(mode="after")
-    def validate_density_provenance(self) -> CanonicalFood:
+    def validate_food_provenance(self) -> CanonicalFood:
+        if (self.serving_size_g is None) != (self.serving_size_source is None):
+            raise ValueError(
+                "serving_size_g and serving_size_source must be provided together"
+            )
+        if self.serving_size_g is not None and self.serving_size_g <= 0:
+            raise ValueError("serving_size_g must be positive")
+        if self.serving_size_g is not None and not self.serving_size_source.strip():
+            raise ValueError("serving_size_source must not be empty")
+        if self.serving_size_name is not None and self.serving_size_g is None:
+            raise ValueError("serving_size_name requires serving_size_g")
+        if (self.net_weight_g is None) != (self.net_weight_source is None):
+            raise ValueError(
+                "net_weight_g and net_weight_source must be provided together"
+            )
+        if self.net_weight_g is not None and self.net_weight_g <= 0:
+            raise ValueError("net_weight_g must be positive")
+        if self.net_weight_g is not None and not self.net_weight_source.strip():
+            raise ValueError("net_weight_source must not be empty")
         if (self.density_g_per_ml is None) != (self.density_source is None):
             raise ValueError(
                 "density_g_per_ml and density_source must be provided together"
@@ -89,6 +113,8 @@ class ResolvedItem(BaseModel):
     grams_p90: float = 0.0
     confidence: float = 0.0
     nutrients: Nutrients = Field(default_factory=Nutrients)
+    portion_source: str = "not_applicable"
+    portion_provenance: str = "not_applicable"
 
     @property
     def abstained(self) -> bool:
