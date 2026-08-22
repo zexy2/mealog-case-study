@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { AppModule } from '../src/app/app.module';
 import { Settings } from '../src/config';
+import { makePerceivedItem } from '../src/domain/models';
 import { configureBodyParsers } from '../src/main';
 import { VISION_PORT } from '../src/app/meals.service';
 
@@ -38,7 +39,50 @@ describe('POST /v1/meals', () => {
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
     expect(second.body).toEqual(first.body);
-    expect(first.body).toMatchObject({ idempotency_key: 'http-json-replay', config: 'V3' });
+    expect(first.body).toMatchObject({
+      idempotency_key: 'http-json-replay',
+      config: 'V3',
+      degraded: false,
+    });
+  });
+
+  it('serializes provider degradation and keeps a high-confidence fallback in review', async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(VISION_PORT)
+      .useValue({
+        name: 'degraded-stub',
+        perceive: () => ({
+          observations: [
+            makePerceivedItem({
+              surface_form: 'scrambled eggs',
+              confidence: 1,
+              portion_hint: 'one serving',
+            }),
+          ],
+          degraded: true,
+        }),
+      })
+      .compile();
+    const degradedApp = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
+    configureBodyParsers(degradedApp);
+    await degradedApp.init();
+
+    const response = await request(degradedApp.getHttpServer())
+      .post('/v1/meals')
+      .send({
+        idempotency_key: 'http-degraded-fallback',
+        locale: 'en_US',
+        config: 'V3',
+        text: 'scrambled eggs',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      degraded: true,
+      action: 'review',
+      items: [{ food_id: 'us.eggs_scrambled', confidence: 1 }],
+    });
+    await degradedApp.close();
   });
 
   it('accepts multipart form fields without an image for fixture replay', async () => {
@@ -93,6 +137,16 @@ describe('POST /v1/meals', () => {
 
     expect(response.status).toBe(415);
     expect(response.body).toEqual({ detail: 'unsupported image content type' });
+  });
+
+  it('rejects MIME-spoofed image bytes before provider handling', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .field('idempotency_key', 'http-spoofed-image')
+      .attach('image', Buffer.from('not a JPEG'), { filename: 'meal.jpg', contentType: 'image/jpeg' });
+
+    expect(response.status).toBe(415);
+    expect(response.body).toEqual({ detail: 'unsupported image content' });
   });
 
   it('rejects an image over 10 MiB with the Python-compatible 413', async () => {

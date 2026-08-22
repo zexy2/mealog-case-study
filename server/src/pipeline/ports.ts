@@ -85,9 +85,19 @@ export class VisionInput {
  */
 export type VisionObservation = PerceivedItem;
 
-/** Turns image/text input into observed items. Never returns nutrients. */
+/**
+ * One request's provider result. `degraded` belongs to this response, not to
+ * adapter instance state, so concurrent requests cannot inherit one another's
+ * fallback status.
+ */
+export interface VisionResult {
+  readonly observations: VisionObservation[];
+  readonly degraded: boolean;
+}
+
+/** Turns image/text input into observed items and provider status. */
 export interface VisionPort {
   readonly name: string;
 
-  perceive(input: VisionInput): VisionObservation[] | Promise<VisionObservation[]>;
+  perceive(input: VisionInput): VisionResult | Promise<VisionResult>;
 }

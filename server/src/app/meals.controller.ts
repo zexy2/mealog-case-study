@@ -12,8 +12,13 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-import { ALLOWED_IMAGE_MIME_TYPES } from '../adapters/vision.gemini';
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  isSupportedImageBytes,
+} from '../adapters/vision.gemini';
 import { VisionInput } from '../pipeline/ports';
+import type { MealLog } from '../domain/models';
+import type { CorrectionRequest, ItemCorrection } from '../pipeline/correction';
 
 import { MealsService, type MealRequest } from './meals.service';
 
@@ -75,6 +80,9 @@ function inputFor(
     if (image.buffer.length > MAX_IMAGE_BYTES) {
       invalid(HttpStatus.PAYLOAD_TOO_LARGE, 'image exceeds 10 MiB limit');
     }
+    if (!isSupportedImageBytes(mediaType, image.buffer)) {
+      invalid(HttpStatus.UNSUPPORTED_MEDIA_TYPE, 'unsupported image content');
+    }
     return new VisionInput({
       imageBytes: image.buffer,
       imageMediaType: mediaType,
@@ -95,9 +103,58 @@ function inputFor(
   }
 }
 
+function parseCorrectionRequest(body: unknown): CorrectionRequest {
+  if (!isRecord(body) || !isRecord(body.meal) || !Array.isArray(body.corrections)) {
+    invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'correction request needs meal and corrections');
+  }
+
+  const corrections = body.corrections.map((value, index): ItemCorrection => {
+    if (!isRecord(value) || typeof value.item_index !== 'number') {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, `invalid correction at index ${index}`);
+    }
+    const correction: ItemCorrection = { item_index: value.item_index };
+    if (Object.prototype.hasOwnProperty.call(value, 'food_id')) {
+      if (value.food_id !== undefined && typeof value.food_id !== 'string') {
+        invalid(HttpStatus.UNPROCESSABLE_ENTITY, `invalid food_id at correction ${index}`);
+      }
+      correction.food_id = value.food_id;
+    }
+    if (Object.prototype.hasOwnProperty.call(value, 'quantity')) {
+      if (value.quantity !== null && typeof value.quantity !== 'number') {
+        invalid(HttpStatus.UNPROCESSABLE_ENTITY, `invalid quantity at correction ${index}`);
+      }
+      correction.quantity = value.quantity;
+    }
+    if (Object.prototype.hasOwnProperty.call(value, 'unit')) {
+      if (value.unit !== null && typeof value.unit !== 'string') {
+        invalid(HttpStatus.UNPROCESSABLE_ENTITY, `invalid unit at correction ${index}`);
+      }
+      correction.unit = value.unit;
+    }
+    if (Object.prototype.hasOwnProperty.call(value, 'grams')) {
+      if (typeof value.grams !== 'number') {
+        invalid(HttpStatus.UNPROCESSABLE_ENTITY, `invalid grams at correction ${index}`);
+      }
+      correction.grams = value.grams;
+    }
+    return correction;
+  });
+
+  return {
+    meal: body.meal as unknown as MealLog,
+    corrections,
+  };
+}
+
 @Controller('v1/meals')
 export class MealsController {
   constructor(@Inject(MealsService) private readonly meals: MealsService) {}
+
+  @Post('correct')
+  @HttpCode(HttpStatus.OK)
+  correct(@Body() body: unknown): MealLog {
+    return this.meals.correctMeal(parseCorrectionRequest(body));
+  }
 
   @Post()
   @HttpCode(HttpStatus.OK)

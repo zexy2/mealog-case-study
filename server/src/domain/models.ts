@@ -159,11 +159,22 @@ export interface Candidate {
   score: number;
 }
 
+export type ClarificationKind = 'count' | 'identity' | 'portion';
+
+export interface ItemClarification {
+  kind: ClarificationKind;
+  unit: string | null;
+  options: Array<number | null>;
+}
+
 /** A perceived item bound to the canonical catalogue -- or explicitly not. */
 export interface ResolvedItem {
   query: string;
   food_id: string;
   candidates: Candidate[];
+  /** Normalized provider quantity evidence; null means the quantity is unknown. */
+  quantity: number | null;
+  unit: string | null;
   grams: number;
   grams_p10: number;
   grams_p90: number;
@@ -171,6 +182,7 @@ export interface ResolvedItem {
   nutrients: Nutrients;
   portion_source: string;
   portion_provenance: string;
+  clarification: ItemClarification | null;
 }
 
 export function makeResolvedItem(
@@ -180,6 +192,8 @@ export function makeResolvedItem(
     query: init.query,
     food_id: init.food_id ?? ABSTAIN,
     candidates: init.candidates ?? [],
+    quantity: init.quantity ?? null,
+    unit: init.unit ?? null,
     grams: init.grams ?? 0.0,
     grams_p10: init.grams_p10 ?? 0.0,
     grams_p90: init.grams_p90 ?? 0.0,
@@ -187,6 +201,7 @@ export function makeResolvedItem(
     nutrients: init.nutrients ?? makeNutrients(),
     portion_source: init.portion_source ?? 'not_applicable',
     portion_provenance: init.portion_provenance ?? 'not_applicable',
+    clarification: init.clarification ?? null,
   };
 }
 
@@ -205,6 +220,8 @@ export interface MealLog {
   action: string;
   question: string | null;
   config: string;
+  /** True when the provider used a fallback or otherwise degraded rung. */
+  degraded: boolean;
 }
 
 export function makeMealLog(
@@ -219,5 +236,6 @@ export function makeMealLog(
     action: init.action ?? 'review',
     question: init.question ?? null,
     config: init.config ?? 'V3',
+    degraded: init.degraded ?? false,
   };
 }

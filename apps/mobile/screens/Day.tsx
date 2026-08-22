@@ -17,7 +17,15 @@ export type DayScreenProps = {
 };
 
 function itemName(item: MealLog["items"][number]) {
-  return item.candidates.find((candidate) => candidate.food_id === item.food_id)?.name ?? item.query;
+  const name = item.candidates.find((candidate) => candidate.food_id === item.food_id)?.name ?? item.query;
+  if (item.quantity === null || item.quantity === undefined) {
+    return t("itemUnknownQuantity", { name });
+  }
+  return t("itemWithQuantity", {
+    quantity: item.quantity,
+    unit: item.unit ? ` ${item.unit}` : "",
+    name,
+  });
 }
 
 export function mealTitle(meal: MealLog) {

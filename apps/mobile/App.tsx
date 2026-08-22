@@ -14,7 +14,8 @@ import { AbstentionScreen } from "./screens/Abstention";
 import { CaptureScreen } from "./screens/Capture";
 import { DayScreen } from "./screens/Day";
 import { ReviewScreen } from "./screens/Review";
-import { isDemoMode, submitMeal } from "./src/api";
+import { correctMeal, isDemoMode, submitMeal } from "./src/api";
+import { buildMealCorrections } from "./src/corrections";
 import { initialDayMeals } from "./src/demoData";
 import { demoInput, demoScenarioFor } from "./src/demoScenarios";
 import { t } from "./src/strings";
@@ -41,7 +42,9 @@ export default function App() {
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
   const [portionEdits, setPortionEdits] = useState<Record<number, number>>({});
   const [selectedCandidates, setSelectedCandidates] = useState<Record<number, string>>({});
+  const [quantityEdits, setQuantityEdits] = useState<Record<number, number | null>>({});
   const [reviewingSavedMealKey, setReviewingSavedMealKey] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(PENDING_KEY)
@@ -104,6 +107,7 @@ export default function App() {
       setMeal(result);
       setPortionEdits({});
       setSelectedCandidates({});
+      setQuantityEdits({});
       setExpandedItem(null);
       setBusy(false);
       if (result.action === "auto_accept" && !result.degraded) {
@@ -147,10 +151,7 @@ export default function App() {
     setDayMeals((current) => {
       const existingIndex = current.findIndex((item) => item.idempotency_key === next.idempotency_key);
       const existing = existingIndex >= 0 ? current[existingIndex] : undefined;
-      const saved = {
-        ...next,
-        createdAt: next.createdAt ?? existing?.createdAt ?? new Date().toISOString(),
-      };
+      const saved = { ...next, createdAt: next.createdAt ?? existing?.createdAt ?? new Date().toISOString() };
       if (existingIndex < 0) return [saved, ...current];
       return current.map((item, index) => (index === existingIndex ? saved : item));
     });
@@ -161,29 +162,34 @@ export default function App() {
     setReviewingSavedMealKey(savedMeal.idempotency_key);
     setPortionEdits({});
     setSelectedCandidates({});
+    setQuantityEdits({});
     setExpandedItem(null);
     setScreen("review");
   }
 
-  function saveReview() {
+  async function saveReview() {
     if (!meal) return;
-    upsertMeal(meal);
-    setReviewingSavedMealKey(null);
-    setBanner(meal.action === "ask" ? t("savedQuestionOpen") : t("mealAdded"));
-    setScreen("day");
+    const corrections = buildMealCorrections(meal, portionEdits, selectedCandidates, quantityEdits);
+    setSaving(true);
+    try {
+      const saved = corrections.length > 0 ? await correctMeal(meal, corrections) : meal;
+      upsertMeal(saved);
+      setMeal(saved);
+      setPortionEdits({});
+      setSelectedCandidates({});
+      setQuantityEdits({});
+      setReviewingSavedMealKey(null);
+      setBanner(saved.action === "ask" ? t("savedQuestionOpen") : t("mealAdded"));
+      setScreen("day");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("correctionFailed"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   function chooseCandidate(itemIndex: number, candidate: Candidate) {
     setSelectedCandidates((current) => ({ ...current, [itemIndex]: candidate.food_id }));
-    setMeal((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        items: current.items.map((item, index) =>
-          index === itemIndex ? { ...item, food_id: candidate.food_id, confidence: candidate.score } : item,
-        ),
-      };
-    });
   }
 
   function retryPending() {
@@ -241,9 +247,12 @@ export default function App() {
           setExpandedItem={setExpandedItem}
           portionEdits={portionEdits}
           setPortionEdits={setPortionEdits}
+          quantityEdits={quantityEdits}
+          setQuantityEdits={setQuantityEdits}
           selectedCandidates={selectedCandidates}
           onChooseCandidate={chooseCandidate}
           onSave={saveReview}
+          saving={saving}
           onBack={() => {
             if (reviewingSavedMealKey) {
               setReviewingSavedMealKey(null);

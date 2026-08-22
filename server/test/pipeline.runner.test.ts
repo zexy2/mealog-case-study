@@ -20,14 +20,18 @@ interface StubVision extends VisionPort {
   calls: VisionInput[];
 }
 
-function visionStub(items: PerceivedItem[], order: string[] = []): StubVision {
+function visionStub(
+  items: PerceivedItem[],
+  order: string[] = [],
+  degraded = false,
+): StubVision {
   return {
     name: 'handwritten-stub',
     calls: [],
     perceive(input) {
       order.push('perception');
       this.calls.push(input);
-      return items;
+      return { observations: items, degraded };
     },
   };
 }
@@ -57,7 +61,30 @@ describe('pipeline runner', () => {
       nutrients: { kcal: 149 },
     });
     expect(result.totals.kcal).toBe(149);
-    expect(result.action).toBe('ask');
+    expect(result.action).toBe('review');
+    expect(result.degraded).toBe(false);
+  });
+
+  it('forces a high-confidence fallback result to review', async () => {
+    const result = await run(
+      visionStub([
+        makePerceivedItem({
+          surface_form: 'scrambled eggs',
+          confidence: 1,
+          portion_hint: 'one serving',
+        }),
+      ], [], true),
+      new VisionInput({ text: 'meal text' }),
+      'en_US',
+      CONFIGS.V3,
+      'runner-degraded',
+    );
+
+    expect(result.items[0]).toMatchObject({
+      food_id: 'us.eggs_scrambled',
+      confidence: 1,
+    });
+    expect(result).toMatchObject({ degraded: true, action: 'review' });
   });
 
   it('keeps a resolver abstention through the end of the meal', async () => {
@@ -121,7 +148,7 @@ describe('pipeline runner', () => {
 
     expect(order).toEqual(['perception']);
     expect(result.items[0]?.food_id).toBe('us.eggs_scrambled');
-    expect(result.action).toBe('ask');
+    expect(result.action).toBe('review');
   });
 
   it('rejects a separate text argument when input is already a VisionInput', async () => {
@@ -225,6 +252,7 @@ describe('pipeline runner', () => {
       }),
     }));
     vi.doMock('../src/pipeline/confidence', () => ({
+      AUTO_ACCEPT: 0.75,
       route: vi.fn((log: ReturnType<typeof makeMealLog>) => {
         events.push('confidence');
         log.action = 'auto_accept';
@@ -286,8 +314,66 @@ describe('pipeline runner', () => {
       grams_p10: 150,
       grams_p90: 270,
       confidence: 1,
+      quantity: 1,
+      unit: 'serving',
       portion_source: 'catalogue_default_scaled',
       portion_provenance: 'fallback=catalogue.default_serving_g=200; quantity=1; unit=unknown',
+    });
+    expect(result.action).toBe('review');
+  });
+
+  it('preserves two simits and one ayran through normalize, resolve, and portion', async () => {
+    const result = await run(
+      visionStub([
+        makePerceivedItem({ surface_form: 'simit', portion_hint: 'two pieces', confidence: 1 }),
+        makePerceivedItem({ surface_form: 'ayran', portion_hint: 'one serving', confidence: 1 }),
+      ]),
+      new VisionInput({ text: 'two simits and one ayran' }),
+      'tr',
+      CONFIGS.V3,
+      'runner-multi-instance',
+    );
+
+    expect(result.items).toMatchObject([
+      {
+        food_id: 'tr.simit',
+        quantity: 2,
+        unit: 'pieces',
+        grams: 200,
+        grams_p10: 150,
+        grams_p90: 270,
+      },
+      {
+        food_id: 'tr.ayran',
+        quantity: 1,
+        unit: 'serving',
+        grams: 200,
+        grams_p10: 150,
+        grams_p90: 270,
+      },
+    ]);
+    expect(result.totals.kcal).toBe(732);
+    expect(result.action).toBe('review');
+  });
+
+  it('keeps an uncountable provider hint unknown and routes it to review', async () => {
+    const result = await run(
+      visionStub([
+        makePerceivedItem({ surface_form: 'simit', portion_hint: 'several', confidence: 1 }),
+      ]),
+      new VisionInput({ text: 'several simits' }),
+      'tr',
+      CONFIGS.V3,
+      'runner-unknown-count',
+    );
+
+    expect(result.items[0]).toMatchObject({
+      food_id: 'tr.simit',
+      quantity: null,
+      unit: 'several',
+      grams: 100,
+      grams_p10: 65,
+      grams_p90: 145,
     });
     expect(result.action).toBe('review');
   });

@@ -44,6 +44,11 @@ export function effectiveConfidence(item: MealLog['items'][number]): number {
 
 /** Route a meal log in place, preserving identity confidence and question text. */
 export function route(log: MealLog): MealLog {
+  if (log.degraded) {
+    log.action = 'review';
+    return log;
+  }
+
   if (log.items.length === 0) {
     log.action = 'ask';
     log.question = 'I could not read this meal. What did you eat?';
@@ -54,6 +59,15 @@ export function route(log: MealLog): MealLog {
   if (unknown !== undefined) {
     log.action = 'ask';
     log.question = `I could not match '${unknown.query}'. Which of these is closest?`;
+    return log;
+  }
+
+  // A point mass without quantity evidence can silently turn several visible
+  // instances into one catalogue serving. Keep the count unknown and make the
+  // user review it; this is additive to the interval gate and does not invent
+  // a count or tune either existing threshold.
+  if (log.items.some((item) => item.quantity === null)) {
+    log.action = 'review';
     return log;
   }
 

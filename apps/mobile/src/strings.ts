@@ -40,6 +40,11 @@ export type StringKey =
   | "oneQuestion"
   | "questionPick"
   | "questionConfirm"
+  | "clarifyCount"
+  | "clarifyIdentity"
+  | "clarifyPortion"
+  | "countChoice"
+  | "clarifyNotSure"
   | "abstainEyebrow"
   | "abstainTitle"
   | "abstainCopy"
@@ -62,8 +67,15 @@ export type StringKey =
   | "matchedFoodId"
   | "sourceDatabase"
   | "catalogueProvenance"
+  | "portionSource"
+  | "portionProvenance"
   | "confidence"
   | "exactGrams"
+  | "quantity"
+  | "quantityUnknown"
+  | "quantityValue"
+  | "itemWithQuantity"
+  | "itemUnknownQuantity"
   | "pending"
   | "saveQuestion"
   | "saveToday"
@@ -100,7 +112,10 @@ export type StringKey =
   | "draftSafe"
   | "cameraCaptureFailed"
   | "mealAdded"
-  | "savedQuestionOpen";
+  | "savedQuestionOpen"
+  | "saving"
+  | "correctionNeedsServer"
+  | "correctionFailed";
 
 type Dictionary = Record<StringKey, string>;
 type Values = Record<string, number | string>;
@@ -145,6 +160,11 @@ export const tr: Dictionary = {
   oneQuestion: "TEK SORU",
   questionPick: "Bu öğün için aşağıdan bir eşleşme seç.",
   questionConfirm: "{food} doğru mu? Değilse aşağıdan seç.",
+  clarifyCount: "Kaç {unit} {food} vardı?",
+  clarifyIdentity: "Bu öğe {food} mu? Aşağıdan doğru eşleşmeyi seç.",
+  clarifyPortion: "Porsiyonunu mevcut aralıkta doğrula: {low}–{high} g.",
+  countChoice: "{count} {unit}",
+  clarifyNotSure: "Emin değilim",
   abstainEyebrow: "GÜVENLİ EŞLEŞME YOK",
   abstainTitle: "Bu öğünü güvenle tanımlayamadık.",
   abstainCopy: "Katalogda yeterli kanıt yok. Yakın bir tahmin seçmek yerine senden yardım istiyoruz.",
@@ -167,8 +187,15 @@ export const tr: Dictionary = {
   matchedFoodId: "Eşleşen food_id",
   sourceDatabase: "Kaynak veritabanı",
   catalogueProvenance: "Katalog kaynağı",
+  portionSource: "Porsiyon kaynağı",
+  portionProvenance: "Porsiyon kanıtı",
   confidence: "Güven",
   exactGrams: "Kullanılan gram",
+  quantity: "MİKTAR",
+  quantityUnknown: "Miktar bilinmiyor · kontrol et",
+  quantityValue: "Miktar: {quantity}{unit}",
+  itemWithQuantity: "{quantity}{unit} {name}",
+  itemUnknownQuantity: "{name} · miktar bilinmiyor",
   pending: "Bekleniyor",
   saveQuestion: "Soruyu açık bırakarak kaydet",
   saveToday: "Bugüne kaydet",
@@ -206,6 +233,9 @@ export const tr: Dictionary = {
   cameraCaptureFailed: "Bu tabağın fotoğrafı çekilemedi. Metin alanını deneyin.",
   mealAdded: "Öğün bugüne eklendi",
   savedQuestionOpen: "Soru açık bırakılarak kaydedildi",
+  saving: "Sunucu düzeltiyor…",
+  correctionNeedsServer: "Düzeltmeyi kaydetmek için sunucu bağlantısı gerekli.",
+  correctionFailed: "Düzeltme kaydedilemedi.",
 };
 
 export const en: Dictionary = {
@@ -248,6 +278,11 @@ export const en: Dictionary = {
   oneQuestion: "ONE QUESTION",
   questionPick: "Choose the closest match for this meal below.",
   questionConfirm: "Is {food} correct? If not, choose below.",
+  clarifyCount: "How many {unit} {food} were there?",
+  clarifyIdentity: "Is this {food}? Choose the correct match below.",
+  clarifyPortion: "Confirm the portion within the current range: {low}–{high} g.",
+  countChoice: "{count} {unit}",
+  clarifyNotSure: "I am not sure",
   abstainEyebrow: "NO SAFE MATCH",
   abstainTitle: "We could not identify this meal safely.",
   abstainCopy: "The catalogue does not contain enough evidence. We ask you instead of presenting a nearby guess.",
@@ -270,8 +305,15 @@ export const en: Dictionary = {
   matchedFoodId: "Matched food_id",
   sourceDatabase: "Source database",
   catalogueProvenance: "Catalogue provenance",
+  portionSource: "Portion source",
+  portionProvenance: "Portion evidence",
   confidence: "Confidence",
   exactGrams: "Exact grams used",
+  quantity: "QUANTITY",
+  quantityUnknown: "Quantity unknown · review",
+  quantityValue: "Quantity: {quantity}{unit}",
+  itemWithQuantity: "{quantity}{unit} {name}",
+  itemUnknownQuantity: "{name} · quantity unknown",
   pending: "Pending",
   saveQuestion: "Save with question open",
   saveToday: "Save to today",
@@ -309,6 +351,9 @@ export const en: Dictionary = {
   cameraCaptureFailed: "The camera could not capture this plate. Try the text input instead.",
   mealAdded: "Meal added to today",
   savedQuestionOpen: "Saved with question open",
+  saving: "Server is correcting…",
+  correctionNeedsServer: "A server connection is required to save this correction.",
+  correctionFailed: "The correction could not be saved.",
 };
 
 const dictionaries: Record<Locale, Dictionary> = { tr, en };

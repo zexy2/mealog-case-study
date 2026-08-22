@@ -8,6 +8,14 @@ export type Candidate = {
   score: number;
 };
 
+export type ClarificationKind = "count" | "identity" | "portion";
+
+export type ItemClarification = {
+  kind: ClarificationKind;
+  unit: string | null;
+  options: Array<number | null>;
+};
+
 export type Nutrients = {
   kcal: number;
   protein_g: number;
@@ -19,12 +27,17 @@ export type ResolvedItem = {
   query: string;
   food_id: string;
   candidates: Candidate[];
+  quantity?: number | null;
+  unit?: string | null;
   grams: number;
   grams_p10: number;
   grams_p90: number;
   confidence: number;
   nutrients: Nutrients;
   source_database?: string;
+  portion_source?: string;
+  portion_provenance?: string;
+  clarification?: ItemClarification | null;
 };
 
 export type MealLog = {
@@ -48,4 +61,12 @@ export type PendingCapture = {
   idempotencyKey: string;
   photo?: PhotoCapture;
   text?: string;
+};
+
+export type MealCorrection = {
+  item_index: number;
+  food_id?: string;
+  quantity?: number | null;
+  unit?: string | null;
+  grams?: number;
 };

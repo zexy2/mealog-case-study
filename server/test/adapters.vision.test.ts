@@ -39,6 +39,7 @@ import {
   type Transport,
   type TransportResponse,
   configuredModelId,
+  isSupportedImageBytes,
   parseObservationItems,
 } from '../src/adapters/vision.gemini';
 
@@ -79,6 +80,24 @@ const OBSERVATION = {
   portion_hint: 'one bowl',
   confidence: 0.9,
 };
+
+// Signature-only bytes are enough for the adapter boundary tests; no image is
+// written to the repository or sent to a live provider.
+const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+const asciiBytes = (value: string): number[] => [...value].map((character) => character.charCodeAt(0));
+const ftypBytes = (brand: string): Uint8Array =>
+  new Uint8Array([0, 0, 0, 16, ...asciiBytes('ftyp'), ...asciiBytes(brand), 0, 0, 0, 0]);
+
+const IMAGE_SIGNATURE_CASES: [string, Uint8Array][] = [
+  ['image/jpeg', JPEG_BYTES],
+  ['image/jpg', JPEG_BYTES],
+  ['image/png', new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+  ['image/gif', new Uint8Array(asciiBytes('GIF89a'))],
+  ['image/webp', new Uint8Array([...asciiBytes('RIFF'), 0, 0, 0, 0, ...asciiBytes('WEBP')])],
+  ['image/avif', ftypBytes('avif')],
+  ['image/heic', ftypBytes('heic')],
+  ['image/heif', ftypBytes('mif1')],
+];
 
 /** A transport that returns a canned Gemini envelope and records its calls. */
 function stubTransport(
@@ -124,11 +143,11 @@ describe('fixture adapter keys on the SHA-256 content hash', () => {
     const bytes = new Uint8Array([1, 2, 3, 4, 5]);
     writeFixture(dir, sha256(bytes), [OBSERVATION]);
 
-    const items = new FixtureVision(dir).perceive(
+    const result = new FixtureVision(dir).perceive(
       new VisionInput({ imageBytes: bytes, imageMediaType: 'image/jpeg' }),
     );
-    expect(items).toHaveLength(1);
-    expect(items[0].surface_form).toBe('kuru fasulye');
+    expect(result.observations).toHaveLength(1);
+    expect(result.observations[0].surface_form).toBe('kuru fasulye');
   });
 
   it('does NOT fall back to sample_id when bytes are present', () => {
@@ -176,9 +195,19 @@ describe('fixture adapter keys on the SHA-256 content hash', () => {
     writeFixture(dir, 'sample_0001', [OBSERVATION]);
     const adapter = new FixtureVision(dir);
 
-    expect(adapter.perceive(new VisionInput({ sampleId: 'sample_0001' }))).toHaveLength(1);
+    expect(adapter.perceive(new VisionInput({ sampleId: 'sample_0001' })).observations).toHaveLength(1);
     // The string form is the test-only convenience the Python module keeps.
-    expect(adapter.perceive('sample_0001')).toHaveLength(1);
+    expect(adapter.perceive('sample_0001').observations).toHaveLength(1);
+  });
+
+  it('replays fixture degradation as request-scoped metadata', () => {
+    const dir = tempFixtureDir();
+    writeFixture(dir, 'degraded', [OBSERVATION], { degraded: true });
+
+    const result = new FixtureVision(dir).perceive('degraded');
+
+    expect(result.degraded).toBe(true);
+    expect(result.observations).toHaveLength(1);
   });
 
   it('refuses an input that carries neither bytes nor a sample_id', () => {
@@ -205,9 +234,10 @@ describe('committed fixtures replay unchanged', () => {
       const raw = JSON.parse(readFileSync(join(FIXTURE_DIR, name), 'utf-8')) as {
         items: Record<string, unknown>[];
       };
-      const items = adapter.perceive(key);
-      expect(items, name).toHaveLength(raw.items.length);
-      items.forEach((item, i) => {
+      const result = adapter.perceive(key);
+      expect(result.degraded, name).toBe(false);
+      expect(result.observations, name).toHaveLength(raw.items.length);
+      result.observations.forEach((item, i) => {
         expect(item.surface_form, `${name}[${i}]`).toBe(raw.items[i].surface_form);
         expect(item.confidence, `${name}[${i}]`).toBe(raw.items[i].confidence ?? 0.5);
       });
@@ -291,6 +321,10 @@ describe('a provider response carrying a nutrition field is rejected', () => {
 // ============================================================ Gemini adapter
 
 describe('Gemini adapter', () => {
+  it.each(IMAGE_SIGNATURE_CASES)('recognizes the %s content signature', (mimeType, bytes) => {
+    expect(isSupportedImageBytes(mimeType, bytes)).toBe(true);
+  });
+
   it('refuses to construct without a key', () => {
     expect(() => new GeminiVision({ apiKey: '   ' })).toThrow(/GEMINI_API_KEY is required/);
   });
@@ -353,8 +387,9 @@ describe('Gemini adapter', () => {
       envelope([OBSERVATION]),
     ]);
     const adapter = gemini({ transport });
-    const items = await adapter.perceive(new VisionInput({ text: 'pilav' }));
-    expect(items).toHaveLength(1);
+    const result = await adapter.perceive(new VisionInput({ text: 'pilav' }));
+    expect(result.observations).toHaveLength(1);
+    expect(result.degraded).toBe(false);
     expect(calls.length).toBeGreaterThanOrEqual(2);
     expect(adapter.degraded).toBe(false);
   });
@@ -379,9 +414,10 @@ describe('Gemini adapter', () => {
       return Promise.resolve({ status: 200, headers: {}, body: envelope([OBSERVATION]) });
     };
     const adapter = gemini({ transport, modelId: DEFAULT_MODEL, secondaryModel: SECONDARY_MODEL });
-    const items = await adapter.perceive(new VisionInput({ text: 'pilav' }));
+    const result = await adapter.perceive(new VisionInput({ text: 'pilav' }));
 
-    expect(items).toHaveLength(1);
+    expect(result.observations).toHaveLength(1);
+    expect(result.degraded).toBe(true);
     expect(adapter.degraded).toBe(true);
     expect(adapter.rung).toBe('secondary_model');
     expect(adapter.lastModel).toBe(SECONDARY_MODEL);
@@ -413,7 +449,8 @@ describe('Gemini adapter', () => {
   });
 
   it('refuses an image MIME type outside the allow-list, and an oversized image', async () => {
-    const adapter = gemini();
+    const { transport, calls } = stubTransport([envelope([OBSERVATION])]);
+    const adapter = gemini({ transport });
     await expect(
       adapter.perceive(
         new VisionInput({ imageBytes: new Uint8Array([1]), imageMediaType: 'image/tiff' }),
@@ -428,6 +465,13 @@ describe('Gemini adapter', () => {
         }),
       ),
     ).rejects.toThrow(/exceeds 10 MiB/);
+
+    await expect(
+      adapter.perceive(
+        new VisionInput({ imageBytes: new Uint8Array([1, 2, 3, 4]), imageMediaType: 'image/jpeg' }),
+      ),
+    ).rejects.toThrow(/unsupported Gemini image content/);
+    expect(calls).toHaveLength(0);
   });
 });
 
@@ -437,9 +481,9 @@ describe('fixture recording', () => {
   it('stamps provider, model_id, prompt_version and _synthetic: false', async () => {
     const adapter = gemini({ modelId: DEFAULT_MODEL });
     const input = new VisionInput({ text: 'kuru fasulye', sampleId: 'tr_9001' });
-    const items = await adapter.perceive(input);
+    const result = await adapter.perceive(input);
 
-    const payload = adapter.fixturePayload(input, items);
+    const payload = adapter.fixturePayload(input, result.observations);
     expect(payload._synthetic).toBe(false);
     expect(payload.provider).toBe('gemini');
     expect(payload.model_id).toBe(DEFAULT_MODEL);
@@ -467,7 +511,7 @@ describe('fixture recording', () => {
 
   it('records neither the key, the image bytes, nor the response envelope', async () => {
     const dir = tempFixtureDir();
-    const bytes = new Uint8Array([3, 1, 4, 1, 5, 9]);
+    const bytes = JPEG_BYTES;
     const adapter = gemini({ modelId: DEFAULT_MODEL });
     const input = new VisionInput({
       imageBytes: bytes,
@@ -484,6 +528,17 @@ describe('fixture recording', () => {
     // Keyed on the content hash, so replay finds it by the photograph.
     expect(existsSync(join(dir, `${sha256(bytes)}.json`))).toBe(true);
     expect((JSON.parse(written) as { input_sha256: string }).input_sha256).toBe(sha256(bytes));
+  });
+
+  it('releases the strong request-input reference after perception and keeps recording usable', async () => {
+    const dir = tempFixtureDir();
+    const adapter = gemini({ modelId: DEFAULT_MODEL });
+    const input = new VisionInput({ imageBytes: JPEG_BYTES, imageMediaType: 'image/jpeg' });
+
+    await adapter.perceive(input);
+
+    expect(adapter.lastInput).toBeNull();
+    expect(adapter.recordFixture(dir, input)).toContain(`${sha256(JPEG_BYTES)}.json`);
   });
 
   it('refuses to record without a preceding successful perceive', () => {

@@ -22,6 +22,7 @@ import { estimate } from './portion';
 import { createRetrieval } from './retrieval/index';
 import { resolve } from './resolve';
 import { route } from './confidence';
+import { addClarifications } from './clarification';
 import { scalePer100g } from './nutrition';
 import { VisionInput, type VisionPort } from './ports';
 
@@ -67,7 +68,8 @@ export const CONFIGS: Readonly<Record<string, Config>> = {
 const retrieval = createRetrieval();
 
 function ungroundedLog(
-  perceived: Awaited<ReturnType<VisionPort['perceive']>>,
+  perceived: Awaited<ReturnType<VisionPort['perceive']>>['observations'],
+  degraded: boolean,
   idempotencyKey: string,
   locale: string,
   config: Config,
@@ -89,7 +91,8 @@ function ungroundedLog(
     config: config.name,
     items,
     totals: roundedNutrients(totals),
-    action: 'auto_accept',
+    action: degraded ? 'review' : 'auto_accept',
+    degraded,
   });
 }
 
@@ -120,10 +123,12 @@ export async function run(
   }
 
   const pack = load(locale);
-  const perceived = await vision.perceive(input);
+  const perception = await vision.perceive(input);
+  const perceived = perception.observations;
+  const degraded = perception.degraded;
 
   if (!config.grounded) {
-    return ungroundedLog(perceived, idempotencyKey, locale, config);
+    return ungroundedLog(perceived, degraded, idempotencyKey, locale, config);
   }
 
   const normalized = normalize(
@@ -136,6 +141,8 @@ export async function run(
   for (const item of normalized) {
     const candidates = retrieval.search(item.query, pack);
     const result = resolve(item.query, candidates, config.gating);
+    result.quantity = item.quantity;
+    result.unit = item.unit;
 
     // Keep ABSTAIN as an item. In particular, do not run it through portion or
     // nutrition: a missing catalogue food is not a zero-calorie food.
@@ -172,12 +179,18 @@ export async function run(
     config: config.name,
     items: resolved,
     totals: roundedNutrients(totals),
+    degraded,
   });
 
-  if (config.gating) {
+  if (degraded) {
+    // Provider fallback is never a first-class accepted answer, regardless of
+    // identity or portion confidence. The status came from this request's
+    // perception envelope, not from mutable adapter state.
+    log.action = 'review';
+  } else if (config.gating) {
     log = route(log);
   } else {
     log.action = 'auto_accept';
   }
-  return log;
+  return addClarifications(log, pack);
 }

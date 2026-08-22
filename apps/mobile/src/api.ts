@@ -1,7 +1,7 @@
 import { buildDemoMeal } from "./demoData";
 import { demoScenarioFor } from "./demoScenarios";
 import { t } from "./strings";
-import { MealLog, PendingCapture } from "./types";
+import { MealCorrection, MealLog, PendingCapture } from "./types";
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
 const demoMode = process.env.EXPO_PUBLIC_DEMO_MODE !== "false" || !apiUrl;
@@ -33,6 +33,23 @@ export async function submitMeal(capture: PendingCapture, options: SubmitOptions
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(detail || `${t("uploadFailed")} (${response.status})`);
+  }
+  return response.json() as Promise<MealLog>;
+}
+
+export async function correctMeal(meal: MealLog, corrections: MealCorrection[]): Promise<MealLog> {
+  if (demoMode) {
+    throw new Error(t("correctionNeedsServer"));
+  }
+
+  const response = await fetch(`${apiUrl}/v1/meals/correct`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ meal, corrections }),
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || `${t("correctionFailed")} (${response.status})`);
   }
   return response.json() as Promise<MealLog>;
 }
