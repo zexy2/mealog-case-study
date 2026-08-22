@@ -36,6 +36,7 @@ import {
   PROMPT_VERSION,
   REQUEST_INTERVAL_SECONDS,
   SECONDARY_MODEL,
+  VisionProviderError,
   type Transport,
   type TransportResponse,
   configuredModelId,
@@ -422,6 +423,42 @@ describe('Gemini adapter', () => {
     expect(adapter.rung).toBe('secondary_model');
     expect(adapter.lastModel).toBe(SECONDARY_MODEL);
     expect(call).toBeGreaterThan(1);
+  });
+
+  it('classifies an exhausted timeout and logs only safe retry metadata', async () => {
+    const events: { name: string; fields: Record<string, unknown> }[] = [];
+    const transport: Transport = () => {
+      const timeout = new Error('provider timeout payload must not be logged');
+      timeout.name = 'TimeoutError';
+      return Promise.reject(timeout);
+    };
+    const adapter = gemini({
+      transport,
+      secondaryModel: null,
+      maxAttempts: 2,
+      requestInterval: 0,
+      onEvent: (name, fields) => events.push({ name, fields }),
+    });
+
+    const error = await adapter.perceive(new VisionInput({ text: 'pilav' })).then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+    expect(error).toBeInstanceOf(VisionProviderError);
+    expect(error).toMatchObject({
+      name: 'VisionProviderError',
+      category: 'provider_timeout',
+      attempts: 2,
+      message: 'vision provider timeout',
+    });
+
+    const exhausted = events.find((event) => event.name === 'vision_provider_exhausted');
+    expect(exhausted?.fields).toMatchObject({
+      category: 'provider_timeout',
+      retry_attempted: true,
+      attempts: 2,
+    });
+    expect(JSON.stringify(exhausted?.fields)).not.toContain('provider timeout payload');
   });
 
   it('emits an event when it degrades', async () => {

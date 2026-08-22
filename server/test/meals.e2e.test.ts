@@ -9,6 +9,7 @@ import { AppModule } from '../src/app/app.module';
 import { Settings } from '../src/config';
 import { makePerceivedItem } from '../src/domain/models';
 import { configureBodyParsers } from '../src/main';
+import { VisionProviderError } from '../src/adapters/vision.gemini';
 import { VISION_PORT } from '../src/app/meals.service';
 
 describe('POST /v1/meals', () => {
@@ -83,6 +84,53 @@ describe('POST /v1/meals', () => {
       items: [{ food_id: 'us.eggs_scrambled', confidence: 1 }],
     });
     await degradedApp.close();
+  });
+
+  it('maps an injected provider timeout to a typed 503 response', async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(VISION_PORT)
+      .useValue({
+        name: 'timeout-stub',
+        perceive: () => { throw new VisionProviderError('provider_timeout', 3); },
+      })
+      .compile();
+    const timeoutApp = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
+    configureBodyParsers(timeoutApp);
+    await timeoutApp.init();
+
+    const response = await request(timeoutApp.getHttpServer())
+      .post('/v1/meals')
+      .send({ idempotency_key: 'http-provider-timeout', locale: 'en_US', text: 'scrambled eggs' });
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({
+      detail: 'vision provider timeout',
+      category: 'provider_timeout',
+      retry_attempted: true,
+      attempts: 3,
+    });
+    await timeoutApp.close();
+  });
+
+  it('keeps a non-provider exception at the internal 500 boundary', async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(VISION_PORT)
+      .useValue({
+        name: 'defect-stub',
+        perceive: () => { throw new Error('internal defect'); },
+      })
+      .compile();
+    const defectApp = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
+    configureBodyParsers(defectApp);
+    await defectApp.init();
+
+    const response = await request(defectApp.getHttpServer())
+      .post('/v1/meals')
+      .send({ idempotency_key: 'http-internal-defect', locale: 'en_US', text: 'scrambled eggs' });
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ detail: 'Internal Server Error' });
+    await defectApp.close();
   });
 
   it('accepts multipart form fields without an image for fixture replay', async () => {
@@ -201,5 +249,24 @@ describe('POST /v1/meals', () => {
 
     expect(response.status).toBe(422);
     expect(response.body).toEqual({ detail: 'invalid JSON request' });
+  });
+
+  it('keeps the existing 413 and 422 boundaries after provider-error mapping', async () => {
+    const tooLarge = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .field('idempotency_key', 'http-provider-error-large-image')
+      .attach('image', Buffer.alloc(10 * 1024 * 1024 + 1), {
+        filename: 'meal.jpg',
+        contentType: 'image/jpeg',
+      });
+    const malformed = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .set('content-type', 'application/json')
+      .send('{"idempotency_key":');
+
+    expect(tooLarge.status).toBe(413);
+    expect(tooLarge.body).toEqual({ detail: 'image exceeds 10 MiB limit' });
+    expect(malformed.status).toBe(422);
+    expect(malformed.body).toEqual({ detail: 'invalid JSON request' });
   });
 });

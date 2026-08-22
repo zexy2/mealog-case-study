@@ -43,6 +43,8 @@ export const RUNG_SECONDARY_MODEL = 'secondary_model';
 export const RUNG_TEXT_ONLY = 'text_only';
 export const RUNG_FAILURE = 'failure';
 
+export type ProviderErrorCategory = 'provider_timeout' | 'provider_unavailable';
+
 export const SYSTEM_PROMPT = `You list what food is visible in the supplied image or text.
 Return observed items only. You do NOT estimate calories, macros, nutrients, or
 grams. The downstream catalogue and nutrition stages handle those values.
@@ -187,6 +189,7 @@ export function configuredModelId(env: NodeJS.ProcessEnv = process.env): string 
 
 export interface ProviderFailureInit {
   status?: number | null;
+  category?: ProviderErrorCategory;
   retryable?: boolean;
   fallbackAllowed?: boolean;
   retryAfter?: number | null;
@@ -195,6 +198,7 @@ export interface ProviderFailureInit {
 
 export class ProviderFailure extends Error {
   readonly status: number | null;
+  readonly category: ProviderErrorCategory;
   readonly retryable: boolean;
   readonly fallbackAllowed: boolean;
   readonly retryAfter: number | null;
@@ -204,11 +208,39 @@ export class ProviderFailure extends Error {
     super(message);
     this.name = 'ProviderFailure';
     this.status = init.status ?? null;
+    this.category = init.category ?? 'provider_unavailable';
     this.retryable = init.retryable ?? false;
     this.fallbackAllowed = init.fallbackAllowed ?? true;
     this.retryAfter = init.retryAfter ?? null;
     this.attempts = init.attempts ?? 0;
   }
+}
+
+/** Safe terminal error crossing the provider/HTTP boundary. */
+export class VisionProviderError extends Error {
+  readonly category: ProviderErrorCategory;
+  readonly attempts: number;
+  readonly detail: string;
+
+  constructor(category: ProviderErrorCategory, attempts: number, diagnostic?: string) {
+    const detail = category === 'provider_timeout' ? 'vision provider timeout' : 'vision provider unavailable';
+    super(diagnostic ?? detail);
+    this.name = 'VisionProviderError';
+    this.category = category;
+    this.attempts = Math.max(0, attempts);
+    this.detail = detail;
+  }
+}
+
+function safeTerminalDiagnostic(failure: ProviderFailure, rung: string): string | undefined {
+  const forbidden = /forbidden nutrient field\(s\): ([a-z0-9_, ]+)/u.exec(failure.message);
+  if (forbidden) {
+    return `Gemini response contains forbidden nutrient field(s): ${forbidden[1]}`;
+  }
+  if (failure.status !== null) {
+    return `Gemini provider exhausted; terminal_status=${String(failure.status)}; rung=${rung}`;
+  }
+  return undefined;
 }
 
 /** `Retry-After` as seconds, accepting both the delta and HTTP-date forms. */
@@ -550,11 +582,14 @@ export class GeminiVision {
       });
     } catch (error) {
       if (isTimeoutError(error)) {
-        throw new ProviderFailure('Gemini request timed out', { retryable: true });
+        throw new ProviderFailure('Gemini request timed out', {
+          category: 'provider_timeout',
+          retryable: true,
+        });
       }
       throw new ProviderFailure(
         `Gemini request failed: ${error instanceof Error ? error.message : String(error)}`,
-        { retryable: false },
+        { category: 'provider_unavailable', retryable: false },
       );
     }
 
@@ -562,6 +597,7 @@ export class GeminiVision {
       const detail = response.body.slice(0, MAX_ERROR_BODY);
       throw new ProviderFailure(`Gemini request failed with HTTP ${response.status}: ${detail}`, {
         status: response.status,
+        category: 'provider_unavailable',
         retryable: TRANSIENT_STATUS_CODES.has(response.status),
         fallbackAllowed: !NON_RETRYABLE_STATUS_CODES.has(response.status),
         retryAfter: retryAfterSeconds(response.headers),
@@ -571,7 +607,10 @@ export class GeminiVision {
     try {
       return JSON.parse(response.body) as Record<string, unknown>;
     } catch {
-      throw new ProviderFailure('Gemini returned an invalid JSON envelope', { fallbackAllowed: true });
+      throw new ProviderFailure('Gemini returned an invalid JSON envelope', {
+        category: 'provider_unavailable',
+        fallbackAllowed: true,
+      });
     }
   }
 
@@ -688,7 +727,10 @@ export class GeminiVision {
         failures.push([
           rung,
           model,
-          new ProviderFailure(error instanceof Error ? error.message : String(error), { attempts }),
+          new ProviderFailure(error instanceof Error ? error.message : String(error), {
+            category: 'provider_unavailable',
+            attempts,
+          }),
         ]);
         continue;
       }
@@ -722,15 +764,17 @@ export class GeminiVision {
     this.lastAttempts = totalAttempts;
     const elapsedMs = Math.round((this.clock() - started) * 1000 * 100) / 100;
     this.onEvent('vision_provider_exhausted', {
+      category: lastFailure.category,
       attempts: totalAttempts,
+      retry_attempted: totalAttempts > 1,
       terminal_status: lastFailure.status,
       elapsed_ms: elapsedMs,
       rung: lastRung,
     });
-    const status = lastFailure.status ?? 'unknown';
-    throw new Error(
-      `Gemini provider exhausted after ${totalAttempts} attempt(s); ` +
-        `terminal_status=${String(status)}; rung=${lastRung}: ${lastFailure.message}`,
+    throw new VisionProviderError(
+      lastFailure.category,
+      totalAttempts,
+      safeTerminalDiagnostic(lastFailure, lastRung),
     );
     } finally {
       this.lastInput = null;

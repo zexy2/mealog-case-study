@@ -5,6 +5,8 @@ import {
   type ExceptionFilter,
 } from '@nestjs/common';
 
+import { VisionProviderError } from '../adapters/vision.gemini';
+
 interface HttpResponse {
   status(code: number): HttpResponse;
   json(body: unknown): void;
@@ -30,6 +32,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const context = host.switchToHttp();
     const response = context.getResponse<HttpResponse>();
     const request = context.getRequest<HttpRequest>();
+
+    if (exception instanceof VisionProviderError) {
+      response.status(503).json({
+        detail: exception.detail,
+        category: exception.category,
+        retry_attempted: exception.attempts > 1,
+        attempts: exception.attempts,
+      });
+      return;
+    }
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
