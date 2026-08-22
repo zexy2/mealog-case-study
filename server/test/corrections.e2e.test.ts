@@ -30,7 +30,12 @@ describe('POST /v1/meals/correct', () => {
     expect(initial.status).toBe(200);
     const initialMeal = initial.body as unknown as MealLog;
     expect(initialMeal).toMatchObject({ action: 'review' });
-    expect(initialMeal.items[0]).toMatchObject({ food_id: 'tr.simit', quantity: null });
+    expect(initialMeal.items[0]).toMatchObject({
+      food_id: 'tr.simit',
+      quantity: null,
+      count_origin: 'vision',
+      portion_source: 'catalogue_default',
+    });
 
     const tampered = structuredClone(initialMeal) as unknown as Record<string, unknown>;
     const item = (tampered.items as Array<Record<string, unknown>>)[0];

@@ -434,7 +434,8 @@ describe('pipeline runner', () => {
       grams_p90: 270,
       confidence: 1,
       quantity: 1,
-      unit: 'serving',
+      unit: 'glass',
+      count_origin: 'user_text',
       portion_source: 'catalogue_default_scaled',
       portion_provenance: 'fallback=catalogue.default_serving_g=200; quantity=1; unit=unknown',
     });

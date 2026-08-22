@@ -4,7 +4,8 @@
   "input_sha256": "d66529a791951d17386ad01963bfb5488f6378b574fd2e38d226a007d1ae0aa2",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
@@ -12,37 +13,38 @@
     {
       "surface_form": "fish",
       "cooking_method": "baked",
-      "portion_hint": "two fillets",
-      "confidence": 0.9
+      "portion_hint": "fillet",
+      "confidence": 0.95
     },
     {
       "surface_form": "couscous",
       "cooking_method": "steamed",
-      "portion_hint": "medium serving",
+      "portion_hint": "scoop",
       "confidence": 0.95
     },
     {
       "surface_form": "mushrooms",
       "cooking_method": "sauteed",
-      "portion_hint": "small handful",
+      "portion_hint": "handful",
       "confidence": 0.9
     },
     {
       "surface_form": "beef",
       "cooking_method": "grilled",
-      "portion_hint": "sliced portion",
-      "confidence": 0.85
+      "portion_hint": "slices",
+      "confidence": 0.9
     },
     {
       "surface_form": "avocado",
       "cooking_method": "raw",
-      "portion_hint": "few slices",
+      "portion_hint": "slices",
       "confidence": 0.95
     },
     {
-      "surface_form": "cherry tomatoes",
+      "surface_form": "tomatoes",
       "cooking_method": "raw",
-      "portion_hint": "four tomatoes",
+      "portion_hint": "handful",
+      "count": 5,
       "confidence": 0.95
     }
   ]

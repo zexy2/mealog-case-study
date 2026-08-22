@@ -84,6 +84,15 @@ def test_generic_unit_table_remains_fallback_when_catalogue_names_another_unit()
     assert result.provenance == "unit=adet; quantity=2.0; conversion_g=25"
 
 
+def test_vision_count_is_not_explicit_unit_evidence():
+    pack = load("tr")
+    result = estimate(pack.foods["tr.simit"], 2.0, None, pack, "vision")
+
+    assert tuple(result) == pytest.approx((200.0, 150.0, 270.0), abs=0.01)
+    assert result.source == "vision_count"
+    assert "count_origin=vision" in result.provenance
+
+
 def test_non_water_volume_uses_unknown_density_interval():
     pack = load("tr")
     food = pack.foods["tr.kuru_fasulye"]

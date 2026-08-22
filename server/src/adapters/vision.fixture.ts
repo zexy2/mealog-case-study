@@ -60,6 +60,7 @@ export interface FixtureFile {
   readonly provider?: string;
   readonly model_id?: string;
   readonly prompt_version?: string;
+  readonly input_kind?: 'vision' | 'user_text';
   readonly degraded?: boolean;
   readonly items: unknown;
 }
@@ -105,11 +106,15 @@ export class FixtureVision {
 
     const raw = JSON.parse(readFileSync(path, 'utf-8')) as FixtureFile;
     // A fixture is a recorded provider response, so it goes through the same
-    // D1 validation a live response does. All 25 committed fixtures pass
+    // D1 validation a live response does. All 80 committed fixtures pass
     // unchanged; the difference is that a tampered one is rejected rather than
     // silently stripped of its nutrition field.
     return {
-      observations: parseObservationItems(raw.items, `fixture '${key}'`),
+      observations: parseObservationItems(
+        raw.items,
+        `fixture '${key}'`,
+        raw.input_kind === 'user_text' ? 'user_text' : 'vision',
+      ),
       degraded: raw.degraded ?? false,
     };
   }

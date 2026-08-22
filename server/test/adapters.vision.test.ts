@@ -309,6 +309,19 @@ describe('a provider response carrying a nutrition field is rejected', () => {
     expect(Object.keys(OBSERVATION).every((k) => ALLOWED_ITEM_FIELDS.has(k))).toBe(true);
   });
 
+  it('accepts nullable positive integer counts and rejects guessed decimals', () => {
+    const counted = parseObservationItems([
+      { ...OBSERVATION, portion_hint: 'whole', count: 2 },
+    ], 'Gemini', 'vision');
+    expect(counted[0]).toMatchObject({ count: 2, count_origin: 'vision' });
+    expect(parseObservationItems([{ ...OBSERVATION, count: 1 }], 'Gemini', 'vision')[0].count).toBeNull();
+    expect(parseObservationItems([{ ...OBSERVATION, count: 4 }], 'Gemini', 'vision')[0].count).toBeNull();
+    expect(parseObservationItems([{ ...OBSERVATION, count: null }])[0].count).toBeNull();
+    expect(() => parseObservationItems([{ ...OBSERVATION, count: 1.5 }])).toThrow(
+      /count must be a positive integer or null/,
+    );
+  });
+
   it('rejects an empty surface_form and an out-of-range confidence', () => {
     expect(() => parseObservationItems([{ ...OBSERVATION, surface_form: '  ' }])).toThrow(
       /empty surface_form/,

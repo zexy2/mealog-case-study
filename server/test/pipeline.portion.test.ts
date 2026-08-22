@@ -242,4 +242,17 @@ describe('estimate', () => {
     });
     expect(result.provenance).toContain('unit=unknown');
   });
+
+  it('keeps a vision count out of explicit-unit provenance', () => {
+    const result = estimate(food(), 2, null, pack({}), undefined, 'vision');
+
+    expect(result).toMatchObject({
+      grams: 200,
+      p10: 150,
+      p90: 270,
+      source: 'vision_count',
+    });
+    expect(result.provenance).toContain('count_origin=vision');
+    expect(result.source).not.toBe('explicit_unit');
+  });
 });

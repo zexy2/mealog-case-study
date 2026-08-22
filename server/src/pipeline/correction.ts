@@ -143,15 +143,18 @@ export function applyCorrections(request: CorrectionRequest): MealLog {
     const unit = correction && hasOwn(correction, 'unit')
       ? correction.unit ?? null
       : original.unit;
+    const countOrigin = correction && (
+      hasOwn(correction, 'quantity') || hasOwn(correction, 'unit') || hasOwn(correction, 'grams')
+    ) ? 'user_text' as const : original.count_origin;
     validateNumber(quantity, 'quantity');
 
-    const baseline = estimate(food, quantity, unit, pack);
+    const baseline = estimate(food, quantity, unit, pack, undefined, countOrigin);
     if (correction?.grams !== undefined && (correction.grams < baseline.p10 || correction.grams > baseline.p90)) {
       throw new CorrectionValidationError(
         `grams must stay within the existing uncertainty range ${baseline.p10}-${baseline.p90}`,
       );
     }
-    const portion = estimate(food, quantity, unit, pack, correction?.grams);
+    const portion = estimate(food, quantity, unit, pack, correction?.grams, countOrigin);
     const candidate = original.candidates.find((entry) => entry.food_id === foodId);
     const confidence = correction?.food_id !== undefined ? candidate?.score ?? 1.0 : original.confidence;
     const nutrients = roundedNutrients(scalePer100g(food.per_100g, portion.grams));
@@ -162,6 +165,7 @@ export function applyCorrections(request: CorrectionRequest): MealLog {
       confidence,
       quantity,
       unit,
+      count_origin: countOrigin,
       grams: portion.grams,
       grams_p10: portion.p10,
       grams_p90: portion.p90,

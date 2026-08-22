@@ -9,7 +9,7 @@
  * Ported from `server/src/mealog/adapters/vision_gemini.py`. Constants, the
  * prompt, the response schema, the retry/fallback ladder and the fixture
  * payload shape carry across unchanged; a renamed field or a reordered payload
- * key would silently invalidate the 25 recorded fixtures, which are the parity
+ * key would silently invalidate the 80 recorded fixtures, which are the parity
  * reference for the whole port.
  *
  * This module is framework-agnostic by rule: an adapter is a port
@@ -22,10 +22,10 @@ import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { VisionInput, type VisionResult } from '../pipeline/ports';
-import type { PerceivedItem } from '../domain/models';
+import type { CountOrigin, PerceivedItem } from '../domain/models';
 import { makePerceivedItem } from '../domain/models';
 
-export const PROMPT_VERSION = 'p2';
+export const PROMPT_VERSION = 'p3';
 export const DEFAULT_MODEL = 'gemini-flash-lite-latest';
 export const SECONDARY_MODEL = 'gemini-2.5-flash-lite';
 export const MODEL_ENV_VAR = 'GEMINI_MODEL';
@@ -53,8 +53,17 @@ Rules:
 - Name dishes in the language on the plate's origin if you recognise it.
 - If unsure between two dishes, return the more general one and lower confidence.
 - Never invent an item you cannot see. Omission is cheaper than invention.
-- \`portion_hint\` may describe a visible serving or user-provided text, but is not
-  a numeric gram estimate.
+- Set \`count\` only when items are individually countable and every instance is
+  distinctly visible. Overlapping, stacked, cropped, or occluded instances must
+  return \`count: null\`; never guess.
+- A single serving in one glass, bowl, plate, or other container is one observed
+  item: return one item with \`count: null\`. Never count liquid volume, pixels,
+  or a serving container as multiple food instances. Do not report garnish,
+  decorative leaves, or unidentifiable background as separate food items. Do not
+  add ABSTAIN or other placeholder items.
+- \`count\` is the only count field. Keep \`portion_hint\` non-numeric: use a
+  qualitative description such as \`whole\`, \`bowl\`, or \`stacked\`, never a
+  count, gram estimate, or numeric serving estimate.
 `;
 
 export const RESPONSE_SCHEMA = {
@@ -77,6 +86,12 @@ export const RESPONSE_SCHEMA = {
             type: 'STRING',
             description: 'Non-numeric serving description, if visible or stated.',
           },
+          count: {
+            type: 'INTEGER',
+            nullable: true,
+            minimum: 1,
+            description: 'Count only when each individually countable instance is distinctly visible; otherwise null.',
+          },
           confidence: {
             type: 'NUMBER',
             minimum: 0,
@@ -84,7 +99,7 @@ export const RESPONSE_SCHEMA = {
             description: 'Confidence that this item is present, from 0 to 1.',
           },
         },
-        required: ['surface_form', 'cooking_method', 'portion_hint', 'confidence'],
+        required: ['surface_form', 'cooking_method', 'portion_hint', 'count', 'confidence'],
       },
     },
   },
@@ -115,6 +130,8 @@ export const FORBIDDEN_NUTRIENT_FIELDS: ReadonlySet<string> = new Set([
 export const ALLOWED_ITEM_FIELDS: ReadonlySet<string> = new Set(
   Object.keys(RESPONSE_SCHEMA.properties.items.items.properties),
 );
+
+const CONTAINER_HINT = /\b(?:bowl|glass|cup|plate|serving|container)\b/iu;
 
 const IMAGE_MIME_FALLBACKS: Readonly<Record<string, string>> = {
   '.avif': 'image/avif',
@@ -349,7 +366,11 @@ export function responseText(response: Record<string, unknown>): string {
  * "unknown field", which is the difference between a diagnosable failure and a
  * shrug. Both reject the whole response.
  */
-export function parseObservationItems(rawItems: unknown, label = 'Gemini'): PerceivedItem[] {
+export function parseObservationItems(
+  rawItems: unknown,
+  label = 'Gemini',
+  countOrigin: CountOrigin = null,
+): PerceivedItem[] {
   if (!Array.isArray(rawItems)) {
     throw new TypeError(`${label} JSON response must contain an items array`);
   }
@@ -394,16 +415,35 @@ export function parseObservationItems(rawItems: unknown, label = 'Gemini'): Perc
       throw new Error(`${label} item ${index} confidence is outside [0, 1]`);
     }
 
+    const countRaw = record.count;
+    if (
+      countRaw !== undefined
+      && countRaw !== null
+      && (typeof countRaw !== 'number' || !Number.isInteger(countRaw) || countRaw < 1)
+    ) {
+      throw new Error(`${label} item ${index} count must be a positive integer or null`);
+    }
+
+    const portionHint = (record.portion_hint as string | null | undefined) ?? null;
+    const safeCount = countOrigin === 'vision' && (
+      countRaw === 1
+      || (portionHint !== null && CONTAINER_HINT.test(portionHint))
+    )
+      ? null
+      : countRaw ?? null;
+
     return makePerceivedItem({
       surface_form: surfaceForm,
       cooking_method: (record.cooking_method as string | null | undefined) ?? null,
-      portion_hint: (record.portion_hint as string | null | undefined) ?? null,
+      portion_hint: portionHint,
+      count: safeCount,
+      count_origin: countOrigin,
       confidence: confidenceRaw,
     });
   });
 }
 
-export function parseItems(text: string): PerceivedItem[] {
+export function parseItems(text: string, countOrigin: CountOrigin = null): PerceivedItem[] {
   let document: unknown;
   try {
     document = JSON.parse(text);
@@ -413,7 +453,7 @@ export function parseItems(text: string): PerceivedItem[] {
   if (typeof document !== 'object' || document === null || Array.isArray(document)) {
     throw new TypeError('Gemini JSON response must contain an items array');
   }
-  return parseObservationItems((document as { items?: unknown }).items);
+  return parseObservationItems((document as { items?: unknown }).items, 'Gemini', countOrigin);
 }
 
 // --------------------------------------------------------------- transport
@@ -480,6 +520,7 @@ export interface FixturePayload {
   readonly provider: string;
   readonly model_id: string;
   readonly prompt_version: string;
+  readonly input_kind: 'vision' | 'user_text';
   readonly degraded: boolean;
   readonly rung: string;
   readonly attempts: number;
@@ -713,7 +754,7 @@ export class GeminiVision {
       try {
         const outcome = await this.requestWithRetry(parts, model, deadline);
         attempts = outcome.attempts;
-        items = parseItems(responseText(outcome.response));
+        items = parseItems(responseText(outcome.response), hasImage ? 'vision' : 'user_text');
       } catch (error) {
         if (error instanceof ProviderFailure) {
           totalAttempts += error.attempts;
@@ -798,6 +839,7 @@ export class GeminiVision {
       provider: this.name,
       model_id: this.lastModel,
       prompt_version: PROMPT_VERSION,
+      input_kind: input.text && input.text.trim() ? 'user_text' : 'vision',
       degraded: this.degraded,
       rung: this.rung,
       attempts: this.lastAttempts,
@@ -807,6 +849,7 @@ export class GeminiVision {
         const out: Record<string, unknown> = { surface_form: item.surface_form };
         if (item.cooking_method !== null) out.cooking_method = item.cooking_method;
         if (item.portion_hint !== null) out.portion_hint = item.portion_hint;
+        if (item.count !== null) out.count = item.count;
         out.confidence = item.confidence;
         if (item.ungrounded_kcal !== null) out.ungrounded_kcal = item.ungrounded_kcal;
         return out;

@@ -197,9 +197,13 @@ export function normalize(
 ): NormalizedItem[] {
   return items.map((item) => {
     const query = applyRules ? fold(item.surface_form, pack) : item.surface_form.toLowerCase();
-    const [quantity, unit] = applyRules
-      ? parsePortion(item.portion_hint, pack)
-      : [null, null];
-    return { original: item, query, quantity, unit };
+    let quantity = item.count;
+    let unit: string | null = null;
+    if (item.count_origin !== 'vision' && applyRules) {
+      const [hintQuantity, hintUnit] = parsePortion(item.portion_hint, pack);
+      quantity ??= hintQuantity;
+      unit = hintUnit;
+    }
+    return { original: item, query, quantity, unit, count_origin: item.count_origin };
   });
 }

@@ -3,6 +3,8 @@ to a model is allowed to produce a nutrient number. Models produce *references*
 (a surface form, then a canonical food_id, then grams). Nutrients are computed."""
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 from .taxonomy import CuisineBucket
@@ -76,6 +78,9 @@ class CanonicalFood(BaseModel):
         return self
 
 
+CountOrigin = Literal['vision', 'user_text'] | None
+
+
 class PerceivedItem(BaseModel):
     """Raw output of the vision/text stage. Deliberately has no food_id and no
     nutrients -- only what was *observed*."""
@@ -83,6 +88,8 @@ class PerceivedItem(BaseModel):
     surface_form: str
     cooking_method: str | None = None
     portion_hint: str | None = None
+    count: int | None = None
+    count_origin: CountOrigin = None
     confidence: float = 0.5
     #: Only populated by the V0 baseline, which asks the model for calories
     #: directly. Kept so the ablation can quantify what grounding buys us.
@@ -94,6 +101,7 @@ class NormalizedItem(BaseModel):
     query: str                      # locale-normalized retrieval key
     quantity: float | None = None
     unit: str | None = None
+    count_origin: CountOrigin = None
 
 
 class Candidate(BaseModel):
@@ -110,6 +118,7 @@ class ResolvedItem(BaseModel):
     candidates: list[Candidate] = Field(default_factory=list)
     quantity: float | None = None
     unit: str | None = None
+    count_origin: CountOrigin = None
     grams: float = 0.0
     grams_p10: float = 0.0
     grams_p90: float = 0.0

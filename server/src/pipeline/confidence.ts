@@ -15,6 +15,7 @@ import {
 
 export const AUTO_ACCEPT = 0.75;
 export const ASK_BELOW = 0.40;
+export const VISION_COUNT_CONFIDENCE = 0.60;
 
 /**
  * Map relative p10-p90 width to a bounded confidence signal.
@@ -37,9 +38,16 @@ export function portionConfidence(item: MealLog['items'][number]): number {
   return Math.round(Math.max(0.0, Math.min(1.0, 1.0 - relativeWidth)) * 1000) / 1000;
 }
 
+/** A visual count is evidence, but weaker than a count supplied by the user. */
+export function countConfidence(item: MealLog['items'][number]): number {
+  return item.count_origin === 'vision' && item.quantity !== null
+    ? VISION_COUNT_CONFIDENCE
+    : 1.0;
+}
+
 /** Use the weaker of identity confidence and portion confidence for routing. */
 export function effectiveConfidence(item: MealLog['items'][number]): number {
-  return Math.round(Math.min(item.confidence, portionConfidence(item)) * 1000) / 1000;
+  return Math.round(Math.min(item.confidence, portionConfidence(item), countConfidence(item)) * 1000) / 1000;
 }
 
 /** Route a meal log in place, preserving identity confidence and question text. */

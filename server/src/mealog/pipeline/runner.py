@@ -65,6 +65,13 @@ def _reconcile_resolved(items: list[ResolvedItem]) -> list[ResolvedItem]:
             else existing.quantity + item.quantity
         )
         existing.unit = existing.unit if existing.unit == item.unit else None
+        existing.count_origin = (
+            existing.count_origin
+            if existing.count_origin == item.count_origin
+            else "vision"
+            if "vision" in {existing.count_origin, item.count_origin}
+            else existing.count_origin or item.count_origin
+        )
         existing.confidence = min(existing.confidence, item.confidence)
 
     return reconciled
@@ -109,6 +116,7 @@ def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: C
         r = resolve(item.query, candidates, allow_abstain=config.gating)
         r.quantity = item.quantity
         r.unit = item.unit
+        r.count_origin = item.count_origin
         resolved.append(r)
 
     reconciled = _reconcile_resolved(resolved)
@@ -124,6 +132,7 @@ def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: C
             item.quantity,
             item.unit if item.quantity is not None else None,
             pack,
+            item.count_origin,
         )
         item.grams, item.grams_p10, item.grams_p90 = estimate
         item.portion_source = estimate.source

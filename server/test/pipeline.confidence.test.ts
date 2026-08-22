@@ -10,6 +10,7 @@ import {
 import {
   ASK_BELOW,
   AUTO_ACCEPT,
+  countConfidence,
   effectiveConfidence,
   portionConfidence,
   route,
@@ -109,6 +110,16 @@ describe('confidence routing', () => {
     expect(effectiveConfidence(resolved)).toBe(0.4);
     expect(resolved.confidence).toBe(1);
     expect(log.action).toBe('review');
+  });
+
+  it('weights a vision count below a user-entered count', () => {
+    const visual = item('simit', 1);
+    visual.count_origin = 'vision';
+    const typed = item('simit', 1);
+    typed.count_origin = 'user_text';
+
+    expect(countConfidence(visual)).toBeLessThan(countConfidence(typed));
+    expect(effectiveConfidence(visual)).toBeLessThan(effectiveConfidence(typed));
   });
 
   it('asks instead of auto-accepting a wide portion band', () => {

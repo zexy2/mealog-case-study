@@ -7,6 +7,14 @@ from mealog.domain.models import MealLog
 
 AUTO_ACCEPT = 0.75
 ASK_BELOW = 0.40
+VISION_COUNT_CONFIDENCE = 0.60
+
+
+def count_confidence(item) -> float:
+    """Visual count is weaker evidence than a user-entered count."""
+    if item.count_origin == "vision" and item.quantity is not None:
+        return VISION_COUNT_CONFIDENCE
+    return 1.0
 
 
 def route(log: MealLog) -> MealLog:
@@ -20,7 +28,11 @@ def route(log: MealLog) -> MealLog:
         log.question = f"I could not match '{unknown.query}'. Which of these is closest?"
         return log
 
-    lowest = min(i.confidence for i in log.items)
+    if any(i.quantity is None for i in log.items):
+        log.action = "review"
+        return log
+
+    lowest = min(min(i.confidence, count_confidence(i)) for i in log.items)
     if lowest >= AUTO_ACCEPT:
         log.action = "auto_accept"
     elif lowest < ASK_BELOW:
