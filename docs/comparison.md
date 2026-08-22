@@ -76,6 +76,17 @@ the user whether the number came from a printed serving, a catalogue prior, or a
 weak density assumption. It makes the uncertainty available to review and to
 future confidence gating.
 
+**Observed counting cases.** The two available observations from **2026-08-22**
+do not establish counting accuracy. In one captured image with a user-confirmed
+count of two simits, EatBetter returned three simits and inflated the downstream
+nutrition. In a second two-simit image, the same product counted two correctly.
+On that second image, mealog resolved one simit at **100 g / 329 kcal**, reproduced
+three times through the API and three times on a physical device at close, medium,
+and long framing. The honest two-point summary is EatBetter: one miss and one hit;
+mealog: two misses. Neither result supports an accuracy claim in either direction.
+These are captured product and device observations, not an offline evaluator
+metric.
+
 **How it is measured.** `server/tests/test_portion.py` asserts the p10–p90
 contract for known density, unknown density, packaged serving evidence, and
 provenance. The Node path now preserves normalized `quantity` and `unit` on each
@@ -212,6 +223,13 @@ logging workflow, while mealog can accept only the **99 canonical foods** in its
 **3** locale packs and must ask or abstain outside them. This identifies
 mealog's measured coverage limit; it does not claim an EatBetter catalogue
 count or internal matching policy.
+
+The Turkish pack contains **53 foods**. Direct inspection of
+`locale_packs/tr/foods.jsonl` found no entry for **döner**, **poğaça**,
+**börek** (including **su böreği**), **köfte**, **pide**, or **kebap**. In the
+**2026-08-22** probe of ten out-of-catalogue images, all ten abstained correctly
+with **0 false accepts**; the Turkish examples were döner, poğaça, and su böreği.
+This is closed-set boundary evidence, not a new retrieval metric.
 
 **Why it matters.** A long-tail dish missing from mealog creates a question
 instead of a one-tap log. That is the real cost of the closed-set guarantee;
