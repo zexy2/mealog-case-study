@@ -3,6 +3,7 @@
 mealog is a mobile-first meal logging case study: the model sees food, but never produces a calorie number.
 
 <!-- PENDING: recorded walkthrough link, demo gif -->
+<!-- PENDING: scorecard refresh — issue #218 changes the vision schema and re-records the golden fixtures, so every figure under Results will move -->
 <!-- TODO(when available): Expo QR + deployed API URL -->
 
 ## Run it
@@ -133,6 +134,27 @@ Measured repository inventory: **3 locale packs**, **99 canonical foods**, and
 **80 recorded golden-set fixtures**. These are offline evaluation facts, not
 live-provider performance.
 
+## Known failures, measured
+
+Every failure below is reproduced, not suspected. Figures come from the offline
+scorecard, a live verification run on `acfa6dd` (2026-08-23, 12 requests, all
+HTTP 200), and a 21-request catalogue audit (2026-08-22). Verified behaviour is
+recorded under Results and Testing; this section is deliberately only the
+failures.
+
+| Failure | Evidence | Effect | Tracked |
+| --- | --- | --- | --- |
+| A photographed count is trusted without being observed | `A2.jpg` shows two simits. The service returns one `tr.simit`, 100 g, **329 kcal**, against a 658 kcal ground truth. Identical across three independently keyed submissions. The same input as text (`2 simit`) returns 658 kcal correctly. | Roughly 50% calorie undercount, committed with no uncertainty signal. The photo path is the product's primary path. | [#218](https://github.com/zexy2/mealog-case-study/issues/218) |
+| Cooked dishes resolve to dry catalogue entries | `haşlanmış bulgur` resolves to `tr.bulgur_kuru` at 279.2 kcal, roughly +320%. Six of seven audited cooked inputs resolve to a dry or raw entry and inherit its nutrition. `çay` and `demlenmiş çay` correctly abstain, so the negative-alias mechanism itself works. | Dry-weight nutrition attributed to a cooked serving. The V3 gate routes these to review but does not correct the wrong `food_id`. | [#219](https://github.com/zexy2/mealog-case-study/issues/219) |
+| Legumes resolve to each other | `haşlanmış mercimek` to `tr.nohut_haslanmis`, `nohut yemeği` to `tr.kuru_fasulye`, `haşlanmış fasulye` to `tr.nohut_haslanmis`, `tarhana çorbası` to `tr.mercimek_corbasi`. | Wrong food, plausible calories. This is retrieval quality rather than aliasing, and negative aliases will not fix it. | Open, untracked |
+| The Turkish catalogue is thin for the default locale | `locale_packs/tr/foods.jsonl` holds 53 rows with no entry for döner, poğaça, börek (including su böreği), köfte, pide, or kebap. | 41 of the 68 rejected golden samples trace wholly or partly to missing catalogue coverage rather than to the confidence threshold. | Open, untracked |
+| South Asian cuisine is unrepresented | 16 samples, 0% coverage, Item F1 0.00, FP rate 100%. | The golden set was deliberately not narrowed to fit the catalogue, so this bucket reports honestly instead of being excluded. | Open, untracked |
+
+The false-positive rate is measured over the identity set and counts rejected
+samples as well. 68 of 80 samples ended in `ask` and none of them were saved, so
+86.0% describes what the perception layer reported, not what the system
+committed.
+
 ## Compare EatBetter
 
 EatBetter comparison is complete and stays short and evidence-led: product
@@ -175,6 +197,8 @@ typechecks the Expo client and creates an Android bundle.
   mobile-to-Node provider request. Multi-item preservation is unverified.
 - The 80-sample scorecard has only 2/2 calorie-eligible/scored rows; most rows
   are partial, zero-truth, or identity-only for calorie purposes.
+- Reproduced accuracy defects, including the photographed-count undercount, are
+  listed with their evidence under [Known failures, measured](#known-failures-measured).
 
 ## With more time
 
