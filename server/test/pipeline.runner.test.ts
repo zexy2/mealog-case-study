@@ -2,6 +2,7 @@ import { resolve as resolvePath } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { FixtureVision } from '../src/adapters/vision.fixture';
 import {
   ABSTAIN,
   makeMealLog,
@@ -56,7 +57,7 @@ describe('pipeline runner', () => {
       nutrients: { kcal: 149 },
     });
     expect(result.totals.kcal).toBe(149);
-    expect(result.action).toBe('auto_accept');
+    expect(result.action).toBe('ask');
   });
 
   it('keeps a resolver abstention through the end of the meal', async () => {
@@ -120,7 +121,7 @@ describe('pipeline runner', () => {
 
     expect(order).toEqual(['perception']);
     expect(result.items[0]?.food_id).toBe('us.eggs_scrambled');
-    expect(result.action).toBe('auto_accept');
+    expect(result.action).toBe('ask');
   });
 
   it('rejects a separate text argument when input is already a VisionInput', async () => {
@@ -267,5 +268,27 @@ describe('pipeline runner', () => {
 
   it('keeps the loader-backed pack available to the runner tests', () => {
     expect(load('en_US', PACK_ROOT).foods['us.eggs_scrambled']).toBeDefined();
+  });
+
+  it('replays the recorded ayran fallback and routes its uncertainty to review', async () => {
+    const result = await run(
+      new FixtureVision(),
+      'tr_0003',
+      'tr',
+      CONFIGS.V3,
+      'runner-ayran-portion',
+    );
+
+    expect(result.items[1]).toMatchObject({
+      query: 'ayran',
+      food_id: 'tr.ayran',
+      grams: 200,
+      grams_p10: 150,
+      grams_p90: 270,
+      confidence: 1,
+      portion_source: 'catalogue_default_scaled',
+      portion_provenance: 'fallback=catalogue.default_serving_g=200; quantity=1; unit=unknown',
+    });
+    expect(result.action).toBe('review');
   });
 });
