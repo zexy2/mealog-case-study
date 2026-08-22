@@ -29,9 +29,10 @@
 - Two known `1 adet` simit observations: before 2 items at 100 g each; after 1
   item, quantity 2, at 200 g.
 - Different `tr.simit` and `tr.ayran` observations: two items before and after.
-- An `en_US` rice input with and without an uncounted `cup` hint: before the
-  source changed between `catalogue_default` and `assumed_unit`; after all
-  runs use `catalogue_default` with 158 g and a 102.7-229.1 g band.
+- An `en_US` chicken-breast input with and without an uncounted `cup` hint:
+  before the source and band changed from `catalogue_default`, 120 g
+  (78-174 g), to `unknown_density`, 240 g (108-420 g); after all runs use
+  `catalogue_default`, 120 g, and a 78-174 g band.
 
 ## Evaluation
 

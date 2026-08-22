@@ -136,22 +136,22 @@ describe('pipeline runner', () => {
   it('keeps repeated submissions on one deterministic portion branch', async () => {
     const results = await Promise.all([
       run(
-        visionStub([makePerceivedItem({ surface_form: 'rice', confidence: 1 })]),
-        new VisionInput({ text: 'rice' }),
+        visionStub([makePerceivedItem({ surface_form: 'chicken breast', confidence: 1 })]),
+        new VisionInput({ text: 'chicken breast' }),
         'en_US',
         CONFIGS.V3,
         'runner-repeat-1',
       ),
       run(
-        visionStub([makePerceivedItem({ surface_form: 'rice', portion_hint: 'cup', confidence: 1 })]),
-        new VisionInput({ text: 'rice' }),
+        visionStub([makePerceivedItem({ surface_form: 'chicken breast', portion_hint: 'cup', confidence: 1 })]),
+        new VisionInput({ text: 'chicken breast' }),
         'en_US',
         CONFIGS.V3,
         'runner-repeat-2',
       ),
       run(
-        visionStub([makePerceivedItem({ surface_form: 'rice', confidence: 1 })]),
-        new VisionInput({ text: 'rice' }),
+        visionStub([makePerceivedItem({ surface_form: 'chicken breast', confidence: 1 })]),
+        new VisionInput({ text: 'chicken breast' }),
         'en_US',
         CONFIGS.V3,
         'runner-repeat-3',
@@ -163,9 +163,9 @@ describe('pipeline runner', () => {
       p10: result.items[0]?.grams_p10,
       p90: result.items[0]?.grams_p90,
     }))).toEqual([
-      { source: 'catalogue_default', p10: 102.7, p90: 229.1 },
-      { source: 'catalogue_default', p10: 102.7, p90: 229.1 },
-      { source: 'catalogue_default', p10: 102.7, p90: 229.1 },
+      { source: 'catalogue_default', p10: 78, p90: 174 },
+      { source: 'catalogue_default', p10: 78, p90: 174 },
+      { source: 'catalogue_default', p10: 78, p90: 174 },
     ]);
   });
 

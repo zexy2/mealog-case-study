@@ -347,9 +347,9 @@ def test_runner_portion_branch_is_stable_across_repeated_submissions():
     results = [
         run(
             StubVision([
-                PerceivedItem(surface_form="rice", confidence=1),
+                PerceivedItem(surface_form="chicken breast", confidence=1),
             ]),
-            VisionInput(text="rice"),
+            VisionInput(text="chicken breast"),
             "en_US",
             CONFIGS["V3"],
             f"runner-repeat-{index}",
@@ -359,9 +359,9 @@ def test_runner_portion_branch_is_stable_across_repeated_submissions():
 
     results[1] = run(
         StubVision([
-            PerceivedItem(surface_form="rice", portion_hint="cup", confidence=1),
+            PerceivedItem(surface_form="chicken breast", portion_hint="cup", confidence=1),
         ]),
-        VisionInput(text="rice"),
+        VisionInput(text="chicken breast"),
         "en_US",
         CONFIGS["V3"],
         "runner-repeat-with-uncounted-unit",
@@ -373,9 +373,9 @@ def test_runner_portion_branch_is_stable_across_repeated_submissions():
          result.items[0].grams_p90)
         for result in results
     ] == [
-        ("catalogue_default", 102.7, 229.1),
-        ("catalogue_default", 102.7, 229.1),
-        ("catalogue_default", 102.7, 229.1),
+        ("catalogue_default", 78.0, 174.0),
+        ("catalogue_default", 78.0, 174.0),
+        ("catalogue_default", 78.0, 174.0),
     ]
 
 
