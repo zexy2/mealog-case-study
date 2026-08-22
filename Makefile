@@ -31,8 +31,9 @@ check: lint test invariants
 db:
 	docker compose up -d db
 
+# Delivered HTTP backend: Node.js/TypeScript NestJS. Python remains evaluation/reference tooling.
 api:
-	cd server && python -m uvicorn mealog.api.main:app --reload
+	cd server && npm run build && npm start
 
 clean:
 	rm -rf eval/reports/*.md
