@@ -9,6 +9,9 @@ assert.equal(DEFAULT_LOCALE, "tr");
 assert.equal(t("captureTitle"), "Ne yedin?");
 assert.equal(t("whyResult"), "Nasıl bulundu?");
 assert.equal(t("portionBand", { grams: 180, low: 140, high: 230 }), "yaklaşık 180 g (140–230 g)");
+assert.equal(t("reviewTitle"), "Gününe eklemeden önce bak.");
+assert.equal(t("abstainTitle"), "Tanıyamadım.");
+assert.equal(t("providerUnavailable"), "Sağlayıcıya ulaşılamadı");
 
 assert.match(demoSource, /question: questionText\(askItem\)/);
 assert.doesNotMatch(demoSource, /Is this kuru fasulye/);

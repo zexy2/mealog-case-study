@@ -1,6 +1,6 @@
 import type { DemoScenario } from "./types";
 
-export const DEMO_SCENARIOS = ["review", "abstain", "error", "empty"] as const satisfies readonly DemoScenario[];
+export const DEMO_SCENARIOS = ["auto_accept", "review", "abstain", "degraded", "error", "empty"] as const satisfies readonly DemoScenario[];
 
 const DEMO_INPUTS: Record<DemoScenario, string> = {
   review: "pilav",

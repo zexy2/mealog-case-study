@@ -12,8 +12,10 @@ import { formatDate } from "../components/meal";
 import { colors } from "../components/theme";
 
 const DEMO_LABELS = {
+  auto_accept: "demoAutoAccept",
   review: "demoReview",
   abstain: "demoAbstain",
+  degraded: "demoDegraded",
   error: "demoError",
   empty: "demoEmpty",
 } as const;

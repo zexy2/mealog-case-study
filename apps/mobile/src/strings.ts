@@ -16,8 +16,10 @@ export type StringKey =
   | "demoHint"
   | "demoPanelTitle"
   | "demoLoadingNote"
+  | "demoAutoAccept"
   | "demoReview"
   | "demoAbstain"
+  | "demoDegraded"
   | "demoError"
   | "demoEmpty"
   | "liveContractHint"
@@ -32,6 +34,8 @@ export type StringKey =
   | "reviewEyebrow"
   | "reviewTitle"
   | "reviewSubtitle"
+  | "savedReviewTitle"
+  | "savedReviewSubtitle"
   | "actionAutoAccept"
   | "actionReview"
   | "actionAsk"
@@ -52,6 +56,7 @@ export type StringKey =
   | "abstainCandidates"
   | "abstainCode"
   | "abstainNoCandidates"
+  | "describeMeal"
   | "chooseManually"
   | "retakePhoto"
   | "portion"
@@ -79,6 +84,7 @@ export type StringKey =
   | "pending"
   | "saveQuestion"
   | "saveToday"
+  | "saveCorrection"
   | "captureAnother"
   | "dayEyebrow"
   | "dayTitle"
@@ -110,9 +116,14 @@ export type StringKey =
   | "navDay"
   | "apiUrlMissing"
   | "uploadFailed"
+  | "providerUnavailable"
   | "draftSafe"
   | "cameraCaptureFailed"
   | "mealAdded"
+  | "mealUpdated"
+  | "mealUndone"
+  | "undoMeal"
+  | "undoMealAccessibility"
   | "mealRemoved"
   | "removeMealTitle"
   | "removeMealCopy"
@@ -140,11 +151,13 @@ export const tr: Dictionary = {
   tellMe: "YA DA ANLAT",
   mealPlaceholder: "örn. yediğiniz yemeği yazın",
   sendMealDescription: "Öğün açıklamasını gönder",
-  demoHint: "Demo modu · Aşağıdaki örneklerle dört durumu deneyin",
+  demoHint: "Demo modu · Aşağıdaki akışlarla tüm durumları deneyin",
   demoPanelTitle: "DEMO AKIŞLARI",
   demoLoadingNote: "Her akış önce yükleniyor durumunu gösterir.",
+  demoAutoAccept: "Otomatik kaydetme",
   demoReview: "Kontrol ekranı",
   demoAbstain: "Emin değilim",
+  demoDegraded: "Zayıf kanıtla kontrol",
   demoError: "Hata ve tekrar dene",
   demoEmpty: "Boş günü göster",
   liveContractHint: "Fotoğraf ve metin aynı öğün akışını kullanır",
@@ -157,8 +170,10 @@ export const tr: Dictionary = {
   errorTitle: "Bir sorun çıktı.",
   demoProviderError: "Sağlayıcı yanıt vermedi. Taslağın güvende.",
   reviewEyebrow: "KONTROL ET VE DÜZELT",
-  reviewTitle: "Kontrol sende.",
-  reviewSubtitle: "Gününe eklemeden önce son bir kez bak.",
+  reviewTitle: "Gününe eklemeden önce bak.",
+  reviewSubtitle: "Sonucu incele; kaydetmeden önce karar sende.",
+  savedReviewTitle: "Günündeki kaydı incele.",
+  savedReviewSubtitle: "Düzeltmelerini sunucuya göndererek kaydı güncelle.",
   actionAutoAccept: "Kaydedildi",
   actionReview: "Kontrol et",
   actionAsk: "Emin değilim, sen söyle",
@@ -173,12 +188,13 @@ export const tr: Dictionary = {
   countChoice: "{count} {unit}",
   clarifyNotSure: "Emin değilim",
   abstainEyebrow: "GÜVENLİ EŞLEŞME YOK",
-  abstainTitle: "Bu öğünü güvenle tanımlayamadık.",
-  abstainCopy: "Katalogda yeterli kanıt yok. Yakın bir tahmin seçmek yerine senden yardım istiyoruz.",
+  abstainTitle: "Tanıyamadım.",
+  abstainCopy: "Bu yiyecek kataloğumuzun dışında olabilir. Yakın bir tahminle kaydetmek yerine senden tarif etmeni istiyoruz.",
   abstainObserved: "GÖRÜLEN",
   abstainCandidates: "YAKIN ADAYLAR · HİÇBİRİ KABUL EDİLMEDİ",
   abstainCode: "ABSTAIN · TAHMİN YOK",
   abstainNoCandidates: "Bu öğün için aday bulunamadı.",
+  describeMeal: "Yemeği kendim yazacağım",
   chooseManually: "Katalogdan kendim seç",
   retakePhoto: "Fotoğrafı yeniden çek",
   portion: "PORSİYON",
@@ -206,6 +222,7 @@ export const tr: Dictionary = {
   pending: "Bekleniyor",
   saveQuestion: "Soruyu açık bırakarak kaydet",
   saveToday: "Bugüne kaydet",
+  saveCorrection: "Düzeltmeyi kaydet",
   captureAnother: "Başka bir tabak çek",
   dayEyebrow: "BUGÜN",
   dayTitle: "Bugün ne yediğini gör.",
@@ -237,9 +254,14 @@ export const tr: Dictionary = {
   navDay: "Gün",
   apiUrlMissing: "Sunucu adresi eksik.",
   uploadFailed: "Yükleme başarısız.",
+  providerUnavailable: "Sağlayıcıya ulaşılamadı",
   draftSafe: "Taslağın güvende.",
   cameraCaptureFailed: "Bu tabağın fotoğrafı çekilemedi. Metin alanını deneyin.",
   mealAdded: "Öğün bugüne eklendi",
+  mealUpdated: "Öğün kaydı güncellendi",
+  mealUndone: "Otomatik kayıt geri alındı",
+  undoMeal: "Geri al",
+  undoMealAccessibility: "Otomatik kaydı geri al",
   mealRemoved: "Öğün bugünden kaldırıldı",
   removeMealTitle: "Kaydı kaldır?",
   removeMealCopy: "Bu öğünü bugünden kaldırmak istediğine emin misin?",
@@ -268,8 +290,10 @@ export const en: Dictionary = {
   demoHint: "Demo mode · use the examples below to visit each state",
   demoPanelTitle: "DEMO FLOWS",
   demoLoadingNote: "Every flow shows the loading state first.",
+  demoAutoAccept: "Auto-save",
   demoReview: "Review state",
   demoAbstain: "I am not sure",
+  demoDegraded: "Review weak evidence",
   demoError: "Error and retry",
   demoEmpty: "Show empty day",
   liveContractHint: "Photo and text use the same meal contract",
@@ -282,8 +306,10 @@ export const en: Dictionary = {
   errorTitle: "Something went wrong.",
   demoProviderError: "The provider did not respond. Your draft is safe.",
   reviewEyebrow: "REVIEW & CORRECT",
-  reviewTitle: "Make it yours.",
-  reviewSubtitle: "One last look before it lands in your day.",
+  reviewTitle: "Review before it reaches your day.",
+  reviewSubtitle: "Inspect the result; you decide before saving.",
+  savedReviewTitle: "Review the saved record.",
+  savedReviewSubtitle: "Send corrections to the server to update this record.",
   actionAutoAccept: "Saved",
   actionReview: "Review",
   actionAsk: "I am not sure, you tell me",
@@ -298,12 +324,13 @@ export const en: Dictionary = {
   countChoice: "{count} {unit}",
   clarifyNotSure: "I am not sure",
   abstainEyebrow: "NO SAFE MATCH",
-  abstainTitle: "We could not identify this meal safely.",
-  abstainCopy: "The catalogue does not contain enough evidence. We ask you instead of presenting a nearby guess.",
+  abstainTitle: "I could not identify it.",
+  abstainCopy: "This food may be outside our catalogue. Instead of saving a nearby guess, tell us what it was.",
   abstainObserved: "OBSERVED",
   abstainCandidates: "NEARBY CANDIDATES · NONE ACCEPTED",
   abstainCode: "ABSTAIN · NO GUESS",
   abstainNoCandidates: "No candidates were found for this meal.",
+  describeMeal: "I will describe the meal",
   chooseManually: "Choose from the catalogue",
   retakePhoto: "Retake the photo",
   portion: "PORTION",
@@ -331,6 +358,7 @@ export const en: Dictionary = {
   pending: "Pending",
   saveQuestion: "Save with question open",
   saveToday: "Save to today",
+  saveCorrection: "Save correction",
   captureAnother: "Capture another plate",
   dayEyebrow: "TODAY",
   dayTitle: "Your day, in evidence.",
@@ -362,9 +390,14 @@ export const en: Dictionary = {
   navDay: "Day",
   apiUrlMissing: "The server address is missing.",
   uploadFailed: "Upload failed.",
+  providerUnavailable: "The provider could not be reached",
   draftSafe: "Your draft is safe.",
   cameraCaptureFailed: "The camera could not capture this plate. Try the text input instead.",
   mealAdded: "Meal added to today",
+  mealUpdated: "Meal record updated",
+  mealUndone: "Automatic record undone",
+  undoMeal: "Undo",
+  undoMealAccessibility: "Undo automatic record",
   mealRemoved: "Meal removed from today",
   removeMealTitle: "Remove this record?",
   removeMealCopy: "Are you sure you want to remove this meal from today?",

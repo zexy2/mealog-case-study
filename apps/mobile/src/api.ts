@@ -9,6 +9,16 @@ const fixtureSampleId = process.env.EXPO_PUBLIC_FIXTURE_SAMPLE_ID;
 
 export const isDemoMode = demoMode;
 
+export class MealApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "MealApiError";
+    this.status = status;
+  }
+}
+
 export type SubmitOptions = {
   demoRetry?: boolean;
 };
@@ -32,7 +42,10 @@ export async function submitMeal(capture: PendingCapture, options: SubmitOptions
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(detail || `${t("uploadFailed")} (${response.status})`);
+    const message = response.status === 503
+      ? t("providerUnavailable")
+      : detail || `${t("uploadFailed")} (${response.status})`;
+    throw new MealApiError(response.status, message);
   }
   return response.json() as Promise<MealLog>;
 }
@@ -49,7 +62,10 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
   });
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(detail || `${t("correctionFailed")} (${response.status})`);
+    const message = response.status === 503
+      ? t("providerUnavailable")
+      : detail || `${t("correctionFailed")} (${response.status})`;
+    throw new MealApiError(response.status, message);
   }
   return response.json() as Promise<MealLog>;
 }
