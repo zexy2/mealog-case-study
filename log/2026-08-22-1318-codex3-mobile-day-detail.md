@@ -30,6 +30,8 @@ Base: `29d0ff1` (`origin/main`)
 - `git diff --check` — passed.
 - `python3 scripts/status.py --check` — passed.
 - `python3 scripts/check_invariants.py` — passed.
+- `make check` via throwaway Python venv — passed: Ruff, 255 Python tests,
+  invariants, STATUS, and V3 regression guard.
 - No device or emulator execution performed.
 
 Traps: `appendMeal` previously deduplicated by returning the old array, which
