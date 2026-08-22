@@ -1,6 +1,6 @@
 # Video walkthrough script — Node/TypeScript submission
 
-Target runtime: **8:00**. This is a timed script, not a recording. Rehearse and
+Target runtime: **8:40**. This is a timed script, not a recording. Rehearse and
 re-check every evidence anchor against the recording commit immediately before
 the take. A sentence marked `PENDING` is not evidence until that check has
 passed; do not silently turn it into a claim.
@@ -19,10 +19,11 @@ folder-by-folder code tour.
 | 2:20–2:50 | Live out-of-catalogue abstention | **Required**; use the labelled fixture fallback only if the live shot cannot run |
 | 2:50–4:00 | One architecture diagram and the server-action routing table | Node/Nest boundary on screen |
 | 4:00–5:20 | The model mistake that changed the design; closed-set nutrition and worst-cuisine measurement | D1/D3 and one short code boundary |
-| 5:20–6:15 | Offline scorecard, ablation, retrieval, and regression guard | Scorecard SHA `bfb1703b…` |
-| 6:15–6:50 | Security and privacy | Request boundary and CI guard |
-| 6:50–7:30 | Limitations, exact calorie denominator, and the open photo-count defect | `n=80` scorecard plus #218 status |
-| 7:30–8:00 | Error/empty states and next steps | Close on the honest state, not a success animation |
+| 5:20–6:00 | EatBetter comparison, bounded to observed public surfaces | Visibility of uncertainty, not accuracy |
+| 6:00–6:55 | Offline scorecard, ablation, retrieval, and regression guard | Scorecard SHA `bfb1703b…` |
+| 6:55–7:30 | Security and privacy | Request boundary and CI guard |
+| 7:30–8:10 | Limitations, exact calorie denominator, and the open photo-count defect | `n=80` scorecard plus #218 status |
+| 8:10–8:40 | Error/empty states and next steps | Close on the honest state, not a success animation |
 
 ## Recording rules
 
@@ -175,7 +176,25 @@ directories.
 **On-screen proof:** D1 and D3, the closed-set resolver, and the pure nutrition
 boundary. Do not show a made-up provider response or a folder tour.
 
-### 5:20–6:15 — Evaluation, ablation, and the regression guard
+**Comparison beat — about 40 seconds, at the end of this decisions block.**
+
+**Say:**
+
+> One required comparison, bounded to observed public surfaces. I am not
+> inferring EatBetter’s model, catalogue, thresholds, or storage. The
+> demonstrable difference is visibility of uncertainty, not accuracy: mealog
+> shows a portion band, an audit panel, and a refusal. On the observed EatBetter
+> surface I saw no uncertainty signal, so a count error can propagate silently
+> into calories, sodium, iron, and glycemic load. On counting, I make no claim in
+> either direction. EatBetter was observed on two images: one over-count of
+> three against a user-confirmed two, and one correct count of two. mealog was
+> observed on one of those images and got it wrong, three runs of three. One
+> product has two data points; the other has one.
+
+**On-screen proof:** `docs/comparison.md` and the two bounded observation notes.
+Do not show an inferred competitor architecture or claim an accuracy winner.
+
+### 6:00–6:55 — Evaluation, ablation, and the regression guard
 
 **Picture:** The scorecard, retrieval table, and CI regression check. Keep the
 scorecard hash visible: `bfb1703b…`.
@@ -201,7 +220,7 @@ out-of-catalogue result summary, and the green regression check. If local output
 is unavailable, use a captured CI view; do not invent a new measurement during
 the recording.
 
-### 6:15–6:50 — Security and privacy
+### 6:55–7:30 — Security and privacy
 
 **Picture:** The HTTP boundary and the CI secret guard.
 
@@ -220,7 +239,7 @@ the recording.
 **On-screen proof:** request validation, configuration boundary, and secret-scan
 CI result. Never show credentials, a user photo, or a user identifier.
 
-### 6:50–7:30 — Limitations, with the denominator spoken aloud
+### 7:30–8:10 — Limitations, with the denominator spoken aloud
 
 **Picture:** The scorecard and the two-simit evidence note.
 
@@ -248,7 +267,7 @@ sentence.
 **On-screen proof:** scorecard with `n=80` and `2 scorable rows`, then the
 two-simit evidence. Do not hide the denominator in a footnote.
 
-### 7:30–8:00 — Error, empty, and what comes next
+### 8:10–8:40 — Error, empty, and what comes next
 
 **Picture:** The error-with-retry state, then an empty Day state, then the
 abstention screen as the closing frame.
@@ -262,7 +281,7 @@ abstention screen as the closing frame.
 > ulaşılamadı”, create no record, and return to Add.** An empty day says
 > **“Henüz bir öğün yok.”** and gives one next action.
 >
-> Next, re-verify #218 if it has landed, record this eight-minute run from the
+> Next, re-verify #218 if it has landed, record this 8:40 run from the
 > current commit, and send the submission with the scorecard hash and
 > denominators. End on the abstention: useful because it shows evidence, safe
 > because it can say no.
@@ -284,4 +303,4 @@ Do not end on a fabricated success state.
       merge and live re-run are both verified before recording.
 - [ ] Confirm no API key, personal photo, personal identifier, or raw provider
       payload appears in the recording.
-- [ ] Confirm the full script is exactly 8:00 or under the brief's ceiling.
+- [ ] Confirm the full script is at or under 9:00.
