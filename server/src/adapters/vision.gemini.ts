@@ -130,6 +130,56 @@ export const ALLOWED_IMAGE_MIME_TYPES: ReadonlySet<string> = new Set([
   'image/jpg',
 ]);
 
+const HEIC_BRANDS: ReadonlySet<string> = new Set(['heic', 'heix', 'hevc', 'hevx']);
+const HEIF_BRANDS: ReadonlySet<string> = new Set([
+  ...HEIC_BRANDS,
+  'mif1',
+  'mif2',
+  'msf1',
+]);
+const AVIF_BRANDS: ReadonlySet<string> = new Set(['avif', 'avis']);
+
+function startsWithBytes(bytes: Uint8Array, signature: readonly number[]): boolean {
+  return bytes.length >= signature.length && signature.every((value, index) => bytes[index] === value);
+}
+
+function ascii(bytes: Uint8Array, offset: number, length: number): string {
+  if (offset < 0 || bytes.length < offset + length) return '';
+  return String.fromCharCode(...bytes.subarray(offset, offset + length));
+}
+
+function hasFileTypeBrand(bytes: Uint8Array, brands: ReadonlySet<string>): boolean {
+  if (bytes.length < 16 || ascii(bytes, 4, 4) !== 'ftyp') return false;
+  if (brands.has(ascii(bytes, 8, 4))) return true;
+  for (let offset = 16; offset + 4 <= bytes.length; offset += 4) {
+    if (brands.has(ascii(bytes, offset, 4))) return true;
+  }
+  return false;
+}
+
+/** Validate content signatures after the transport's declared MIME allow-list. */
+export function isSupportedImageBytes(mediaType: string, bytes: Uint8Array): boolean {
+  switch (mediaType.toLowerCase()) {
+    case 'image/jpeg':
+    case 'image/jpg':
+      return startsWithBytes(bytes, [0xff, 0xd8, 0xff]);
+    case 'image/png':
+      return startsWithBytes(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    case 'image/gif':
+      return ascii(bytes, 0, 6) === 'GIF87a' || ascii(bytes, 0, 6) === 'GIF89a';
+    case 'image/webp':
+      return ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 4) === 'WEBP';
+    case 'image/avif':
+      return hasFileTypeBrand(bytes, AVIF_BRANDS);
+    case 'image/heic':
+      return hasFileTypeBrand(bytes, HEIC_BRANDS);
+    case 'image/heif':
+      return hasFileTypeBrand(bytes, HEIF_BRANDS);
+    default:
+      return false;
+  }
+}
+
 /** Read the live model from environment-backed application config. */
 export function configuredModelId(env: NodeJS.ProcessEnv = process.env): string {
   return (env[MODEL_ENV_VAR] ?? DEFAULT_MODEL).trim() || DEFAULT_MODEL;
@@ -202,6 +252,9 @@ export function imagePart(input: VisionInput): Record<string, unknown> {
   }
   if (input.imageBytes.length > 10 * 1024 * 1024) {
     throw new Error('Gemini image exceeds 10 MiB limit');
+  }
+  if (!isSupportedImageBytes(mimeType, input.imageBytes)) {
+    throw new Error(`unsupported Gemini image content '${mimeType}'`);
   }
   return {
     inlineData: {
@@ -415,6 +468,7 @@ export class GeminiVision {
 
   requestCount = 0;
   lastItems: PerceivedItem[] | null = null;
+  /** Strong only while perceive is in flight; recording uses the weak identity below. */
   lastInput: VisionInput | null = null;
   degraded = false;
   rung: string = RUNG_CONFIGURED_MODEL;
@@ -427,6 +481,7 @@ export class GeminiVision {
   private readonly jitter: (cap: number) => number;
   private readonly onEvent: EventSink;
   private lastRequestStarted: number | null = null;
+  private lastInputRef: WeakRef<VisionInput> | null = null;
 
   constructor(options: GeminiVisionOptions) {
     if (!options.apiKey.trim()) {
@@ -588,6 +643,8 @@ export class GeminiVision {
     const hasImage = input.imageBytes !== null;
     this.lastInput = input;
     this.lastItems = null;
+    this.lastInputRef = new WeakRef(input);
+    try {
     this.degraded = false;
     this.rung = RUNG_CONFIGURED_MODEL;
     this.lastModel = this.modelId;
@@ -672,6 +729,9 @@ export class GeminiVision {
       `Gemini provider exhausted after ${totalAttempts} attempt(s); ` +
         `terminal_status=${String(status)}; rung=${lastRung}: ${lastFailure.message}`,
     );
+    } finally {
+      this.lastInput = null;
+    }
   }
 
   /**
@@ -716,7 +776,7 @@ export class GeminiVision {
    * byte-identical file, which is what makes re-running the recorder safe.
    */
   recordFixture(directory: string, input: VisionInput, path?: string): string {
-    if (this.lastItems === null || this.lastInput !== input) {
+    if (this.lastItems === null || this.lastInputRef?.deref() !== input) {
       throw new Error('record_fixture must follow a successful perceive call');
     }
     const key = input.fixtureKey;

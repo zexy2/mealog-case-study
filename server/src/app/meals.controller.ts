@@ -12,7 +12,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-import { ALLOWED_IMAGE_MIME_TYPES } from '../adapters/vision.gemini';
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  isSupportedImageBytes,
+} from '../adapters/vision.gemini';
 import { VisionInput } from '../pipeline/ports';
 
 import { MealsService, type MealRequest } from './meals.service';
@@ -74,6 +77,9 @@ function inputFor(
     }
     if (image.buffer.length > MAX_IMAGE_BYTES) {
       invalid(HttpStatus.PAYLOAD_TOO_LARGE, 'image exceeds 10 MiB limit');
+    }
+    if (!isSupportedImageBytes(mediaType, image.buffer)) {
+      invalid(HttpStatus.UNSUPPORTED_MEDIA_TYPE, 'unsupported image content');
     }
     return new VisionInput({
       imageBytes: image.buffer,
