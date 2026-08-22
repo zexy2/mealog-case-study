@@ -136,6 +136,8 @@ export async function run(
   for (const item of normalized) {
     const candidates = retrieval.search(item.query, pack);
     const result = resolve(item.query, candidates, config.gating);
+    result.quantity = item.quantity;
+    result.unit = item.unit;
 
     // Keep ABSTAIN as an item. In particular, do not run it through portion or
     // nutrition: a missing catalogue food is not a zero-calorie food.

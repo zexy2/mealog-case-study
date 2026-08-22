@@ -23,6 +23,14 @@ type PortionSliderProps = {
 
 const PortionSlider = Slider as unknown as React.ComponentType<PortionSliderProps>;
 
+function quantityLabel(item: MealLog["items"][number]) {
+  if (item.quantity === null || item.quantity === undefined) {
+    return t("quantityUnknown");
+  }
+  const quantity = String(item.quantity);
+  return t("quantityValue", { quantity, unit: item.unit ? ` ${item.unit}` : "" });
+}
+
 export type ReviewScreenProps = {
   meal: MealLog;
   expandedItem: number | null;
@@ -82,6 +90,7 @@ export function ReviewScreen({
               <View style={styles.itemNameWrap}>
                 <Text style={styles.itemQuery}>{item.query}</Text>
                 <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? t("needsMatch") : item.candidates.find((candidate) => candidate.food_id === selected)?.name ?? selected}</Text>
+                <Text style={styles.quantityText}>{quantityLabel(item)}</Text>
               </View>
               <View style={styles.confidencePill}><Text style={styles.confidenceText}>{Math.round(item.confidence * 100)}%</Text></View>
             </View>
@@ -139,6 +148,7 @@ export function ReviewScreen({
                 <AuditRow label={t("matchedFoodId")} value={selected} mono />
                 <AuditRow label={t("sourceDatabase")} value={item.source_database ?? t("catalogueProvenance")} />
                 <AuditRow label={t("confidence")} value={`${Math.round(item.confidence * 100)}%`} />
+                <AuditRow label={t("quantity")} value={quantityLabel(item)} />
                 <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
               </View>
             ) : null}
@@ -174,6 +184,7 @@ const styles = StyleSheet.create({
   itemNameWrap: { flex: 1, marginLeft: 11 },
   itemQuery: { color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 },
   itemMatch: { color: colors.ink, fontSize: 16, fontWeight: "800", marginTop: 3 },
+  quantityText: { color: colors.muted, fontSize: 11, marginTop: 5 },
   confidencePill: { backgroundColor: colors.mossSoft, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6 },
   confidenceText: { color: colors.moss, fontSize: 11, fontWeight: "800" },
   questionCard: { backgroundColor: "#FBF1D8", borderRadius: 15, padding: 13, marginTop: 17 },

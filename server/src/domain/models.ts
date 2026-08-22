@@ -164,6 +164,9 @@ export interface ResolvedItem {
   query: string;
   food_id: string;
   candidates: Candidate[];
+  /** Normalized provider quantity evidence; null means the quantity is unknown. */
+  quantity: number | null;
+  unit: string | null;
   grams: number;
   grams_p10: number;
   grams_p90: number;
@@ -180,6 +183,8 @@ export function makeResolvedItem(
     query: init.query,
     food_id: init.food_id ?? ABSTAIN,
     candidates: init.candidates ?? [],
+    quantity: init.quantity ?? null,
+    unit: init.unit ?? null,
     grams: init.grams ?? 0.0,
     grams_p10: init.grams_p10 ?? 0.0,
     grams_p90: init.grams_p90 ?? 0.0,

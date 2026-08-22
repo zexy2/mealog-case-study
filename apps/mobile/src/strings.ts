@@ -64,6 +64,11 @@ export type StringKey =
   | "catalogueProvenance"
   | "confidence"
   | "exactGrams"
+  | "quantity"
+  | "quantityUnknown"
+  | "quantityValue"
+  | "itemWithQuantity"
+  | "itemUnknownQuantity"
   | "pending"
   | "saveQuestion"
   | "saveToday"
@@ -169,6 +174,11 @@ export const tr: Dictionary = {
   catalogueProvenance: "Katalog kaynağı",
   confidence: "Güven",
   exactGrams: "Kullanılan gram",
+  quantity: "MİKTAR",
+  quantityUnknown: "Miktar bilinmiyor · kontrol et",
+  quantityValue: "Miktar: {quantity}{unit}",
+  itemWithQuantity: "{quantity}{unit} {name}",
+  itemUnknownQuantity: "{name} · miktar bilinmiyor",
   pending: "Bekleniyor",
   saveQuestion: "Soruyu açık bırakarak kaydet",
   saveToday: "Bugüne kaydet",
@@ -272,6 +282,11 @@ export const en: Dictionary = {
   catalogueProvenance: "Catalogue provenance",
   confidence: "Confidence",
   exactGrams: "Exact grams used",
+  quantity: "QUANTITY",
+  quantityUnknown: "Quantity unknown · review",
+  quantityValue: "Quantity: {quantity}{unit}",
+  itemWithQuantity: "{quantity}{unit} {name}",
+  itemUnknownQuantity: "{name} · quantity unknown",
   pending: "Pending",
   saveQuestion: "Save with question open",
   saveToday: "Save to today",

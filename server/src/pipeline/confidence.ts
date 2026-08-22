@@ -57,6 +57,15 @@ export function route(log: MealLog): MealLog {
     return log;
   }
 
+  // A point mass without quantity evidence can silently turn several visible
+  // instances into one catalogue serving. Keep the count unknown and make the
+  // user review it; this is additive to the interval gate and does not invent
+  // a count or tune either existing threshold.
+  if (log.items.some((item) => item.quantity === null)) {
+    log.action = 'review';
+    return log;
+  }
+
   const lowest = Math.min(...log.items.map(effectiveConfidence));
   if (lowest >= AUTO_ACCEPT) {
     log.action = 'auto_accept';
