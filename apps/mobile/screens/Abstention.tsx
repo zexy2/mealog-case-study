@@ -9,11 +9,11 @@ import { colors } from "../components/theme";
 
 export type AbstentionScreenProps = {
   meal: MealLog;
-  onChooseManually: () => void;
+  onDescribe: () => void;
   onRetake: () => void;
 };
 
-export function AbstentionScreen({ meal, onChooseManually, onRetake }: AbstentionScreenProps) {
+export function AbstentionScreen({ meal, onDescribe, onRetake }: AbstentionScreenProps) {
   const item = meal.items[0];
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -46,9 +46,9 @@ export function AbstentionScreen({ meal, onChooseManually, onRetake }: Abstentio
         ) : <Text style={styles.noCandidates}>{t("abstainNoCandidates")}</Text>}
       </View>
 
-      <Pressable style={styles.primaryButton} onPress={onChooseManually}>
-        <Ionicons name="list-outline" size={19} color={colors.white} />
-        <Text style={styles.primaryButtonText}>{t("chooseManually")}</Text>
+      <Pressable style={styles.primaryButton} onPress={onDescribe}>
+        <Ionicons name="create-outline" size={19} color={colors.white} />
+        <Text style={styles.primaryButtonText}>{t("describeMeal")}</Text>
       </Pressable>
       <Pressable style={styles.textButton} onPress={onRetake}>
         <Ionicons name="camera-outline" size={17} color={colors.muted} />

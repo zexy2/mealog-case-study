@@ -12,9 +12,11 @@ export type DayScreenProps = {
   meals: MealLog[];
   totalCalories: number;
   totalProtein: number;
+  highlightedMealKey: string | null;
   onCapture: () => void;
   onOpenMeal: (meal: MealLog) => void;
   onRemoveMeal: (meal: MealLog) => void;
+  onUndoMeal: (meal: MealLog) => void;
 };
 
 export function portionTotals(meals: MealLog[]) {
@@ -48,7 +50,7 @@ export function mealTitle(meal: MealLog) {
   return names.length > 0 ? names.join(" · ") : t("mealFallback");
 }
 
-export function DayScreen({ meals, totalCalories, totalProtein, onCapture, onOpenMeal, onRemoveMeal }: DayScreenProps) {
+export function DayScreen({ meals, totalCalories, totalProtein, highlightedMealKey, onCapture, onOpenMeal, onRemoveMeal, onUndoMeal }: DayScreenProps) {
   const portions = portionTotals(meals);
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -79,7 +81,7 @@ export function DayScreen({ meals, totalCalories, totalProtein, onCapture, onOpe
             <Text style={styles.listCount}>{t("loggedCount", { count: meals.length })}</Text>
           </View>
           {meals.map((item, index) => (
-            <View style={styles.mealRow} key={item.idempotency_key}>
+            <View style={[styles.mealRow, item.idempotency_key === highlightedMealKey && styles.mealRowHighlighted]} key={item.idempotency_key}>
               <Pressable
                 style={styles.mealRowOpen}
                 onPress={() => onOpenMeal(item)}
@@ -92,6 +94,12 @@ export function DayScreen({ meals, totalCalories, totalProtein, onCapture, onOpe
                 <View style={styles.mealRowBody}>
                   <Text style={styles.mealTitle} numberOfLines={2}>{mealTitle(item)}</Text>
                   <Text style={styles.mealMeta}>{t("itemCount", { count: item.items.length, plural: item.items.length === 1 ? "" : "s" })} · {actionLabel(item.action)}</Text>
+                  {item.idempotency_key === highlightedMealKey ? (
+                    <Pressable style={styles.undoButton} onPress={() => onUndoMeal(item)} accessibilityRole="button" accessibilityLabel={t("undoMealAccessibility")}>
+                      <Ionicons name="arrow-undo-outline" size={14} color={colors.terracotta} />
+                      <Text style={styles.undoButtonText}>{t("undoMeal")}</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
                 <Text style={styles.mealKcal}>{Math.round(item.totals.kcal)} kcal</Text>
                 <Ionicons name="chevron-forward" size={17} color={colors.muted} />
@@ -143,6 +151,7 @@ const styles = StyleSheet.create({
   sectionLabel: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
   listCount: { color: colors.muted, fontSize: 11 },
   mealRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 15 },
+  mealRowHighlighted: { backgroundColor: colors.mossSoft, borderLeftWidth: 3, borderLeftColor: colors.moss, paddingLeft: 8 },
   mealRowOpen: { flex: 1, flexDirection: "row", alignItems: "center" },
   mealTime: { width: 58 },
   mealTimeCurrent: { borderLeftWidth: 3, borderLeftColor: colors.terracotta, paddingLeft: 8 },
@@ -151,6 +160,8 @@ const styles = StyleSheet.create({
   mealRowBody: { flex: 1, paddingRight: 8 },
   mealTitle: { color: colors.ink, fontSize: 14, fontWeight: "800" },
   mealMeta: { color: colors.muted, fontSize: 11, marginTop: 4 },
+  undoButton: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
+  undoButtonText: { color: colors.terracotta, fontSize: 11, fontWeight: "800" },
   mealKcal: { color: colors.ink, fontSize: 12, fontWeight: "800" },
   removeButton: { width: 34, minHeight: 36, alignItems: "center", justifyContent: "center", marginLeft: 7 },
   dayNote: { flexDirection: "row", gap: 9, backgroundColor: colors.terracottaSoft, borderRadius: 17, padding: 13, marginTop: 21 },

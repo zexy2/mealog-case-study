@@ -14,7 +14,7 @@ import { AbstentionScreen } from "./screens/Abstention";
 import { CaptureScreen } from "./screens/Capture";
 import { DayScreen } from "./screens/Day";
 import { ReviewScreen } from "./screens/Review";
-import { correctMeal, isDemoMode, submitMeal } from "./src/api";
+import { correctMeal, isDemoMode, MealApiError, submitMeal } from "./src/api";
 import { buildMealCorrections, removeSavedMeal } from "./src/corrections";
 import { initialDayMeals } from "./src/demoData";
 import { demoInput, demoScenarioFor } from "./src/demoScenarios";
@@ -44,6 +44,7 @@ export default function App() {
   const [selectedCandidates, setSelectedCandidates] = useState<Record<number, string>>({});
   const [quantityEdits, setQuantityEdits] = useState<Record<number, number | null>>({});
   const [reviewingSavedMealKey, setReviewingSavedMealKey] = useState<string | null>(null);
+  const [highlightedMealKey, setHighlightedMealKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -88,6 +89,8 @@ export default function App() {
   async function submit(source: Omit<PendingCapture, "idempotencyKey">, retryKey?: string, demoRetry = false) {
     const capture: PendingCapture = { ...source, idempotencyKey: retryKey ?? newIdempotencyKey() };
     setReviewingSavedMealKey(null);
+    setMeal(null);
+    setHighlightedMealKey(null);
     setError(null);
     setAnalysisStep(0);
     setBusy(true);
@@ -108,13 +111,15 @@ export default function App() {
       setPortionEdits({});
       setSelectedCandidates({});
       setQuantityEdits({});
-      setExpandedItem(null);
+      setExpandedItem(result.items.length > 0 ? 0 : null);
       setBusy(false);
       if (result.action === "auto_accept" && !result.degraded) {
         upsertMeal(result);
+        setReviewingSavedMealKey(result.idempotency_key);
+        setHighlightedMealKey(result.idempotency_key);
         setBanner(t("mealAdded"));
         setScreen("day");
-      } else if (result.action === "ask") {
+      } else if (result.action === "ask" && result.items.some((item) => item.food_id === "ABSTAIN")) {
         setScreen("abstain");
       } else {
         setScreen("review");
@@ -122,7 +127,7 @@ export default function App() {
     } catch (caught) {
       setBusy(false);
       setScreen("capture");
-      setError(isDemoMode && caught instanceof Error ? caught.message : t("uploadFailed"));
+      setError(caught instanceof MealApiError || isDemoMode && caught instanceof Error ? caught.message : t("uploadFailed"));
     }
   }
 
@@ -163,7 +168,7 @@ export default function App() {
     setPortionEdits({});
     setSelectedCandidates({});
     setQuantityEdits({});
-    setExpandedItem(null);
+    setExpandedItem(savedMeal.items.length > 0 ? 0 : null);
     setScreen("review");
   }
 
@@ -178,6 +183,7 @@ export default function App() {
           style: "destructive",
           onPress: () => {
             setDayMeals((current) => removeSavedMeal(current, savedMeal.idempotency_key));
+            setHighlightedMealKey((current) => current === savedMeal.idempotency_key ? null : current);
             setBanner(t("mealRemoved"));
           },
         },
@@ -187,6 +193,7 @@ export default function App() {
 
   async function saveReview() {
     if (!meal) return;
+    const wasSaved = reviewingSavedMealKey !== null;
     const corrections = buildMealCorrections(meal, portionEdits, selectedCandidates, quantityEdits);
     setSaving(true);
     try {
@@ -197,7 +204,8 @@ export default function App() {
       setSelectedCandidates({});
       setQuantityEdits({});
       setReviewingSavedMealKey(null);
-      setBanner(saved.action === "ask" ? t("savedQuestionOpen") : t("mealAdded"));
+      setHighlightedMealKey(null);
+      setBanner(wasSaved ? t("mealUpdated") : saved.action === "ask" ? t("savedQuestionOpen") : t("mealAdded"));
       setScreen("day");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("correctionFailed"));
@@ -221,6 +229,20 @@ export default function App() {
     void submit({ text: demoInput(scenario) });
   }
 
+  function undoAutoAcceptedMeal(savedMeal: MealLog) {
+    setDayMeals((current) => removeSavedMeal(current, savedMeal.idempotency_key));
+    setMeal(null);
+    setReviewingSavedMealKey(null);
+    setHighlightedMealKey(null);
+    setBanner(t("mealUndone"));
+  }
+
+  function leaveAbstention() {
+    setMeal(null);
+    setText("");
+    setScreen("capture");
+  }
+
   const totalCalories = useMemo(() => dayMeals.reduce((sum, item) => sum + item.totals.kcal, 0), [dayMeals]);
   const totalProtein = useMemo(() => dayMeals.reduce((sum, item) => sum + item.totals.protein_g, 0), [dayMeals]);
 
@@ -232,7 +254,7 @@ export default function App() {
     return (
       <AppShell>
         <ErrorState message={error} canRetry={Boolean(pending)} onRetry={retryPending} onRetake={() => { setError(null); setScreen("capture"); }} />
-        <BottomNav screen="capture" canReview={Boolean(meal)} onChange={setScreen} />
+        <BottomNav screen="capture" canReview={false} onChange={setScreen} />
       </AppShell>
     );
   }
@@ -256,7 +278,7 @@ export default function App() {
         />
       ) : null}
       {screen === "abstain" && meal ? (
-        <AbstentionScreen meal={meal} onChooseManually={() => setScreen("review")} onRetake={() => setScreen("capture")} />
+        <AbstentionScreen meal={meal} onDescribe={leaveAbstention} onRetake={leaveAbstention} />
       ) : null}
       {screen === "review" && meal ? (
         <ReviewScreen
@@ -270,6 +292,7 @@ export default function App() {
           selectedCandidates={selectedCandidates}
           onChooseCandidate={chooseCandidate}
           onSave={saveReview}
+          isSaved={reviewingSavedMealKey !== null}
           saving={saving}
           onBack={() => {
             if (reviewingSavedMealKey) {
@@ -278,12 +301,13 @@ export default function App() {
               setScreen("day");
               return;
             }
+            setMeal(null);
             setScreen("capture");
           }}
         />
       ) : null}
-      {screen === "day" ? <DayScreen meals={dayMeals} totalCalories={totalCalories} totalProtein={totalProtein} onCapture={() => setScreen("capture")} onOpenMeal={openSavedMeal} onRemoveMeal={requestRemoveMeal} /> : null}
-      <BottomNav screen={screen} canReview={Boolean(meal)} onChange={setScreen} />
+      {screen === "day" ? <DayScreen meals={dayMeals} totalCalories={totalCalories} totalProtein={totalProtein} highlightedMealKey={highlightedMealKey} onCapture={() => setScreen("capture")} onOpenMeal={openSavedMeal} onRemoveMeal={requestRemoveMeal} onUndoMeal={undoAutoAcceptedMeal} /> : null}
+      <BottomNav screen={screen} canReview={Boolean(meal && screen === "review")} onChange={setScreen} />
     </AppShell>
   );
 }

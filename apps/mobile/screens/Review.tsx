@@ -59,6 +59,7 @@ export type ReviewScreenProps = {
   selectedCandidates: Record<number, string>;
   onChooseCandidate: (index: number, candidate: Candidate) => void;
   onSave: () => void;
+  isSaved?: boolean;
   saving?: boolean;
   onBack: () => void;
 };
@@ -74,6 +75,7 @@ export function ReviewScreen({
   selectedCandidates,
   onChooseCandidate,
   onSave,
+  isSaved = false,
   saving = false,
   onBack,
 }: ReviewScreenProps) {
@@ -81,7 +83,7 @@ export function ReviewScreen({
   const tone = actionTone(displayAction);
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Header eyebrow={t("reviewEyebrow")} title={t("reviewTitle")} subtitle={t("reviewSubtitle")} />
+      <Header eyebrow={t("reviewEyebrow")} title={isSaved ? t("savedReviewTitle") : t("reviewTitle")} subtitle={isSaved ? t("savedReviewSubtitle") : t("reviewSubtitle")} />
       {meal.degraded ? (
         <View style={styles.degradedBanner}>
           <Ionicons name="warning-outline" size={19} color="#8D641C" />
@@ -108,6 +110,7 @@ export function ReviewScreen({
         const quantity = hasQuantityEdit ? quantityEdits[index] : item.quantity;
         const clarification = item.clarification ?? null;
         const quantityUnit = clarification?.kind === "count" ? clarification.unit ?? item.unit : item.unit;
+        const hasPortionBand = grams > 0 && item.grams_p90 >= item.grams_p10 && item.grams_p90 > 0;
         const hasRange = item.grams_p90 > item.grams_p10;
         return (
           <View key={`${item.query}-${index}`} style={styles.itemCard}>
@@ -155,7 +158,7 @@ export function ReviewScreen({
 
             <View style={styles.portionHeader}>
               <Text style={styles.sectionLabel}>{t("portion")}</Text>
-              <Text style={styles.gramsValue}>{grams ? (hasRange ? t("portionBand", { grams: Math.round(grams), low: Math.round(item.grams_p10), high: Math.round(item.grams_p90) }) : `${Math.round(grams)} g`) : t("notEstimated")}</Text>
+              <Text style={styles.gramsValue}>{hasPortionBand ? t("portionBand", { grams: Math.round(grams), low: Math.round(item.grams_p10), high: Math.round(item.grams_p90) }) : t("notEstimated")}</Text>
             </View>
             {hasRange ? (
               <>
@@ -214,7 +217,7 @@ export function ReviewScreen({
       })}
 
       <Pressable style={[styles.primaryButton, saving && styles.primaryButtonDisabled]} onPress={onSave} disabled={saving}>
-        <Text style={styles.primaryButtonText}>{saving ? t("saving") : meal.action === "ask" ? t("saveQuestion") : t("saveToday")}</Text>
+        <Text style={styles.primaryButtonText}>{saving ? t("saving") : isSaved ? t("saveCorrection") : meal.action === "ask" ? t("saveQuestion") : t("saveToday")}</Text>
         <Ionicons name="arrow-forward" size={19} color={colors.white} />
       </Pressable>
       <Pressable style={styles.textButton} onPress={onBack}><Text style={styles.textButtonLabel}>{t("captureAnother")}</Text></Pressable>
