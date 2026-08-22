@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CanonicalFood } from '../src/domain/models';
+import { load } from '../src/locales/loader';
 import {
   DEFAULT_SPREAD,
   LABEL_SERVING_SPREAD,
@@ -31,6 +32,20 @@ const food = (overrides: Partial<CanonicalFood> = {}): CanonicalFood => ({
 
 const pack = (units: PortionLocalePack['units']): PortionLocalePack => ({ units });
 
+const catalogueServingRows = [
+  ['tr.lahmacun', 2, 'adet', 280],
+  ['tr.yumurta_tavuk', 1, 'adet', 50],
+  ['tr.elma', 1, 'adet', 150],
+  ['tr.yaprak_sarma', 3, 'adet', 75],
+  ['tr.antep_baklavasi', 1, 'dilim', 80],
+  ['tr.pilav', 1, 'porsiyon', 180],
+  ['tr.ceviz', 1, 'porsiyon', 30],
+  ['tr.turk_kahvesi', 1, 'fincan', 7],
+  ['tr.simit', 2, 'adet', 200],
+  ['tr.ekmek_beyaz', 3, 'dilim', 75],
+  ['tr.mercimek_corbasi', 1, 'kase', 250],
+] as const;
+
 describe('parsePortion', () => {
   it.each([
     ['1/2 cup', 0.5, 'cup'],
@@ -49,6 +64,58 @@ describe('parsePortion', () => {
 });
 
 describe('estimate', () => {
+  it.each(catalogueServingRows)(
+    'uses the food catalogue serving for %s %s %s',
+    (foodId, quantity, unit, grams) => {
+      const trPack = load('tr');
+      const result = estimate(trPack.foods[foodId], quantity, unit, trPack);
+
+      expect(result.grams).toBe(grams);
+      expect(result.source).toBe('explicit_unit');
+      expect(result.provenance).toContain(`per_unit_g=${grams / quantity}`);
+      expect(result.provenance).toContain('source=catalogue_serving');
+    },
+  );
+
+  it('uses one catalogue serving when the matching unit has no quantity', () => {
+    const trPack = load('tr');
+    const result = estimate(trPack.foods['tr.yaprak_sarma'], null, 'adet', trPack);
+
+    expect(result).toMatchObject({
+      grams: 25,
+      p10: 16.2,
+      p90: 36.2,
+      source: 'assumed_unit',
+    });
+    expect(result.provenance).toContain('per_unit_g=25');
+  });
+
+  it('matches catalogue units across accents, case, spaces, and underscores', () => {
+    const trPack = load('tr');
+    const tea = estimate(trPack.foods['tr.tereyagi'], 1, 'cay_kasigi', trPack);
+    const lahmacun = estimate(trPack.foods['tr.lahmacun'], 1, 'ADET', trPack);
+
+    expect(tea).toMatchObject({ grams: 10, source: 'explicit_unit' });
+    expect(tea.provenance).toContain('source=catalogue_serving');
+    expect(lahmacun).toMatchObject({ grams: 140, source: 'explicit_unit' });
+    expect(lahmacun.provenance).toContain('source=catalogue_serving');
+  });
+
+  it('falls back to the generic unit table when the food names another unit', () => {
+    const result = estimate(
+      food({ default_serving_g: 80, default_serving_name: '1 serving' }),
+      2,
+      'adet',
+      pack({ adet: { g: 25 } }),
+    );
+
+    expect(result).toMatchObject({
+      grams: 50,
+      source: 'explicit_unit',
+      provenance: 'unit=adet; quantity=2.0; conversion_g=25',
+    });
+  });
+
   it('uses a label serving before a provider package-size hint', () => {
     const result = estimate(
       food({

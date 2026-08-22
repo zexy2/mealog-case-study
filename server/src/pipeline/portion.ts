@@ -113,6 +113,48 @@ function unitConversion(
   return (pack.units as Readonly<Record<string, UnitConversion>>)[unit];
 }
 
+function normalizeServingUnit(value: string): string {
+  return value
+    .trim()
+    .normalize('NFD')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/\p{Diacritic}/gu, '')
+    .replaceAll('ı', 'i')
+    .replace(/[\s_]+/gu, '_');
+}
+
+function leadingCount(value: string): { count: number; unit: string } | undefined {
+  const match = /^\s*(\d+(?:[.,]\d+)?(?:\s+\d+\s*\/\s*\d+|\s*\/\s*\d+)?)\s+(.+?)\s*$/u.exec(value);
+  if (match === null) return undefined;
+
+  const countParts = match[1].replace(',', '.').trim().split(/\s+/u);
+  let count: number;
+  if (countParts.length === 2 && countParts[1].includes('/')) {
+    const [numerator, denominator] = countParts[1].split('/', 2).map(Number);
+    count = Number(countParts[0]) + numerator / denominator;
+  } else if (countParts.length === 1 && countParts[0].includes('/')) {
+    const [numerator, denominator] = countParts[0].split('/', 2).map(Number);
+    count = numerator / denominator;
+  } else {
+    count = Number(countParts[0]);
+  }
+  if (!Number.isFinite(count) || count <= 0) return undefined;
+  return { count, unit: match[2] };
+}
+
+function cataloguePerUnitGrams(
+  food: CanonicalFood,
+  requestedUnit: PortionUnit,
+): number | undefined {
+  if (!requestedUnit) return undefined;
+  const serving = leadingCount(food.default_serving_name);
+  if (serving === undefined) return undefined;
+  if (normalizeServingUnit(serving.unit) !== normalizeServingUnit(requestedUnit)) {
+    return undefined;
+  }
+  return food.default_serving_g / serving.count;
+}
+
 function packagedPortion(food: CanonicalFood): PortionEstimate | undefined {
   /** Product records win over provider hints such as `32 oz container`. */
   if (food.serving_size_g !== null && food.serving_size_g !== undefined) {
@@ -186,33 +228,42 @@ export function estimate(
   let source: PortionSource = 'catalogue_default';
   let provenance = `catalogue.default_serving_g=${formatNumber(food.default_serving_g)}`;
 
-  const conversion = unit ? unitConversion(pack, unit) : undefined;
-  if (conversion !== undefined) {
+  const perUnitGrams = cataloguePerUnitGrams(food, unit);
+  if (perUnitGrams !== undefined) {
     const multiplier = quantity !== null && quantity !== undefined ? quantity : 1.0;
-    if (conversion.g) {
-      grams = conversion.g * multiplier;
-      spread = spreadForUnit(quantity);
-      source = quantity !== null && quantity !== undefined ? 'explicit_unit' : 'assumed_unit';
-      provenance = `unit=${unit}; quantity=${formatPythonRepr(quantity)}; conversion_g=${formatNumber(conversion.g)}`;
-    } else if (conversion.ml) {
-      const density = food.density_g_per_ml;
-      if (typeof density === 'number' && density > 0) {
-        grams = conversion.ml * density * multiplier;
+    grams = perUnitGrams * multiplier;
+    spread = spreadForUnit(quantity);
+    source = quantity !== null && quantity !== undefined ? 'explicit_unit' : 'assumed_unit';
+    provenance = `unit=${unit}; quantity=${formatPythonRepr(quantity)}; per_unit_g=${formatNumber(perUnitGrams)}; source=catalogue_serving`;
+  } else {
+    const conversion = unit ? unitConversion(pack, unit) : undefined;
+    if (conversion !== undefined) {
+      const multiplier = quantity !== null && quantity !== undefined ? quantity : 1.0;
+      if (conversion.g) {
+        grams = conversion.g * multiplier;
         spread = spreadForUnit(quantity);
-        source = quantity !== null && quantity !== undefined ? 'known_density' : 'assumed_density';
-        provenance = `unit=${unit}; quantity=${formatPythonRepr(quantity)}; density_g_per_ml=${formatNumber(density)}; density_source=${food.density_source}`;
-      } else {
-        grams = conversion.ml * UNKNOWN_DENSITY_MIDPOINT_G_PER_ML * multiplier;
-        spread = UNKNOWN_DENSITY_SPREAD;
-        source = 'unknown_density';
-        provenance = `unit=${unit}; quantity=${formatPythonRepr(quantity)}; density_missing; midpoint_g_per_ml=1.0`;
+        source = quantity !== null && quantity !== undefined ? 'explicit_unit' : 'assumed_unit';
+        provenance = `unit=${unit}; quantity=${formatPythonRepr(quantity)}; conversion_g=${formatNumber(conversion.g)}`;
+      } else if (conversion.ml) {
+        const density = food.density_g_per_ml;
+        if (typeof density === 'number' && density > 0) {
+          grams = conversion.ml * density * multiplier;
+          spread = spreadForUnit(quantity);
+          source = quantity !== null && quantity !== undefined ? 'known_density' : 'assumed_density';
+          provenance = `unit=${unit}; quantity=${formatPythonRepr(quantity)}; density_g_per_ml=${formatNumber(density)}; density_source=${food.density_source}`;
+        } else {
+          grams = conversion.ml * UNKNOWN_DENSITY_MIDPOINT_G_PER_ML * multiplier;
+          spread = UNKNOWN_DENSITY_SPREAD;
+          source = 'unknown_density';
+          provenance = `unit=${unit}; quantity=${formatPythonRepr(quantity)}; density_missing; midpoint_g_per_ml=1.0`;
+        }
       }
+    } else if (quantity !== null && quantity !== undefined) {
+      grams = food.default_serving_g * quantity;
+      spread = CATALOGUE_DEFAULT_SCALED_SPREAD;
+      source = 'catalogue_default_scaled';
+      provenance = `fallback=catalogue.default_serving_g=${formatNumber(food.default_serving_g)}; quantity=${formatNumber(quantity)}; unit=unknown`;
     }
-  } else if (quantity !== null && quantity !== undefined) {
-    grams = food.default_serving_g * quantity;
-    spread = CATALOGUE_DEFAULT_SCALED_SPREAD;
-    source = 'catalogue_default_scaled';
-    provenance = `fallback=catalogue.default_serving_g=${formatNumber(food.default_serving_g)}; quantity=${formatNumber(quantity)}; unit=unknown`;
   }
 
   return result(grams, spread, source, provenance);
