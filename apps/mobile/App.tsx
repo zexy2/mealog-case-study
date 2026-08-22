@@ -41,6 +41,7 @@ export default function App() {
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
   const [portionEdits, setPortionEdits] = useState<Record<number, number>>({});
   const [selectedCandidates, setSelectedCandidates] = useState<Record<number, string>>({});
+  const [reviewingSavedMealKey, setReviewingSavedMealKey] = useState<string | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(PENDING_KEY)
@@ -83,6 +84,7 @@ export default function App() {
 
   async function submit(source: Omit<PendingCapture, "idempotencyKey">, retryKey?: string, demoRetry = false) {
     const capture: PendingCapture = { ...source, idempotencyKey: retryKey ?? newIdempotencyKey() };
+    setReviewingSavedMealKey(null);
     setError(null);
     setAnalysisStep(0);
     setBusy(true);
@@ -105,7 +107,7 @@ export default function App() {
       setExpandedItem(null);
       setBusy(false);
       if (result.action === "auto_accept" && !result.degraded) {
-        appendMeal(result);
+        upsertMeal(result);
         setBanner(t("mealAdded"));
         setScreen("day");
       } else if (result.action === "ask") {
@@ -141,16 +143,32 @@ export default function App() {
     }
   }
 
-  function appendMeal(next: MealLog) {
+  function upsertMeal(next: MealLog) {
     setDayMeals((current) => {
-      if (current.some((item) => item.idempotency_key === next.idempotency_key)) return current;
-      return [{ ...next, createdAt: next.createdAt ?? new Date().toISOString() }, ...current];
+      const existingIndex = current.findIndex((item) => item.idempotency_key === next.idempotency_key);
+      const existing = existingIndex >= 0 ? current[existingIndex] : undefined;
+      const saved = {
+        ...next,
+        createdAt: next.createdAt ?? existing?.createdAt ?? new Date().toISOString(),
+      };
+      if (existingIndex < 0) return [saved, ...current];
+      return current.map((item, index) => (index === existingIndex ? saved : item));
     });
+  }
+
+  function openSavedMeal(savedMeal: MealLog) {
+    setMeal(savedMeal);
+    setReviewingSavedMealKey(savedMeal.idempotency_key);
+    setPortionEdits({});
+    setSelectedCandidates({});
+    setExpandedItem(null);
+    setScreen("review");
   }
 
   function saveReview() {
     if (!meal) return;
-    appendMeal({ ...meal, createdAt: meal.createdAt ?? new Date().toISOString() });
+    upsertMeal(meal);
+    setReviewingSavedMealKey(null);
     setBanner(meal.action === "ask" ? t("savedQuestionOpen") : t("mealAdded"));
     setScreen("day");
   }
@@ -226,10 +244,18 @@ export default function App() {
           selectedCandidates={selectedCandidates}
           onChooseCandidate={chooseCandidate}
           onSave={saveReview}
-          onBack={() => setScreen("capture")}
+          onBack={() => {
+            if (reviewingSavedMealKey) {
+              setReviewingSavedMealKey(null);
+              setMeal(null);
+              setScreen("day");
+              return;
+            }
+            setScreen("capture");
+          }}
         />
       ) : null}
-      {screen === "day" ? <DayScreen meals={dayMeals} totalCalories={totalCalories} totalProtein={totalProtein} onCapture={() => setScreen("capture")} /> : null}
+      {screen === "day" ? <DayScreen meals={dayMeals} totalCalories={totalCalories} totalProtein={totalProtein} onCapture={() => setScreen("capture")} onOpenMeal={openSavedMeal} /> : null}
       <BottomNav screen={screen} canReview={Boolean(meal)} onChange={setScreen} />
     </AppShell>
   );
