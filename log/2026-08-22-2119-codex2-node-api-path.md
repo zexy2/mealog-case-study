@@ -33,6 +33,10 @@ scope parser ignores a bare root filename. Claim #200 was corrected with its
 parser-normalized `Makefile/` spelling; this still resolves to exactly
 `Makefile`. No implementation scope changed.
 
+The rerun hosted Actions runs `32590635835` and `32590637862` passed `check`,
+`server (node)`, and `mobile`; `main-arrived-via-pull-request` was skipped by
+design.
+
 ## Eval impact
 
 No evaluator, golden data, baseline, scorecard, pipeline, or application
