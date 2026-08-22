@@ -40,9 +40,10 @@ Branch: `agent/codex2/vision-explicit-count`
 
 ## Separate V3 deltas
 
-These are generated offline from the current pipeline, not the committed
-baseline. Delta 1 uses origin/main p2 fixtures with the new pipeline; Delta 2
-uses the fresh p3 fixtures with the new pipeline.
+These are generated offline from the current pipeline after rebasing onto
+`origin/main` at `cf23d160e65d302d44619b032f30e3225a6ee7e1`, not the committed
+baseline. Delta 1 uses the old p2 fixtures from current origin/main with the
+new pipeline; Delta 2 uses the fresh p3 fixtures with the same logic.
 
 | Delta | Fixture input | Coverage | Calorie eligible/scored | Item F1 | FP rate | kcal MAPE | Scorecard SHA |
 |---|---|---:|---:|---:|---:|---:|---|
@@ -51,9 +52,9 @@ uses the fresh p3 fixtures with the new pipeline.
 
 The provider freshness delta is therefore coverage -3 percentage points; the
 rounded V3 identity/FP/calorie metrics are unchanged. The p3 scorecard is at
-`/tmp/mealog-218-delta-p3-new-pipeline.md`; the p2 scorecard is at
-`/tmp/mealog-218-delta-p2/eval/reports/delta1-p2-new-pipeline.md` in the local
-verification environment.
+`/tmp/mealog-218-delta-p3-new-pipeline-current.md`; the p2 scorecard is at
+`/tmp/mealog-218-delta-p2-current/eval/reports/delta1-p2-new-pipeline.md` in
+the local verification environment.
 
 Traps: Do not treat a provider count of 1 from a stacked/occluded photo as
 explicit quantity; the A2 provider returned exactly that guess. Do not parse
