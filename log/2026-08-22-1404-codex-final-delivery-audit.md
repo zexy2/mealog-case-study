@@ -7,10 +7,10 @@ No source, baseline, golden label, or evaluator file changed.
 
 - [ ] **Merge order:** PR #158 is merged. PR #184 is open, rebased onto
   `95bc0be`, and hosted checks are green; human review/merge remains. PR #185 is
-  also rebased onto `95bc0be` and has current-catalogue evidence, but hosted
-  `check` and `mobile` checks are still pending. PR #180 remains based on
-  pre-#158 `29d0ff1` and needs a normal rebase. PR #39 remains conflicting and
-  parked under D11; do not merge it as a substitute.
+  also rebased onto `95bc0be`, has current-catalogue evidence, and hosted checks
+  are green; human review/merge remains. PR #180 remains based on pre-#158
+  `29d0ff1` and needs a normal rebase. PR #39 remains conflicting and parked
+  under D11; do not merge it as a substitute.
 - [ ] **Documentation freshness:** current main `README.md` still calls the
   Node edge, comparison, results, and several deliverables pending. Current
   main `docs/evaluation.md` mixes current `n=80` prose with historical `n=25`
@@ -64,8 +64,8 @@ No source, baseline, golden label, or evaluator file changed.
 - Current offline harness and retrieval evaluation were run from
   `/tmp/mealog-codex147.UTTTIM/venv`; no live provider or device call was made.
 - Final PR refresh: #184 is `CLEAN` with all hosted checks passed; #185 is
-  `UNSTABLE` with `check` and `mobile` pending; #180 remains `CLEAN` on stale
-  pre-#158 base `29d0ff1`.
+  `CLEAN` with all hosted checks passed; #180 remains `CLEAN` on stale pre-#158
+  base `29d0ff1`.
 
 Traps: do not reuse PR #185's pre-#158 scorecard, quote `12.7%` without its
 `2/2` denominator, call demo fixtures live evidence, or claim the Node fallback
