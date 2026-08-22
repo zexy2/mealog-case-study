@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AnalysisState, ANALYSIS_STEPS } from "./components/AnalysisState";
@@ -15,7 +15,7 @@ import { CaptureScreen } from "./screens/Capture";
 import { DayScreen } from "./screens/Day";
 import { ReviewScreen } from "./screens/Review";
 import { correctMeal, isDemoMode, submitMeal } from "./src/api";
-import { buildMealCorrections } from "./src/corrections";
+import { buildMealCorrections, removeSavedMeal } from "./src/corrections";
 import { initialDayMeals } from "./src/demoData";
 import { demoInput, demoScenarioFor } from "./src/demoScenarios";
 import { t } from "./src/strings";
@@ -167,6 +167,24 @@ export default function App() {
     setScreen("review");
   }
 
+  function requestRemoveMeal(savedMeal: MealLog) {
+    Alert.alert(
+      t("removeMealTitle"),
+      t("removeMealCopy"),
+      [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: t("removeMealConfirm"),
+          style: "destructive",
+          onPress: () => {
+            setDayMeals((current) => removeSavedMeal(current, savedMeal.idempotency_key));
+            setBanner(t("mealRemoved"));
+          },
+        },
+      ],
+    );
+  }
+
   async function saveReview() {
     if (!meal) return;
     const corrections = buildMealCorrections(meal, portionEdits, selectedCandidates, quantityEdits);
@@ -264,7 +282,7 @@ export default function App() {
           }}
         />
       ) : null}
-      {screen === "day" ? <DayScreen meals={dayMeals} totalCalories={totalCalories} totalProtein={totalProtein} onCapture={() => setScreen("capture")} onOpenMeal={openSavedMeal} /> : null}
+      {screen === "day" ? <DayScreen meals={dayMeals} totalCalories={totalCalories} totalProtein={totalProtein} onCapture={() => setScreen("capture")} onOpenMeal={openSavedMeal} onRemoveMeal={requestRemoveMeal} /> : null}
       <BottomNav screen={screen} canReview={Boolean(meal)} onChange={setScreen} />
     </AppShell>
   );

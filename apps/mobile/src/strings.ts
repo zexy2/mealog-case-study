@@ -83,6 +83,7 @@ export type StringKey =
   | "dayEyebrow"
   | "dayTitle"
   | "loggedSoFar"
+  | "dayPortionRange"
   | "protein"
   | "meals"
   | "loggedCount"
@@ -112,6 +113,12 @@ export type StringKey =
   | "draftSafe"
   | "cameraCaptureFailed"
   | "mealAdded"
+  | "mealRemoved"
+  | "removeMealTitle"
+  | "removeMealCopy"
+  | "removeMealConfirm"
+  | "removeMealAccessibility"
+  | "cancel"
   | "savedQuestionOpen"
   | "saving"
   | "correctionNeedsServer"
@@ -203,6 +210,7 @@ export const tr: Dictionary = {
   dayEyebrow: "BUGÜN",
   dayTitle: "Bugün ne yediğini gör.",
   loggedSoFar: "ŞİMDİYE KADAR",
+  dayPortionRange: "Porsiyon toplamı: yaklaşık {midpoint} g ({low}–{high} g)",
   protein: "protein",
   meals: "ÖĞÜNLER",
   loggedCount: "{count} kayıt",
@@ -232,6 +240,12 @@ export const tr: Dictionary = {
   draftSafe: "Taslağın güvende.",
   cameraCaptureFailed: "Bu tabağın fotoğrafı çekilemedi. Metin alanını deneyin.",
   mealAdded: "Öğün bugüne eklendi",
+  mealRemoved: "Öğün bugünden kaldırıldı",
+  removeMealTitle: "Kaydı kaldır?",
+  removeMealCopy: "Bu öğünü bugünden kaldırmak istediğine emin misin?",
+  removeMealConfirm: "Kaldır",
+  removeMealAccessibility: "Bu öğünü bugünden kaldır",
+  cancel: "Vazgeç",
   savedQuestionOpen: "Soru açık bırakılarak kaydedildi",
   saving: "Sunucu düzeltiyor…",
   correctionNeedsServer: "Düzeltmeyi kaydetmek için sunucu bağlantısı gerekli.",
@@ -321,6 +335,7 @@ export const en: Dictionary = {
   dayEyebrow: "TODAY",
   dayTitle: "Your day, in evidence.",
   loggedSoFar: "LOGGED SO FAR",
+  dayPortionRange: "Total portion: about {midpoint} g ({low}–{high} g)",
   protein: "protein",
   meals: "MEALS",
   loggedCount: "{count} logged",
@@ -350,6 +365,12 @@ export const en: Dictionary = {
   draftSafe: "Your draft is safe.",
   cameraCaptureFailed: "The camera could not capture this plate. Try the text input instead.",
   mealAdded: "Meal added to today",
+  mealRemoved: "Meal removed from today",
+  removeMealTitle: "Remove this record?",
+  removeMealCopy: "Are you sure you want to remove this meal from today?",
+  removeMealConfirm: "Remove",
+  removeMealAccessibility: "Remove this meal from today",
+  cancel: "Cancel",
   savedQuestionOpen: "Saved with question open",
   saving: "Server is correcting…",
   correctionNeedsServer: "A server connection is required to save this correction.",

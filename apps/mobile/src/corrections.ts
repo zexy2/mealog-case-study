@@ -16,6 +16,9 @@ export function buildMealCorrections(
 
     if (hasOwn(quantityEdits, String(index)) && quantityEdits[index] !== (item.quantity ?? null)) {
       correction.quantity = quantityEdits[index];
+      if (item.clarification?.kind === "count" && item.clarification.unit) {
+        correction.unit = item.clarification.unit;
+      }
       changed = true;
     }
     if (hasOwn(selectedCandidates, String(index)) && selectedCandidates[index] !== item.food_id) {
@@ -36,4 +39,9 @@ export function replaceSavedMeal(meals: MealLog[], next: MealLog): MealLog[] {
   const existingIndex = meals.findIndex((item) => item.idempotency_key === next.idempotency_key);
   if (existingIndex < 0) return [next, ...meals];
   return meals.map((item, index) => (index === existingIndex ? next : item));
+}
+
+/** Remove only local Day state; server has no delete contract. */
+export function removeSavedMeal(meals: MealLog[], idempotencyKey: string): MealLog[] {
+  return meals.filter((item) => item.idempotency_key !== idempotencyKey);
 }
