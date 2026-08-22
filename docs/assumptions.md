@@ -91,19 +91,22 @@ applied inside it, not three paths attempted shallowly.
 
 **Checked.** The brief accepts either.
 
-**Decision.** Both, because the real failure mode is a reviewer who cannot run the
-project. `make eval` reproduces the published scorecard **fully offline** from recorded
-fixtures — no API key, no network, no spend — so every number in the README can be
-re-derived independently. The backend is additionally deployed so the mobile app runs
-from a QR code with no local setup.
+**Decision.** The reproducible reference path is local. `make eval` reproduces the
+published scorecard **fully offline** from recorded fixtures — no API key, no network,
+no spend — and the Node/Nest edge can be run locally for the mobile contract. A live
+iOS smoke run is recorded separately in [PR #191](https://github.com/zexy2/mealog-case-study/pull/191)
+with `EXPO_PUBLIC_DEMO_MODE=false`; it is runtime evidence, not proof of a hosted
+deployment. No deployed URL or deployment claim is part of this submission.
 
 **Reversal cost.** None.
 
 ---
 
-## A6 — When the seven-day clock starts
+## A6 — When the three-day clock starts
 
-**Decision.** Working to **Wednesday 26 August 2026** for the full submission.
+**Decision.** The brief gives a **three-day deadline**. I keep the schedule
+brief-relative rather than hardcoding a calendar date that could contradict the
+submission context.
 
 **Reversal cost.** n/a. Recorded so the assumption is visible rather than implied.
 
@@ -126,12 +129,52 @@ validation, a hard size limit and a clear retention boundary before a client is
 built.
 
 **Decision.** Accept one `multipart/form-data` `image` part, allow only common
-image MIME types, reject images over 10 MiB, and keep bytes in memory only for
-the provider call. Recorded fixtures contain provider metadata and validated
-observed items, not the image or raw response envelope. Image fixture lookup is
-by SHA-256 content hash.
+image MIME types, reject images over 10 MiB, and validate content signatures for
+JPEG/JPG, PNG, GIF, WebP, AVIF, HEIC, and HEIF before transport. MIME spoofing is
+rejected at the Nest edge and checked again by the Gemini adapter. Keep bytes in
+memory only for the provider call; the adapter clears its strong request-input
+reference in `finally`, while fixture recording keeps only a weak identity
+reference. Recorded fixtures contain provider metadata and validated observed
+items, not the image or raw response envelope. Image fixture lookup is by
+SHA-256 content hash.
 
 **Reversal cost.** Moderate. A pre-signed object-store flow can replace the
 multipart endpoint later, but needs upload expiry, cleanup and provider-fetch
 behaviour. Provider-side retention remains governed by its own terms and is not
 controlled by this application.
+
+## A9 — What the current live boundary proves
+
+**Checked.** The current edge is Node.js/TypeScript: NestJS owns `POST /v1/meals`,
+multipart validation, item correction, and the health endpoint; the framework-free
+pipeline remains the computation boundary. PR #191's fresh-main iOS Simulator/Expo
+Go retest ran four selected gallery flows against Node Gemini: rice resolved to
+`tr.pilav`, simit plus ayran returned as two resolved items, the repeat was stable,
+and lahmacun remained `ABSTAIN`. It did not rerun all twelve images, and no key or
+photo entered the repository.
+
+**Decision.** Call the fixture path **demo/offline**, and call PR #191 a
+**live-provider runtime smoke**. Do not call either a hosted deployment proof,
+broad live-provider accuracy result, or completed live multi-item acceptance gate.
+The simit-plus-ayran image proves that one run returned two items; it does not prove
+that Gemini visually counted two simits. PR #194 proves explicit text quantity
+preservation, not reliable visual counting. Unknown provider quantity stays unknown
+and routes to review; no count is fabricated from pixels or grams. The smoke's
+lahmacun abstention is a conservative false reject, not a reason to widen acceptance.
+
+PR #196 adds item-scoped clarification and correction: catalogue-backed count,
+identity, or portion choices can be submitted to `POST /v1/meals/correct`; the
+server re-grounds the changed item, recomputes portion and nutrition, and preserves
+untouched items. PR #199 propagates degraded provider results end to end and forces
+`review` before any auto-accept or correction route. A degraded result is never
+auto-accepted.
+
+**Operational limits.** The current idempotency maps are process-local and in-memory:
+restart or multiple instances lose the cache. `X-User-Id` is optional and defaults to
+`demo-user`; it scopes the reference cache but is not authentication. The health
+endpoint is liveness only. The Gemini adapter exposes an injectable event hook and
+bounded retry/fallback metadata, but the edge does not yet provide durable request
+traces, metrics, or a production observability backend. These are known reference
+implementation limits, not deployment guarantees. The current live smoke did not
+encounter a degraded/retry response; the rule above is verified by focused adapter,
+pipeline, API, and mobile tests, not by that smoke.
