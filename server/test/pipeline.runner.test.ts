@@ -20,14 +20,18 @@ interface StubVision extends VisionPort {
   calls: VisionInput[];
 }
 
-function visionStub(items: PerceivedItem[], order: string[] = []): StubVision {
+function visionStub(
+  items: PerceivedItem[],
+  order: string[] = [],
+  degraded = false,
+): StubVision {
   return {
     name: 'handwritten-stub',
     calls: [],
     perceive(input) {
       order.push('perception');
       this.calls.push(input);
-      return items;
+      return { observations: items, degraded };
     },
   };
 }
@@ -58,6 +62,29 @@ describe('pipeline runner', () => {
     });
     expect(result.totals.kcal).toBe(149);
     expect(result.action).toBe('review');
+    expect(result.degraded).toBe(false);
+  });
+
+  it('forces a high-confidence fallback result to review', async () => {
+    const result = await run(
+      visionStub([
+        makePerceivedItem({
+          surface_form: 'scrambled eggs',
+          confidence: 1,
+          portion_hint: 'one serving',
+        }),
+      ], [], true),
+      new VisionInput({ text: 'meal text' }),
+      'en_US',
+      CONFIGS.V3,
+      'runner-degraded',
+    );
+
+    expect(result.items[0]).toMatchObject({
+      food_id: 'us.eggs_scrambled',
+      confidence: 1,
+    });
+    expect(result).toMatchObject({ degraded: true, action: 'review' });
   });
 
   it('keeps a resolver abstention through the end of the meal', async () => {

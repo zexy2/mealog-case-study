@@ -23,8 +23,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
-import { VisionInput } from '../pipeline/ports';
-import type { PerceivedItem } from '../domain/models';
+import { VisionInput, type VisionResult } from '../pipeline/ports';
 import { parseObservationItems } from './vision.gemini';
 
 /**
@@ -61,6 +60,7 @@ export interface FixtureFile {
   readonly provider?: string;
   readonly model_id?: string;
   readonly prompt_version?: string;
+  readonly degraded?: boolean;
   readonly items: unknown;
 }
 
@@ -85,7 +85,7 @@ export class FixtureVision {
     return input.imageBytes !== null ? input.contentHash : input.sampleId;
   }
 
-  perceive(input: VisionInput | string): PerceivedItem[] {
+  perceive(input: VisionInput | string): VisionResult {
     // String input remains a test-only convenience for existing offline
     // callers. Image inputs always use their content hash, never their ID.
     const resolved = typeof input === 'string' ? new VisionInput({ sampleId: input }) : input;
@@ -108,6 +108,9 @@ export class FixtureVision {
     // D1 validation a live response does. All 25 committed fixtures pass
     // unchanged; the difference is that a tampered one is rejected rather than
     // silently stripped of its nutrition field.
-    return parseObservationItems(raw.items, `fixture '${key}'`);
+    return {
+      observations: parseObservationItems(raw.items, `fixture '${key}'`),
+      degraded: raw.degraded ?? false,
+    };
   }
 }

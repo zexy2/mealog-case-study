@@ -21,7 +21,7 @@
 import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { VisionInput } from '../pipeline/ports';
+import { VisionInput, type VisionResult } from '../pipeline/ports';
 import type { PerceivedItem } from '../domain/models';
 import { makePerceivedItem } from '../domain/models';
 
@@ -639,8 +639,9 @@ export class GeminiVision {
   }
 
   /** Call Gemini with bounded retries and explicit fallback metadata. */
-  async perceive(input: VisionInput): Promise<PerceivedItem[]> {
+  async perceive(input: VisionInput): Promise<VisionResult> {
     const hasImage = input.imageBytes !== null;
+    let degraded = false;
     this.lastInput = input;
     this.lastItems = null;
     this.lastInputRef = new WeakRef(input);
@@ -696,12 +697,13 @@ export class GeminiVision {
       this.lastItems = items;
       this.lastModel = model;
       this.lastAttempts = totalAttempts;
-      this.degraded = rung !== RUNG_CONFIGURED_MODEL;
+      degraded = rung !== RUNG_CONFIGURED_MODEL;
+      this.degraded = degraded;
       this.rung = rung;
-      if (this.degraded) {
+      if (degraded) {
         this.onEvent('vision_fallback', { rung, model, attempts: totalAttempts });
       }
-      return items;
+      return { observations: items, degraded };
     }
 
     const [lastRung, lastModel, lastFailure] =
@@ -713,7 +715,8 @@ export class GeminiVision {
             ProviderFailure,
           ]);
 
-    this.degraded = true;
+    degraded = true;
+    this.degraded = degraded;
     this.rung = RUNG_FAILURE;
     this.lastModel = lastModel;
     this.lastAttempts = totalAttempts;

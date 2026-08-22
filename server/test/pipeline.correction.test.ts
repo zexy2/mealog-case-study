@@ -105,6 +105,19 @@ describe('server-side meal correction', () => {
     expect(result.action).toBe('review');
   });
 
+  it('keeps a degraded corrected meal in Review', () => {
+    const input = meal();
+    input.degraded = true;
+
+    const result = applyCorrections({
+      meal: input,
+      corrections: [{ item_index: 0, quantity: 2, unit: 'adet' }],
+    });
+
+    expect(result.degraded).toBe(true);
+    expect(result.action).toBe('review');
+  });
+
   it('uses the existing range for a user gram correction', () => {
     const result = applyCorrections({
       meal: meal(),

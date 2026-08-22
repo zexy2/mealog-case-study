@@ -48,6 +48,13 @@ describe('confidence routing', () => {
     expect(log.question).toBeNull();
   });
 
+  it('never auto-accepts a degraded meal, even when every item is confident', () => {
+    const log = meal(item('eggs', 0.99));
+    log.degraded = true;
+
+    expect(route(log).action).toBe('review');
+  });
+
   it('uses the weakest item to gate a meal into review', () => {
     const log = route(meal(
       item('eggs', 0.99),
