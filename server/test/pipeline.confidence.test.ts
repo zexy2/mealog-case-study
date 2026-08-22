@@ -33,6 +33,8 @@ const item = (query: string, confidence: number, name = 'matched food') =>
     grams: 100,
     grams_p10: 90,
     grams_p90: 110,
+    quantity: 1,
+    unit: 'serving',
   });
 
 describe('confidence routing', () => {
@@ -125,5 +127,23 @@ describe('confidence routing', () => {
 
     expect(portionConfidence(resolved)).toBe(0);
     expect(log.action).toBe('ask');
+  });
+
+  it('routes an unknown quantity to review without inventing a count', () => {
+    const resolved = makeResolvedItem({
+      query: 'simit',
+      food_id: 'tr.simit',
+      candidates: [candidate('simit')],
+      confidence: 1,
+      grams: 100,
+      grams_p10: 65,
+      grams_p90: 145,
+    });
+
+    const log = route(meal(resolved));
+
+    expect(resolved.quantity).toBeNull();
+    expect(resolved.unit).toBeNull();
+    expect(log.action).toBe('review');
   });
 });

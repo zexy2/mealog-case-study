@@ -19,6 +19,8 @@ export type ResolvedItem = {
   query: string;
   food_id: string;
   candidates: Candidate[];
+  quantity?: number | null;
+  unit?: string | null;
   grams: number;
   grams_p10: number;
   grams_p90: number;
