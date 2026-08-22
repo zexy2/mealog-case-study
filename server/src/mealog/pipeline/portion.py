@@ -4,6 +4,8 @@ Returns a distribution, not a point. Calorie error is dominated by mass error
 (see docs/finetuning-plan.md), so the honest output is a median with a p10/p90
 band that the UI and the confidence gate can both read.
 """
+import re
+import unicodedata
 from collections.abc import Iterator
 from dataclasses import dataclass
 
@@ -101,6 +103,56 @@ def _packaged_portion(food: CanonicalFood) -> PortionEstimate | None:
     return None
 
 
+def _normalize_serving_unit(value: str) -> str:
+    normalized = unicodedata.normalize("NFD", value.strip().casefold())
+    normalized = "".join(
+        character for character in normalized
+        if unicodedata.category(character) != "Mn"
+    )
+    return re.sub(r"[\s_]+", "_", normalized.replace("ı", "i"))
+
+
+def _leading_count(value: str) -> tuple[float, str] | None:
+    match = re.match(
+        r"^\s*(\d+(?:[.,]\d+)?(?:\s+\d+\s*/\s*\d+|\s*/\s*\d+)?)\s+(.+?)\s*$",
+        value,
+    )
+    if match is None:
+        return None
+
+    count_parts = match.group(1).replace(",", ".").strip().split()
+    if len(count_parts) == 2 and "/" in count_parts[1]:
+        numerator, denominator = (float(part) for part in count_parts[1].split("/", 1))
+        if denominator == 0:
+            return None
+        count = float(count_parts[0]) + numerator / denominator
+    elif len(count_parts) == 1 and "/" in count_parts[0]:
+        numerator, denominator = (float(part) for part in count_parts[0].split("/", 1))
+        if denominator == 0:
+            return None
+        count = numerator / denominator
+    else:
+        count = float(count_parts[0])
+    if count <= 0:
+        return None
+    return count, match.group(2)
+
+
+def _catalogue_per_unit_grams(
+    food: CanonicalFood,
+    requested_unit: str | None,
+) -> float | None:
+    if not requested_unit:
+        return None
+    serving = _leading_count(food.default_serving_name)
+    if serving is None:
+        return None
+    count, serving_unit = serving
+    if _normalize_serving_unit(serving_unit) != _normalize_serving_unit(requested_unit):
+        return None
+    return food.default_serving_g / count
+
+
 def estimate(food: CanonicalFood, quantity: float | None, unit: str | None,
              pack: LocalePack) -> PortionEstimate:
     """Estimate mass and evidence, preserving legacy three-value unpacking."""
@@ -112,7 +164,17 @@ def estimate(food: CanonicalFood, quantity: float | None, unit: str | None,
     source = "catalogue_default"
     provenance = f"catalogue.default_serving_g={food.default_serving_g:g}"
 
-    if unit and (conv := pack.units.get(unit)):
+    per_unit_grams = _catalogue_per_unit_grams(food, unit)
+    if per_unit_grams is not None:
+        multiplier = quantity if quantity is not None else 1.0
+        grams = per_unit_grams * multiplier
+        spread = _spread_for_unit(quantity)
+        source = "explicit_unit" if quantity is not None else "assumed_unit"
+        provenance = (
+            f"unit={unit}; quantity={quantity!r}; per_unit_g={per_unit_grams:g}; "
+            "source=catalogue_serving"
+        )
+    elif unit and (conv := pack.units.get(unit)):
         multiplier = quantity if quantity is not None else 1.0
         if conv.get("g"):
             grams = conv["g"] * multiplier

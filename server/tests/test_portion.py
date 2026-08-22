@@ -12,6 +12,76 @@ from mealog.pipeline.portion import (
     estimate,
 )
 
+CATALOGUE_SERVING_ROWS = (
+    ("tr.lahmacun", 2.0, "adet", 280),
+    ("tr.yumurta_tavuk", 1.0, "adet", 50),
+    ("tr.elma", 1.0, "adet", 150),
+    ("tr.yaprak_sarma", 3.0, "adet", 75),
+    ("tr.antep_baklavasi", 1.0, "dilim", 80),
+    ("tr.pilav", 1.0, "porsiyon", 180),
+    ("tr.ceviz", 1.0, "porsiyon", 30),
+    ("tr.turk_kahvesi", 1.0, "fincan", 7),
+    ("tr.simit", 2.0, "adet", 200),
+    ("tr.ekmek_beyaz", 3.0, "dilim", 75),
+    ("tr.mercimek_corbasi", 1.0, "kase", 250),
+)
+
+
+@pytest.mark.parametrize("food_id, quantity, unit, expected_grams", CATALOGUE_SERVING_ROWS)
+def test_catalogue_serving_wins_for_matching_unit(
+    food_id: str,
+    quantity: float,
+    unit: str,
+    expected_grams: int,
+):
+    pack = load("tr")
+    result = estimate(pack.foods[food_id], quantity, unit, pack)
+
+    assert result.grams == pytest.approx(expected_grams, abs=0.01)
+    assert result.source == "explicit_unit"
+    assert f"per_unit_g={expected_grams / quantity:g}" in result.provenance
+    assert "source=catalogue_serving" in result.provenance
+
+
+def test_catalogue_serving_uses_one_unit_when_quantity_is_missing():
+    pack = load("tr")
+    result = estimate(pack.foods["tr.yaprak_sarma"], None, "adet", pack)
+
+    assert tuple(result) == pytest.approx((25.0, 16.2, 36.2), abs=0.01)
+    assert result.source == "assumed_unit"
+    assert "per_unit_g=25" in result.provenance
+
+
+def test_catalogue_unit_matching_ignores_accents_case_spaces_and_underscores():
+    pack = load("tr")
+    tea = estimate(pack.foods["tr.tereyagi"], 1, "cay_kasigi", pack)
+    lahmacun = estimate(pack.foods["tr.lahmacun"], 1, "ADET", pack)
+
+    assert (tea.grams, tea.source) == (10.0, "explicit_unit")
+    assert "source=catalogue_serving" in tea.provenance
+    assert (lahmacun.grams, lahmacun.source) == (140.0, "explicit_unit")
+    assert "source=catalogue_serving" in lahmacun.provenance
+
+
+def test_generic_unit_table_remains_fallback_when_catalogue_names_another_unit():
+    food = CanonicalFood(
+        food_id="test.food",
+        name="Test food",
+        per_100g=Nutrients(kcal=100),
+        default_serving_g=80,
+        default_serving_name="1 serving",
+        source="test",
+        locale="tr",
+    )
+    pack = deepcopy(load("tr"))
+    pack.units = {"adet": {"g": 25}}
+
+    result = estimate(food, 2.0, "adet", pack)
+
+    assert tuple(result) == pytest.approx((50.0, 40.0, 62.5), abs=0.01)
+    assert result.source == "explicit_unit"
+    assert result.provenance == "unit=adet; quantity=2.0; conversion_g=25"
+
 
 def test_non_water_volume_uses_unknown_density_interval():
     pack = load("tr")
