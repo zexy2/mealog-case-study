@@ -54,6 +54,18 @@ No source, evaluator, baseline, golden label, mobile, or README file was changed
 No dependency was added. CI must remain the authority for the unavailable Python
 environment checks.
 
+Hosted Actions run `32570750786` was read after push:
+
+```text
+check          pass
+server (node)  pass
+mobile         pass
+main-arrived-via-pull-request  skipped (expected for a PR)
+```
+
+The hosted `check` job passed its secret guard, Python lint, tests, invariants,
+claim-scope gate, status check, and eval regression guard.
+
 Traps: Do not edit `README.md` (Codex2 owns PR #180). Do not turn claim #187's
 runtime smoke into deployment or live multi-item-gate evidence. Do not score the
 72 partial-truth rows as zero calories, and do not infer EatBetter internals from
