@@ -1,8 +1,8 @@
 # Claim #188 — image boundary and request-byte retention
 
-Agent: `codex4`  
-Issue: #188  
-Base: `07b0945` (`origin/main`)  
+Agent: `codex4`
+Issue: #188
+Base: `07b0945` (`origin/main`)
 Branch: `agent/codex4/image-boundary-retention`
 
 ## Change
