@@ -54,6 +54,12 @@ stored baseline was not edited.
 - `npm test -- --reporter=dot`: 216 tests passed.
 - `git diff --check`: pass.
 
+Hosted CI run `32598896322` initially failed only at claim scope because the PR
+body mentioned the target issue as `#208` in addition to `Closes: #209`; the
+scope parser treats every issue reference as a claim reference. The body was
+corrected to retain only `Closes: #209`; a follow-up commit will trigger the
+authoritative rerun.
+
 Traps: do not merge `ABSTAIN` sentinel items with one another; that drops
 distinct unknown foods. Do not treat a unit-bearing hint with no count as a
 count of one or as an explicit-unit estimate. Do not change confidence
