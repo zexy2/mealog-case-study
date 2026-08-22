@@ -76,23 +76,29 @@ the user whether the number came from a printed serving, a catalogue prior, or a
 weak density assumption. It makes the uncertainty available to review and to
 future confidence gating.
 
-**Observed counting cases.** The two available observations from **2026-08-22**
-do not establish counting accuracy. In one captured image with a user-confirmed
-count of two simits, EatBetter returned three simits and inflated the downstream
-nutrition. In a second two-simit image, the same product counted two correctly.
-On that second image, mealog resolved one simit at **100 g / 329 kcal**, reproduced
-three times through the API and three times on a physical device at close, medium,
-and long framing. The honest two-point summary is EatBetter: one miss and one hit;
-mealog: two misses. Neither result supports an accuracy claim in either direction.
-These are captured product and device observations, not an offline evaluator
-metric.
+**Observed counting cases (2026-08-22).** EatBetter was observed on both images:
+one over-count of three against a user-confirmed count of two, and one correct
+count of two. mealog was observed on the second image only, where it resolved one
+simit at **100 g / 329 kcal** — reproduced three times through the API and three
+times on a physical device at close, medium, and long framing. mealog was never
+run on the first image. One product has two data points, the other has one; no
+counting comparison can be drawn.
 
 **How it is measured.** `server/tests/test_portion.py` asserts the p10–p90
 contract for known density, unknown density, packaged serving evidence, and
 provenance. The Node path now preserves normalized `quantity` and `unit` on each
-resolved item. An explicit text hint such as `two pieces` is evidence; an unknown
-provider quantity remains `null` and routes to review. `POST /v1/meals/correct`
-offers item-scoped catalogue-backed count, identity, and portion clarification;
+resolved item. Live verification on commit `acfa6dd` (**2026-08-23**, **12**
+requests, all HTTP 200) found that `A2.jpg` (two simits, no text) returned
+`quantity: 1`, `portion_source=catalogue_default_scaled`, **75–135 g**, and
+**329 kcal**, with the same result across **3/3** runs. This is an open, measured
+photo-path count defect tracked in
+[#218](https://github.com/zexy2/mealog-case-study/issues/218): the provider's
+quantity claim is treated as evidence instead of falling back to unknown
+`quantity: null` and `catalogue_default`. The verified `C7.jpg` repeated-
+observation case still returned one `tr.ayran` with `quantity: null` and
+`catalogue_default`; the Part A text scenarios are **8/8** passing. `POST
+/v1/meals/correct` offers item-scoped catalogue-backed count, identity, and
+portion clarification;
 the server recomputes the changed item rather than trusting client grams or
 nutrients. The exact current fixture outputs are deterministic and offline. The
 current V3 calorie result is **12.7% MAPE over n=2 scored rows**; it is not a live
