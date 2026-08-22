@@ -4,6 +4,7 @@ import { settings, Settings } from '../config';
 import { CONFIGS, run, type Config } from '../pipeline/runner';
 import { VisionInput, type VisionPort } from '../pipeline/ports';
 import type { MealLog } from '../domain/models';
+import { applyCorrections, type CorrectionRequest } from '../pipeline/correction';
 
 export const VISION_PORT = Symbol('VISION_PORT');
 export const DEMO_USER_ID = 'demo-user';
@@ -62,6 +63,17 @@ export class MealsService {
     const result = this.runOnce(cacheKey, request, input, config);
     this.inFlight.set(cacheKey, result);
     return result;
+  }
+
+  correctMeal(request: CorrectionRequest): MealLog {
+    try {
+      return applyCorrections(request);
+    } catch (caught) {
+      if (caught instanceof Error) {
+        error(HttpStatus.UNPROCESSABLE_ENTITY, caught.message);
+      }
+      error(HttpStatus.UNPROCESSABLE_ENTITY, 'invalid correction request');
+    }
   }
 
   private async runOnce(
