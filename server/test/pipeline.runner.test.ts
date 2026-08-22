@@ -65,6 +65,125 @@ describe('pipeline runner', () => {
     expect(result.degraded).toBe(false);
   });
 
+  it('reconciles repeated unknown-count observations into one catalogue default', async () => {
+    const result = await run(
+      visionStub([
+        makePerceivedItem({ surface_form: 'ayran', confidence: 1 }),
+        makePerceivedItem({ surface_form: 'ayran', confidence: 1 }),
+        makePerceivedItem({ surface_form: 'ayran', confidence: 1 }),
+        makePerceivedItem({ surface_form: 'ayran', confidence: 1 }),
+      ]),
+      new VisionInput({ text: 'one glass of ayran' }),
+      'tr',
+      CONFIGS.V3,
+      'runner-duplicate-ayran',
+    );
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      food_id: 'tr.ayran',
+      quantity: null,
+      grams: 200,
+      grams_p10: 130,
+      grams_p90: 290,
+      portion_source: 'catalogue_default',
+    });
+  });
+
+  it('keeps an unobserved simit count null and unscaled', async () => {
+    const result = await run(
+      visionStub([
+        makePerceivedItem({ surface_form: 'simit', portion_hint: 'several', confidence: 1 }),
+      ]),
+      new VisionInput({ text: 'two stacked simits' }),
+      'tr',
+      CONFIGS.V3,
+      'runner-two-simit-unknown-count',
+    );
+
+    expect(result.items[0]).toMatchObject({
+      food_id: 'tr.simit',
+      quantity: null,
+      grams: 100,
+      grams_p10: 65,
+      grams_p90: 145,
+      portion_source: 'catalogue_default',
+    });
+    expect(result.items[0]?.portion_provenance).toBe('catalogue.default_serving_g=100');
+  });
+
+  it('sums known counts when duplicate observations carry the same unit', async () => {
+    const result = await run(
+      visionStub([
+        makePerceivedItem({ surface_form: 'simit', portion_hint: '1 adet', confidence: 1 }),
+        makePerceivedItem({ surface_form: 'simit', portion_hint: '1 adet', confidence: 1 }),
+      ]),
+      new VisionInput({ text: 'two simits' }),
+      'tr',
+      CONFIGS.V3,
+      'runner-known-count-reconciliation',
+    );
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      food_id: 'tr.simit',
+      quantity: 2,
+      unit: 'adet',
+      grams: 200,
+    });
+  });
+
+  it('keeps repeated submissions on one deterministic portion branch', async () => {
+    const results = await Promise.all([
+      run(
+        visionStub([makePerceivedItem({ surface_form: 'rice', confidence: 1 })]),
+        new VisionInput({ text: 'rice' }),
+        'en_US',
+        CONFIGS.V3,
+        'runner-repeat-1',
+      ),
+      run(
+        visionStub([makePerceivedItem({ surface_form: 'rice', portion_hint: 'cup', confidence: 1 })]),
+        new VisionInput({ text: 'rice' }),
+        'en_US',
+        CONFIGS.V3,
+        'runner-repeat-2',
+      ),
+      run(
+        visionStub([makePerceivedItem({ surface_form: 'rice', confidence: 1 })]),
+        new VisionInput({ text: 'rice' }),
+        'en_US',
+        CONFIGS.V3,
+        'runner-repeat-3',
+      ),
+    ]);
+
+    expect(results.map((result) => ({
+      source: result.items[0]?.portion_source,
+      p10: result.items[0]?.grams_p10,
+      p90: result.items[0]?.grams_p90,
+    }))).toEqual([
+      { source: 'catalogue_default', p10: 102.7, p90: 229.1 },
+      { source: 'catalogue_default', p10: 102.7, p90: 229.1 },
+      { source: 'catalogue_default', p10: 102.7, p90: 229.1 },
+    ]);
+  });
+
+  it('does not reconcile different foods', async () => {
+    const result = await run(
+      visionStub([
+        makePerceivedItem({ surface_form: 'simit', confidence: 1 }),
+        makePerceivedItem({ surface_form: 'ayran', confidence: 1 }),
+      ]),
+      new VisionInput({ text: 'simit and ayran' }),
+      'tr',
+      CONFIGS.V3,
+      'runner-different-foods',
+    );
+
+    expect(result.items.map((item) => item.food_id)).toEqual(['tr.simit', 'tr.ayran']);
+  });
+
   it('forces a high-confidence fallback result to review', async () => {
     const result = await run(
       visionStub([

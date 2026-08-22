@@ -67,6 +67,39 @@ export const CONFIGS: Readonly<Record<string, Config>> = {
 
 const retrieval = createRetrieval();
 
+/**
+ * Collapse repeated grounded observations without ever collapsing abstentions.
+ * ABSTAIN is a sentinel, not a food, so two different unmatched queries must
+ * remain visible as two questions. A known count can be added; one unknown
+ * contribution makes the merged count unknown.
+ */
+function reconcileResolved(items: ResolvedItem[]): ResolvedItem[] {
+  const byFood = new Map<string, ResolvedItem>();
+  const reconciled: ResolvedItem[] = [];
+
+  for (const item of items) {
+    if (item.food_id === ABSTAIN) {
+      reconciled.push(item);
+      continue;
+    }
+
+    const existing = byFood.get(item.food_id);
+    if (existing === undefined) {
+      byFood.set(item.food_id, item);
+      reconciled.push(item);
+      continue;
+    }
+
+    existing.quantity = existing.quantity === null || item.quantity === null
+      ? null
+      : existing.quantity + item.quantity;
+    existing.unit = existing.unit === item.unit ? existing.unit : null;
+    existing.confidence = Math.min(existing.confidence, item.confidence);
+  }
+
+  return reconciled;
+}
+
 function ungroundedLog(
   perceived: Awaited<ReturnType<VisionPort['perceive']>>['observations'],
   degraded: boolean,
@@ -146,16 +179,22 @@ export async function run(
 
     // Keep ABSTAIN as an item. In particular, do not run it through portion or
     // nutrition: a missing catalogue food is not a zero-calorie food.
+    resolved.push(result);
+  }
+
+  const reconciled = reconcileResolved(resolved);
+  for (const result of reconciled) {
     if (result.food_id === ABSTAIN) {
-      resolved.push(result);
       continue;
     }
 
     const food = pack.foods[result.food_id];
+    // A missing count is not an implicit one. Keep the item on the catalogue
+    // default path even when an uncounted hint happened to name a unit.
     const portion = estimate(
       food,
-      item.quantity,
-      item.unit,
+      result.quantity,
+      result.quantity === null ? null : result.unit,
       pack,
     );
     result.grams = portion.grams;
@@ -164,10 +203,9 @@ export async function run(
     result.portion_source = portion.source;
     result.portion_provenance = portion.provenance;
     result.nutrients = roundedNutrients(scalePer100g(food.per_100g, result.grams));
-    resolved.push(result);
   }
 
-  const totals = resolved
+  const totals = reconciled
     .filter((item) => item.food_id !== ABSTAIN)
     .reduce(
       (acc, item) => addNutrients(acc, item.nutrients),
@@ -177,7 +215,7 @@ export async function run(
     idempotency_key: idempotencyKey,
     locale,
     config: config.name,
-    items: resolved,
+    items: reconciled,
     totals: roundedNutrients(totals),
     degraded,
   });
