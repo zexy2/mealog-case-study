@@ -225,6 +225,7 @@ describe('pipeline runner', () => {
       }),
     }));
     vi.doMock('../src/pipeline/confidence', () => ({
+      AUTO_ACCEPT: 0.75,
       route: vi.fn((log: ReturnType<typeof makeMealLog>) => {
         events.push('confidence');
         log.action = 'auto_accept';

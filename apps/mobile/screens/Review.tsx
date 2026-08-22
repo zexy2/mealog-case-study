@@ -3,8 +3,8 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { Candidate, MealLog } from "../src/types";
-import { questionText, t } from "../src/strings";
+import { Candidate, ItemClarification, MealLog } from "../src/types";
+import { t } from "../src/strings";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -23,12 +23,29 @@ type PortionSliderProps = {
 
 const PortionSlider = Slider as unknown as React.ComponentType<PortionSliderProps>;
 
-function quantityLabel(item: MealLog["items"][number]) {
-  if (item.quantity === null || item.quantity === undefined) {
+function quantityLabel(item: MealLog["items"][number], quantity = item.quantity, unit = item.unit) {
+  if (quantity === null || quantity === undefined) {
     return t("quantityUnknown");
   }
-  const quantity = String(item.quantity);
-  return t("quantityValue", { quantity, unit: item.unit ? ` ${item.unit}` : "" });
+  return t("quantityValue", { quantity: String(quantity), unit: unit ? ` ${unit}` : "" });
+}
+
+function selectedName(item: MealLog["items"][number], selected: string) {
+  return item.candidates.find((candidate) => candidate.food_id === selected)?.name ?? selected;
+}
+
+function clarificationPrompt(
+  item: MealLog["items"][number],
+  clarification: ItemClarification,
+  selected: string,
+) {
+  if (clarification.kind === "count") {
+    return t("clarifyCount", { unit: clarification.unit ?? item.unit ?? "", food: selectedName(item, selected) });
+  }
+  if (clarification.kind === "identity") {
+    return t("clarifyIdentity", { food: selectedName(item, selected) });
+  }
+  return t("clarifyPortion", { low: Math.round(item.grams_p10), high: Math.round(item.grams_p90) });
 }
 
 export type ReviewScreenProps = {
@@ -37,9 +54,12 @@ export type ReviewScreenProps = {
   setExpandedItem: (value: number | null) => void;
   portionEdits: Record<number, number>;
   setPortionEdits: React.Dispatch<React.SetStateAction<Record<number, number>>>;
+  quantityEdits: Record<number, number | null>;
+  setQuantityEdits: React.Dispatch<React.SetStateAction<Record<number, number | null>>>;
   selectedCandidates: Record<number, string>;
   onChooseCandidate: (index: number, candidate: Candidate) => void;
   onSave: () => void;
+  saving?: boolean;
   onBack: () => void;
 };
 
@@ -49,14 +69,16 @@ export function ReviewScreen({
   setExpandedItem,
   portionEdits,
   setPortionEdits,
+  quantityEdits,
+  setQuantityEdits,
   selectedCandidates,
   onChooseCandidate,
   onSave,
+  saving = false,
   onBack,
 }: ReviewScreenProps) {
   const displayAction = meal.degraded ? "review" : meal.action;
   const tone = actionTone(displayAction);
-  const askText = questionText(meal.items[0]);
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header eyebrow={t("reviewEyebrow")} title={t("reviewTitle")} subtitle={t("reviewSubtitle")} />
@@ -75,13 +97,17 @@ export function ReviewScreen({
         </View>
         <View style={styles.actionBannerCopy}>
           <Text style={[styles.actionBannerTitle, { color: tone.color }]}>{actionLabel(displayAction)}</Text>
-          <Text style={styles.actionBannerText}>{meal.degraded ? t("degradedCopy") : meal.action === "ask" ? askText : t("editableMatch")}</Text>
+          <Text style={styles.actionBannerText}>{meal.degraded ? t("degradedCopy") : meal.action === "ask" ? t("questionPick") : t("editableMatch")}</Text>
         </View>
       </View>
 
       {meal.items.map((item, index) => {
         const selected = selectedCandidates[index] ?? item.food_id;
         const grams = portionEdits[index] ?? item.grams;
+        const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
+        const quantity = hasQuantityEdit ? quantityEdits[index] : item.quantity;
+        const clarification = item.clarification ?? null;
+        const quantityUnit = clarification?.kind === "count" ? clarification.unit ?? item.unit : item.unit;
         const hasRange = item.grams_p90 > item.grams_p10;
         return (
           <View key={`${item.query}-${index}`} style={styles.itemCard}>
@@ -89,16 +115,41 @@ export function ReviewScreen({
               <View style={styles.itemIndex}><Text style={styles.itemIndexText}>{String(index + 1).padStart(2, "0")}</Text></View>
               <View style={styles.itemNameWrap}>
                 <Text style={styles.itemQuery}>{item.query}</Text>
-                <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? t("needsMatch") : item.candidates.find((candidate) => candidate.food_id === selected)?.name ?? selected}</Text>
-                <Text style={styles.quantityText}>{quantityLabel(item)}</Text>
+                <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? t("needsMatch") : selectedName(item, selected)}</Text>
+                <Text style={styles.quantityText}>{quantityLabel(item, quantity, quantityUnit)}</Text>
               </View>
               <View style={styles.confidencePill}><Text style={styles.confidenceText}>{Math.round(item.confidence * 100)}%</Text></View>
             </View>
 
-            {meal.action === "ask" ? (
+            {clarification ? (
               <View style={styles.questionCard}>
                 <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
-                <Text style={styles.questionText}>{askText}</Text>
+                <Text style={styles.questionText}>{clarificationPrompt(item, clarification, selected)}</Text>
+                {clarification.kind === "count" ? (
+                  <View style={styles.countChoices}>
+                    {clarification.options.map((option) => {
+                      const isSelected = quantity === option;
+                      return (
+                        <Pressable
+                          key={option === null ? "unknown" : option}
+                          accessibilityRole="button"
+                          accessibilityLabel={option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: clarification.unit ?? "" })}
+                          style={[styles.countChoice, isSelected && styles.countChoiceSelected]}
+                          onPress={() => setQuantityEdits((current) => ({ ...current, [index]: option }))}
+                        >
+                          <Text style={[styles.countChoiceText, isSelected && styles.countChoiceTextSelected]}>
+                            {option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: clarification.unit ?? "" })}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : null}
+              </View>
+            ) : meal.action === "ask" && index === 0 ? (
+              <View style={styles.questionCard}>
+                <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
+                <Text style={styles.questionText}>{t("questionPick")}</Text>
               </View>
             ) : null}
 
@@ -125,6 +176,10 @@ export function ReviewScreen({
               </>
             ) : <Text style={styles.mutedNote}>{t("portionPending")}</Text>}
 
+            {clarification?.kind === "portion" ? (
+              <Text style={styles.clarificationHint}>{clarificationPrompt(item, clarification, selected)}</Text>
+            ) : null}
+
             <Text style={[styles.sectionLabel, { marginTop: 22 }]}>{t("alternates")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
               {item.candidates.map((candidate) => {
@@ -148,16 +203,18 @@ export function ReviewScreen({
                 <AuditRow label={t("matchedFoodId")} value={selected} mono />
                 <AuditRow label={t("sourceDatabase")} value={item.source_database ?? t("catalogueProvenance")} />
                 <AuditRow label={t("confidence")} value={`${Math.round(item.confidence * 100)}%`} />
-                <AuditRow label={t("quantity")} value={quantityLabel(item)} />
+                <AuditRow label={t("quantity")} value={quantityLabel(item, quantity, quantityUnit)} />
                 <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
+                <AuditRow label={t("portionSource")} value={item.portion_source ?? t("catalogueProvenance")} />
+                <AuditRow label={t("portionProvenance")} value={item.portion_provenance ?? t("pending")} />
               </View>
             ) : null}
           </View>
         );
       })}
 
-      <Pressable style={styles.primaryButton} onPress={onSave}>
-        <Text style={styles.primaryButtonText}>{meal.action === "ask" ? t("saveQuestion") : t("saveToday")}</Text>
+      <Pressable style={[styles.primaryButton, saving && styles.primaryButtonDisabled]} onPress={onSave} disabled={saving}>
+        <Text style={styles.primaryButtonText}>{saving ? t("saving") : meal.action === "ask" ? t("saveQuestion") : t("saveToday")}</Text>
         <Ionicons name="arrow-forward" size={19} color={colors.white} />
       </Pressable>
       <Pressable style={styles.textButton} onPress={onBack}><Text style={styles.textButtonLabel}>{t("captureAnother")}</Text></Pressable>
@@ -190,12 +247,18 @@ const styles = StyleSheet.create({
   questionCard: { backgroundColor: "#FBF1D8", borderRadius: 15, padding: 13, marginTop: 17 },
   questionLabel: { color: "#8D641C", fontSize: 9, fontWeight: "800", letterSpacing: 1.3 },
   questionText: { color: colors.ink, fontSize: 15, lineHeight: 21, fontWeight: "700", marginTop: 5 },
+  countChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  countChoice: { borderWidth: 1, borderColor: "#D9C58E", borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, backgroundColor: colors.card },
+  countChoiceSelected: { backgroundColor: colors.terracotta, borderColor: colors.terracotta },
+  countChoiceText: { color: colors.ink, fontSize: 11, fontWeight: "700" },
+  countChoiceTextSelected: { color: colors.white },
   portionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginTop: 22 },
   sectionLabel: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
   gramsValue: { color: colors.terracotta, fontSize: 18, fontWeight: "800" },
   rangeLabels: { flexDirection: "row", justifyContent: "space-between", marginTop: -2 },
   rangeText: { color: colors.muted, fontSize: 10 },
   mutedNote: { color: colors.muted, fontSize: 12, marginTop: 13 },
+  clarificationHint: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 9 },
   chipsRow: { gap: 8, paddingTop: 11, paddingBottom: 2 },
   chip: { borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8, minWidth: 100 },
   chipSelected: { backgroundColor: colors.terracotta, borderColor: colors.terracotta },
@@ -209,6 +272,7 @@ const styles = StyleSheet.create({
   whySubtitle: { color: colors.muted, fontSize: 11, marginTop: 2 },
   auditBox: { backgroundColor: colors.paper, borderRadius: 15, padding: 12, marginTop: 12, gap: 9 },
   primaryButton: { minHeight: 54, borderRadius: 18, backgroundColor: colors.terracotta, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 10, paddingHorizontal: 18, marginTop: 8 },
+  primaryButtonDisabled: { opacity: 0.55 },
   primaryButtonText: { color: colors.white, fontSize: 14, fontWeight: "800" },
   textButton: { alignItems: "center", paddingVertical: 16 },
   textButtonLabel: { color: colors.muted, fontSize: 12, fontWeight: "700" },

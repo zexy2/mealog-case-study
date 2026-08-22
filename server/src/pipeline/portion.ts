@@ -162,7 +162,20 @@ export function estimate(
   quantity: PortionQuantity,
   unit: PortionUnit,
   pack: PortionLocalePack,
+  correctionGrams?: number,
 ): PortionEstimate {
+  if (correctionGrams !== undefined) {
+    if (!Number.isFinite(correctionGrams) || correctionGrams <= 0) {
+      throw new Error('correction grams must be positive');
+    }
+    return result(
+      correctionGrams,
+      EXPLICIT_UNIT_SPREAD,
+      'explicit_unit',
+      `unit=g; quantity=${formatPythonRepr(correctionGrams)}; correction=user_confirmed`,
+    );
+  }
+
   const packaged = packagedPortion(food);
   if (packaged !== undefined) {
     return packaged;

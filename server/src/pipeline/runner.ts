@@ -22,6 +22,7 @@ import { estimate } from './portion';
 import { createRetrieval } from './retrieval/index';
 import { resolve } from './resolve';
 import { route } from './confidence';
+import { addClarifications } from './clarification';
 import { scalePer100g } from './nutrition';
 import { VisionInput, type VisionPort } from './ports';
 
@@ -181,5 +182,5 @@ export async function run(
   } else {
     log.action = 'auto_accept';
   }
-  return log;
+  return addClarifications(log, pack);
 }

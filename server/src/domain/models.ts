@@ -159,6 +159,14 @@ export interface Candidate {
   score: number;
 }
 
+export type ClarificationKind = 'count' | 'identity' | 'portion';
+
+export interface ItemClarification {
+  kind: ClarificationKind;
+  unit: string | null;
+  options: Array<number | null>;
+}
+
 /** A perceived item bound to the canonical catalogue -- or explicitly not. */
 export interface ResolvedItem {
   query: string;
@@ -174,6 +182,7 @@ export interface ResolvedItem {
   nutrients: Nutrients;
   portion_source: string;
   portion_provenance: string;
+  clarification: ItemClarification | null;
 }
 
 export function makeResolvedItem(
@@ -192,6 +201,7 @@ export function makeResolvedItem(
     nutrients: init.nutrients ?? makeNutrients(),
     portion_source: init.portion_source ?? 'not_applicable',
     portion_provenance: init.portion_provenance ?? 'not_applicable',
+    clarification: init.clarification ?? null,
   };
 }
 
