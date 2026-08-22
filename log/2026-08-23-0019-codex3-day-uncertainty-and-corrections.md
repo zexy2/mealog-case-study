@@ -28,6 +28,6 @@ Acceptance evidence:
 
 Runtime boundary: no physical iPhone and no live provider/API-key execution were performed. Simulator evidence used `VISION_PROVIDER=fixture`, `EXPO_PUBLIC_DEMO_MODE=false`, local API port `3091`; this demonstrates client wiring and rendering, not provider accuracy.
 
-Checks: `npm run typecheck`, `npm test`, `npx expo export --platform ios`, `python3 scripts/status.py --check`, `python3 scripts/check_invariants.py`, and `git diff --check` passed.
+Checks: `npm run typecheck`, `npm test`, `npx expo export --platform ios`, `python3 scripts/status.py --check`, `python3 scripts/check_invariants.py`, and `git diff --check` passed. The repository merge gate also passed in throwaway `/tmp/mealog-211-venv`: `PATH=/tmp/mealog-211-venv/bin:$PATH make check` — Ruff clean, 275 server tests passed, invariants/status passed, and `no per-cuisine regression in V3`.
 
 Traps: Do not describe the displayed gram band as a nutrient interval; the current correction response has no nutrient p10/p90. Do not claim this fixture-backed simulator run as physical-device or live-Gemini evidence. Count correction only becomes explicit when the client sends the existing `unit` value alongside `quantity`; do not add a new server field. Removal is local because there is no delete route.
