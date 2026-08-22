@@ -34,8 +34,9 @@ immediately before recording; if a check disagrees, do not say the number.
 | 80 recorded fixtures | `eval/fixtures/` |
 | V3: 15% coverage, 12/80 committed, 68/80 ask | `docs/evaluation.md` |
 | V3: 12.7% calorie MAPE over 2/2 eligible/scored rows; Item F1 0.15; FP 86.0% | `docs/evaluation.md` |
+| Retrieval: Recall@1 100.0%, Accept@1 99.2%, MRR 1.000, 0/22 false accepts | `eval/retrieval_eval.py` |
 
-The V3 scorecard is safe to speak only with its denominator: **n=80** overall,
+The current-main V3 scorecard is safe to speak only with its denominator: **n=80** overall,
 **12/80** committed, **68/80** ask, and calorie MAPE over **n=2** complete,
 positive-truth rows. **72/80** manifest rows have partial truth; seven are covered
 but excluded from calorie MAPE. Do not present partial-truth rows as zero calories.
@@ -78,6 +79,16 @@ but excluded from calorie MAPE. Do not present partial-truth rows as zero calori
 - For live evidence, set `EXPO_PUBLIC_DEMO_MODE=false` and point the app at the
   configured Node endpoint. Do not call a runtime smoke a deployment or a gate
   until the corresponding claim is closed and its acceptance criteria are met.
+- Image input is checked by both declared MIME type and content signature at the
+  Nest edge, with a second adapter check; spoofed bytes are rejected before the
+  provider call. The request bytes are not persisted, and the adapter clears its
+  strong request-input reference after the call.
+- Explicit quantity evidence is preserved as normalized `quantity` and `unit`.
+  An unknown provider quantity stays unknown and routes to review; do not infer a
+  count from pixels or grams. Item corrections use the catalogue-backed,
+  server-recomputed `POST /v1/meals/correct` flow.
+- A degraded provider result propagates through the API and mobile result and
+  always requires `review`; it can never become `auto_accept`.
 
 ## Script
 
@@ -110,7 +121,7 @@ panel open.
 
 **Say:**
 
-> I start with no provider key set. Capture offers the live camera or an
+> For the deterministic demo path I start with no provider key set. Capture offers the live camera or an
 > existing photograph from the library — the same boundary accepts both, and it
 > also accepts text, which is what makes a deterministic rehearsal possible.
 >
@@ -132,19 +143,22 @@ panel open.
 > considered and not chosen. Nothing in that panel is a model opinion. Every
 > row is either catalogue provenance or an arithmetic input.
 
-The repository also records a live-provider iOS Simulator/Expo Go gallery smoke
-in claim [#187](https://github.com/zexy2/mealog-case-study/issues/187): twelve
-gallery images plus one repeat, real Photos picker input, provider health
-`vision=gemini`, rice resolving to `tr.pilav`, simit plus ayran preserved as two
-items with item-level ranges, and deterministic repeat output. Karniyarik,
-bulgur, iced coffee, and a non-food input abstained. Lahmacun exposed a
-conservative false reject: an exact candidate was visible but the action stayed
-`ABSTAIN`. No degraded/retry state appeared.
+The current-main evidence is the fresh live-provider iOS Simulator/Expo Go smoke
+from [PR #191](https://github.com/zexy2/mealog-case-study/pull/191). It reran four
+selected gallery flows against Node Gemini: plain rice resolved to `tr.pilav`
+with identity 100% and review; simit plus ayran returned as two resolved items
+with identity 100% and review; the repeat kept the same IDs, confidence,
+midpoint grams, and ranges; and lahmacun stayed `ABSTAIN` despite a visible
+candidate. This is a four-flow retest, not all twelve gallery images. The
+simit-plus-ayran result proves two returned items in that run; it does not prove
+that Gemini visually counted two simits. No degraded/retry state appeared in
+this smoke.
 
 This is runtime smoke evidence only. It is not a hosted deployment proof, a
-physical-device claim, or the live multi-item acceptance gate; do not claim that
-gate until Codex5's retest completes. Do not count the discarded old-bundle
-result, and do not call catalogue defaults visually measured.
+physical-device claim, broad live-provider accuracy, or a completed live
+multi-item acceptance gate. Do not call a demo fixture or an explicit text
+quantity fixture visual-count evidence. Do not call catalogue defaults visually
+measured.
 
 **On-screen proof:** the capture screen with both input affordances, the
 analysing steps, the review screen, the portion range, and the expanded audit
@@ -203,9 +217,12 @@ Expo capture (camera or library)
 The `POST /v1/meals` edge is implemented in `server/src/app/meals.controller.ts`
 and `meals.service.ts`. The Node/Nest edge validates JSON or multipart image
 input, applies request-level idempotency, and delegates to the framework-free
-pipeline. The local endpoint is the supported reproducible boundary; no hosted
-URL is claimed. The Python harness remains the offline evaluator, not the mobile
-API.
+pipeline. `POST /v1/meals/correct` accepts item-scoped catalogue-backed
+clarification and recomputes the changed item server-side, preserving untouched
+items; client-submitted grams and nutrients are not trusted. A degraded provider
+result is carried through the same path and forces review, never auto-accept.
+The local endpoint is the supported reproducible boundary; no hosted URL is
+claimed. The Python harness remains the offline evaluator, not the mobile API.
 
 **On-screen proof:** the diagram, then `server/src/pipeline/ports.ts` for the
 provider boundary and the CI invariant that keeps framework imports out of the
@@ -287,12 +304,16 @@ browser view of CI is the fallback if the local rehearsal cannot be shown.
 > handed to another.
 
 The Node/TypeScript request validator ships with the meal endpoint. The current
-edge keeps image bytes in memory for the provider call and does not persist the
-photo or raw provider envelope. The Gemini key stays server-side. The process-local
-idempotency cache is user-scoped by an optional `X-User-Id` header, defaulting to
-`demo-user`; that is namespacing, not auth. Health is liveness only, and the
-adapter's event hook is not a durable request-observability system. The #187 smoke
-did not encounter a degraded/retry state, so do not narrate one as tested.
+edge checks declared MIME type and image content signature, rejects spoofed bytes
+before provider transport, keeps image bytes in memory for the provider call, and
+does not persist the photo or raw provider envelope. The adapter clears its strong
+input reference in `finally`; a fixture keeps only weak identity metadata. The
+Gemini key stays server-side. The process-local idempotency cache is user-scoped
+by an optional `X-User-Id` header, defaulting to `demo-user`; that is namespacing,
+not auth. Health is liveness only, and the adapter's event hook is not a durable
+request-observability system. PR #191 did not encounter a degraded/retry state;
+the degraded-review rule is supported by focused adapter, pipeline, API, and
+mobile tests, not by that smoke.
 
 **On-screen proof:** the D5 contract, the configuration boundary, the CI
 secret-guard result, and a recorded fixture with no image bytes in it. Never
@@ -306,9 +327,10 @@ show a key, a personal photograph, or a user identifier.
 
 > Three limits, said plainly.
 >
-> First, runtime proof. Claim #187 records an iOS Simulator/Expo Go live-provider
-> smoke, but it does not prove a physical-device run, a hosted deployment, or the
-> pending Codex5 live multi-item gate. Treat those boundaries as explicit.
+> First, runtime proof. PR #191 records a current-main iOS Simulator/Expo Go
+> live-provider smoke across four selected gallery flows, but it does not prove a
+> physical-device run, a hosted deployment, broad live-provider accuracy, or the
+> pending live multi-item gate. Treat those boundaries as explicit.
 >
 > Second, catalogue coverage. There are 99 canonical foods across three locale
 > packs. A food outside them cannot be logged — only abstained on. That is a
@@ -337,13 +359,15 @@ zero for partial truth.
 
 **Say:**
 
-> Three things, in this order. Complete Codex5's live multi-item retest and record
-> its exact boundary. Then record the Loom from current `main`, labelling fixture /
-> demo states separately from the #187 live-provider smoke and quoting every metric
-> with its denominator. Finally send the email with the repository link, local
+> Three things, in this order. Complete an explicitly authorized live multi-item
+> retest and record its exact boundary; until then, make no visual-count claim.
+> Then record the Loom from current `main`, labelling fixture / demo states
+> separately from the PR #191 live-provider smoke and quoting every metric with
+> its denominator. Finally send the email with the repository link, local
 > commands, current n=80 scorecard, partial-truth denominator, and known
 > in-memory idempotency, unauthenticated user header, observability, and privacy
-> limits. Do not add a deployment URL or EatBetter internals without public proof.
+> limits. Do not add a deployment URL, broad live-accuracy claim, or EatBetter
+> internals without public proof.
 >
 > The order is deliberate: the acceptance evidence first, then the recording and
 > email. The product is small on purpose, but every boundary is visible —
@@ -370,3 +394,6 @@ denominators, and the abstention screen as the last thing on screen.
 - [ ] Confirm no API key, personal photograph, user identifier, or raw provider
       payload appears in the recording, the terminal, or the narration.
 - [ ] Confirm the runtime is at or under 8:00.
+- [ ] Keep unknown provider quantity as unknown and route it to review; do not
+      narrate a visual count that has not been live-tested.
+- [ ] Confirm degraded results show `review` and never `auto_accept`.

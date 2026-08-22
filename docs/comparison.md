@@ -1,10 +1,11 @@
 # mealog compared with EatBetter
 
 This is a bounded comparison, not a claim that one product wins every
-dimension. EatBetter evidence comes only from its [public App Store
-listing](https://apps.apple.com/us/app/eatbetter-ai-food-journal/id6639614109)
-and its public positioning. Nothing here infers EatBetter's model, catalogue,
-storage, thresholds, or retry semantics.
+dimension or beats EatBetter overall. EatBetter evidence comes only from its
+[public App Store listing](https://apps.apple.com/us/app/eatbetter-ai-food-journal/id6639614109)
+and observed public product surfaces. Those surfaces show a photo-first logging
+workflow and user-facing feedback/editing; nothing here infers EatBetter's model,
+catalogue, storage, thresholds, or retry semantics.
 
 Every comparison below uses the same four questions: what is better, why it is
 better, how it is measured, and which repository example makes the difference
@@ -40,10 +41,10 @@ near-neighbour into a logged food. The same rule is exercised by the unknown
 ## 2. Abstention instead of silent wrong logging
 
 **What is better.** mealog asks for clarification when it cannot support a
-safe match. EatBetter publicly optimises for scan-first convenience — its
-listing says users can “simply snap a photo” for nutrition feedback — so this is
-a deliberate safety trade-off against that public workflow, not a claim about
-EatBetter's implementation.
+safe match. EatBetter's public product surface presents scan-first convenience,
+including snapping a photo for nutrition feedback; this is a deliberate safety
+trade-off against observed public workflow, not a claim about EatBetter's
+implementation.
 
 **Why it is better.** A visible deferral preserves an honest log boundary. A
 wrong food and its calories look complete while being harder to notice or
@@ -65,9 +66,10 @@ chosen merely because it was the nearest available record.
 
 **What is better.** mealog returns a median `grams` estimate together with
 `grams_p10` and `grams_p90`. Stronger evidence narrows the band; an assumed or
-unknown-density portion stays visibly wide. EatBetter's public reviews mention
-that portions can be off and editing is quick; mealog exposes the uncertainty
-before an edit rather than hiding it behind one number.
+unknown-density portion stays visibly wide. EatBetter's observed public product
+surface exposes feedback and editing affordances; mealog exposes the uncertainty
+before an edit rather than hiding it behind one number. No EatBetter internal
+portion method is inferred.
 
 **Why it is better.** Portion error directly changes calorie error. A band tells
 the user whether the number came from a printed serving, a catalogue prior, or a
@@ -76,7 +78,12 @@ future confidence gating.
 
 **How it is measured.** `server/tests/test_portion.py` asserts the p10–p90
 contract for known density, unknown density, packaged serving evidence, and
-provenance. The exact current fixture outputs are deterministic and offline. The
+provenance. The Node path now preserves normalized `quantity` and `unit` on each
+resolved item. An explicit text hint such as `two pieces` is evidence; an unknown
+provider quantity remains `null` and routes to review. `POST /v1/meals/correct`
+offers item-scoped catalogue-backed count, identity, and portion clarification;
+the server recomputes the changed item rather than trusting client grams or
+nutrients. The exact current fixture outputs are deterministic and offline. The
 current V3 calorie result is **12.7% MAPE over n=2 scored rows**; it is not a live
 provider accuracy claim.
 
@@ -121,8 +128,8 @@ model citation or a claim of a durable audit database.
 
 **Why it is better.** A reviewer can challenge identity, alternatives, or mass
 before trusting the total. The trace shows which decision produced the number,
-while EatBetter's public listing is used here only to describe its scan-and-
-feedback positioning, not its internal result schema.
+while EatBetter's observed public workflow is used here only to describe its
+scan-and-feedback positioning, not its internal result schema.
 
 **How it is measured.** The fields are defined in `ResolvedItem` and rendered
 by the mobile review path. `server/tests/test_portion.py` checks that portion
@@ -143,7 +150,9 @@ portion provenance:  dataset=Open Food Facts; record_id=0011110107176; field=ser
 ```
 
 The candidate list remains available for review; the serving evidence explains
-why this portion is narrower than a catalogue fallback.
+why this portion is narrower than a catalogue fallback. The `two pieces` evidence
+used in focused text fixtures does not prove that Gemini visually counted two
+pieces in a live image.
 
 ## 6. User-scoped idempotency
 
@@ -164,7 +173,8 @@ claim about production-scale storage; the current reference cache is in-memory.
 The optional `X-User-Id` header selects the cache namespace and defaults to
 `demo-user`; it is not an authentication mechanism. The edge exposes a liveness
 health check and the adapter has an event hook, but durable request metrics and
-traces are not implemented.
+traces are not implemented. A degraded provider result is now propagated through
+the API and mobile result and forced to `review`; it cannot become `auto_accept`.
 
 **Example.** The test sends `shared-key` as `user-a` for `tr_0001` and as
 `user-b` for `tr_0002`; both requests execute and keep different bodies. A
@@ -197,14 +207,13 @@ this provenance and licence boundary.
 
 ## Where EatBetter is better: catalogue coverage and long-tail breadth
 
-**What is better.** EatBetter has the practical coverage advantage in this
-comparison: its public listing positions photo scanning as a general meal
-workflow, while mealog can accept only the **99 canonical foods** in its **3**
-locale packs and must ask or abstain outside them. This concedes user-facing
-long-tail breadth without claiming an EatBetter catalogue count or internal
-matching policy.
+**What is observed.** EatBetter's public surface depicts a general photo-
+logging workflow, while mealog can accept only the **99 canonical foods** in its
+**3** locale packs and must ask or abstain outside them. This identifies
+mealog's measured coverage limit; it does not claim an EatBetter catalogue
+count or internal matching policy.
 
-**Why it is better.** A long-tail dish missing from mealog creates a question
+**Why it matters.** A long-tail dish missing from mealog creates a question
 instead of a one-tap log. That is the real cost of the closed-set guarantee;
 preventing a wrong calorie record does not remove the coverage gap.
 
@@ -223,13 +232,17 @@ case abstains rather than charging brewed tea against dry-leaf nutrition.
 ## Evidence boundary
 
 All repository measurements above are offline and reproducible with `make eval`
-or `python eval/retrieval_eval.py` against committed fixtures and labels. The
-current **n=80** golden set is real according to `STATUS.md`. The current V3
-scorecard reports **12/80 committed**, **68/80 ask**, Item F1 **0.15**, FP rate
-**86.0%**, and **12.7% MAPE over 2/2 calorie-eligible/scored rows**; 72 partial
-truth rows remain outside that denominator. The iOS live-provider smoke in claim
-[#187](https://github.com/zexy2/mealog-case-study/issues/187) is separate runtime
-evidence, not offline accuracy or hosted deployment proof, and no live multi-item
-gate is claimed before Codex5's retest. EatBetter comparison remains limited to
-its public App Store listing; no internal metrics or implementation details are
-inferred.
+or `python eval/retrieval_eval.py` against committed fixtures and labels. Fresh
+replay at current main `4bcbfa3` reports V3 **12/80 committed**, **68/80 ask**,
+Item F1 **0.15**, FP rate **86.0%**, and **12.7% MAPE over 2/2
+calorie-eligible/scored rows**; 72 partial-truth rows remain outside that
+denominator. Retrieval replay reports Recall@1 **100.0%**, Accept@1 **99.2%**,
+MRR **1.000**, and **0/22 false accepts**. The live iOS evidence in [PR #191](https://github.com/zexy2/mealog-case-study/pull/191)
+is separate runtime smoke evidence, not offline accuracy, visual counting proof,
+or hosted deployment proof. It reran four selected flows, not all twelve gallery
+images, and no live multi-item acceptance gate is claimed. EatBetter comparison
+remains limited to observed public surfaces; no internal metrics or architecture
+are inferred.
+
+This document compares bounded, demonstrated properties. It does not establish
+that mealog beats EatBetter overall.
