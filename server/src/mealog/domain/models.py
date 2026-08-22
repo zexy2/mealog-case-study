@@ -108,6 +108,8 @@ class ResolvedItem(BaseModel):
     query: str
     food_id: str = ABSTAIN
     candidates: list[Candidate] = Field(default_factory=list)
+    quantity: float | None = None
+    unit: str | None = None
     grams: float = 0.0
     grams_p10: float = 0.0
     grams_p90: float = 0.0

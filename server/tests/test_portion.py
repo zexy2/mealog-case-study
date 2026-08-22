@@ -4,13 +4,14 @@ from copy import deepcopy
 import pytest
 from pydantic import ValidationError
 
-from mealog.domain.models import CanonicalFood, Nutrients
+from mealog.domain.models import CanonicalFood, Nutrients, PerceivedItem
 from mealog.locales.loader import load
 from mealog.pipeline.portion import (
     DEFAULT_SPREAD,
     UNKNOWN_DENSITY_SPREAD,
     estimate,
 )
+from mealog.pipeline.ports import VisionInput
 
 CATALOGUE_SERVING_ROWS = (
     ("tr.lahmacun", 2.0, "adet", 280),
@@ -262,3 +263,134 @@ def test_portion_provenance_reaches_resolved_item_without_moving_cooked_path():
         145.0,
     )
     assert cooked_item.portion_source == "catalogue_default"
+
+
+class StubVision:
+    name = "handwritten-stub"
+
+    def __init__(self, items: list[PerceivedItem]):
+        self.items = items
+
+    def perceive(self, _input: VisionInput) -> list[PerceivedItem]:
+        return self.items
+
+
+def test_runner_reconciles_repeated_unknown_count_observations():
+    from mealog.pipeline.runner import CONFIGS, run
+
+    result = run(
+        StubVision([
+            PerceivedItem(surface_form="ayran", confidence=1),
+            PerceivedItem(surface_form="ayran", confidence=1),
+            PerceivedItem(surface_form="ayran", confidence=1),
+            PerceivedItem(surface_form="ayran", confidence=1),
+        ]),
+        VisionInput(text="one glass of ayran"),
+        "tr",
+        CONFIGS["V3"],
+        "runner-duplicate-ayran",
+    )
+
+    assert len(result.items) == 1
+    item = result.items[0]
+    assert (item.food_id, item.quantity, item.grams, item.grams_p10, item.grams_p90) == (
+        "tr.ayran", None, 200.0, 130.0, 290.0
+    )
+    assert item.portion_source == "catalogue_default"
+
+
+def test_runner_keeps_unobserved_simit_count_null_and_unscaled():
+    from mealog.pipeline.runner import CONFIGS, run
+
+    result = run(
+        StubVision([
+            PerceivedItem(surface_form="simit", portion_hint="several", confidence=1),
+        ]),
+        VisionInput(text="two stacked simits"),
+        "tr",
+        CONFIGS["V3"],
+        "runner-two-simit-unknown-count",
+    )
+
+    item = result.items[0]
+    assert (item.food_id, item.quantity, item.grams, item.grams_p10, item.grams_p90) == (
+        "tr.simit", None, 100.0, 65.0, 145.0
+    )
+    assert item.portion_source == "catalogue_default"
+    assert item.portion_provenance == "catalogue.default_serving_g=100"
+
+
+def test_runner_sums_known_counts_for_duplicate_observations():
+    from mealog.pipeline.runner import CONFIGS, run
+
+    result = run(
+        StubVision([
+            PerceivedItem(surface_form="simit", portion_hint="1 adet", confidence=1),
+            PerceivedItem(surface_form="simit", portion_hint="1 adet", confidence=1),
+        ]),
+        VisionInput(text="two simits"),
+        "tr",
+        CONFIGS["V3"],
+        "runner-known-count-reconciliation",
+    )
+
+    assert len(result.items) == 1
+    item = result.items[0]
+    assert (item.food_id, item.quantity, item.unit, item.grams) == (
+        "tr.simit", 2.0, "adet", 200.0
+    )
+
+
+def test_runner_portion_branch_is_stable_across_repeated_submissions():
+    from mealog.pipeline.runner import CONFIGS, run
+
+    results = [
+        run(
+            StubVision([
+                PerceivedItem(surface_form="chicken breast", confidence=1),
+            ]),
+            VisionInput(text="chicken breast"),
+            "en_US",
+            CONFIGS["V3"],
+            f"runner-repeat-{index}",
+        )
+        for index in range(1, 4)
+    ]
+
+    results[1] = run(
+        StubVision([
+            PerceivedItem(surface_form="chicken breast", portion_hint="cup", confidence=1),
+        ]),
+        VisionInput(text="chicken breast"),
+        "en_US",
+        CONFIGS["V3"],
+        "runner-repeat-with-uncounted-unit",
+    )
+
+    assert [
+        (result.items[0].portion_source,
+         result.items[0].grams_p10,
+         result.items[0].grams_p90)
+        for result in results
+    ] == [
+        ("catalogue_default", 78.0, 174.0),
+        ("catalogue_default", 78.0, 174.0),
+        ("catalogue_default", 78.0, 174.0),
+    ]
+
+
+def test_runner_does_not_reconcile_different_foods():
+    from mealog.pipeline.runner import CONFIGS, run
+
+    result = run(
+        StubVision([
+            PerceivedItem(surface_form="simit", confidence=1),
+            PerceivedItem(surface_form="ayran", confidence=1),
+        ]),
+        VisionInput(text="simit and ayran"),
+        "tr",
+        CONFIGS["V3"],
+        "runner-different-foods",
+    )
+
+    assert [item.food_id for item in result.items] == ["tr.simit", "tr.ayran"]

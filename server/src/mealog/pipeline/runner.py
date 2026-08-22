@@ -38,6 +38,38 @@ CONFIGS: dict[str, Config] = {
 }
 
 
+def _reconcile_resolved(items: list[ResolvedItem]) -> list[ResolvedItem]:
+    """Collapse repeated grounded foods while preserving every abstention.
+
+    ``ABSTAIN`` is a sentinel rather than a food, so different unmatched
+    queries stay as separate questions. A known count can be added; one
+    unknown contribution makes the merged count unknown.
+    """
+    by_food: dict[str, ResolvedItem] = {}
+    reconciled: list[ResolvedItem] = []
+
+    for item in items:
+        if item.abstained:
+            reconciled.append(item)
+            continue
+
+        existing = by_food.get(item.food_id)
+        if existing is None:
+            by_food[item.food_id] = item
+            reconciled.append(item)
+            continue
+
+        existing.quantity = (
+            None
+            if existing.quantity is None or item.quantity is None
+            else existing.quantity + item.quantity
+        )
+        existing.unit = existing.unit if existing.unit == item.unit else None
+        existing.confidence = min(existing.confidence, item.confidence)
+
+    return reconciled
+
+
 def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: Config,
         idempotency_key: str, text: str | None = None) -> MealLog:
     if isinstance(input_ref, str):
@@ -75,24 +107,38 @@ def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: C
         with obs.stage("retrieval", query=item.query):
             candidates = retrieval.search(item.query, pack)
         r = resolve(item.query, candidates, allow_abstain=config.gating)
-        if not r.abstained:
-            food = pack.foods[r.food_id]
-            estimate = portion.estimate(food, item.quantity, item.unit, pack)
-            r.grams, r.grams_p10, r.grams_p90 = estimate
-            r.portion_source = estimate.source
-            r.portion_provenance = estimate.provenance
-            r.nutrients = nutrition.scale_per_100g(food.per_100g, r.grams).rounded()
+        r.quantity = item.quantity
+        r.unit = item.unit
         resolved.append(r)
 
-    log.items = resolved
-    log.totals = sum((i.nutrients for i in resolved if not i.abstained), Nutrients()).rounded()
+    reconciled = _reconcile_resolved(resolved)
+    for item in reconciled:
+        if item.abstained:
+            continue
+
+        food = pack.foods[item.food_id]
+        # A missing count is not an implicit one. Keep the item on the
+        # catalogue default path even when an uncounted hint names a unit.
+        estimate = portion.estimate(
+            food,
+            item.quantity,
+            item.unit if item.quantity is not None else None,
+            pack,
+        )
+        item.grams, item.grams_p10, item.grams_p90 = estimate
+        item.portion_source = estimate.source
+        item.portion_provenance = estimate.provenance
+        item.nutrients = nutrition.scale_per_100g(food.per_100g, item.grams).rounded()
+
+    log.items = reconciled
+    log.totals = sum((i.nutrients for i in reconciled if not i.abstained), Nutrients()).rounded()
     if config.gating:
         log = route(log)
     else:
         log.action = "auto_accept"
 
     obs.event("meal_logged", config=config.name, locale=locale, action=log.action,
-              items=len(resolved), abstained=sum(i.abstained for i in resolved),
+              items=len(reconciled), abstained=sum(i.abstained for i in reconciled),
               kcal=log.totals.kcal)
     return log
 
