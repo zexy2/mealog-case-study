@@ -10,6 +10,8 @@ import {
 import {
   ASK_BELOW,
   AUTO_ACCEPT,
+  effectiveConfidence,
+  portionConfidence,
   route,
 } from '../src/pipeline/confidence';
 
@@ -28,6 +30,9 @@ const item = (query: string, confidence: number, name = 'matched food') =>
     food_id: `test.${query}`,
     confidence,
     candidates: [candidate(name)],
+    grams: 100,
+    grams_p10: 90,
+    grams_p90: 110,
   });
 
 describe('confidence routing', () => {
@@ -81,5 +86,44 @@ describe('confidence routing', () => {
 
     expect(log.action).toBe('ask');
     expect(log.question).toBe('I could not read this meal. What did you eat?');
+  });
+
+  it('keeps identity confidence separate from portion confidence', () => {
+    const resolved = item('ayran', 1);
+    resolved.grams = 200;
+    resolved.grams_p10 = 150;
+    resolved.grams_p90 = 270;
+
+    const log = route(meal(resolved));
+
+    expect(portionConfidence(resolved)).toBe(0.4);
+    expect(effectiveConfidence(resolved)).toBe(0.4);
+    expect(resolved.confidence).toBe(1);
+    expect(log.action).toBe('review');
+  });
+
+  it('asks instead of auto-accepting a wide portion band', () => {
+    const resolved = item('rice', 0.99);
+    resolved.grams = 100;
+    resolved.grams_p10 = 45;
+    resolved.grams_p90 = 175;
+
+    const log = route(meal(resolved));
+
+    expect(portionConfidence(resolved)).toBe(0);
+    expect(log.action).toBe('ask');
+    expect(resolved.confidence).toBe(0.99);
+  });
+
+  it('fails closed when the portion interval is missing', () => {
+    const resolved = item('rice', 0.99);
+    resolved.grams = 0;
+    resolved.grams_p10 = 0;
+    resolved.grams_p90 = 0;
+
+    const log = route(meal(resolved));
+
+    expect(portionConfidence(resolved)).toBe(0);
+    expect(log.action).toBe('ask');
   });
 });

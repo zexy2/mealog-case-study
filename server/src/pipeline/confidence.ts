@@ -3,8 +3,9 @@
  *
  * This is a framework-free port of `server/src/mealog/pipeline/confidence.py`.
  * It routes on the weakest item signal, so one uncertain item gates the meal
- * rather than being hidden by an average. D11's portion-uncertainty gate is a
- * separate, specified-but-unshipped decision and is not implemented here.
+ * rather than being hidden by an average. Identity confidence and portion
+ * confidence remain separate signals: the former is returned by perception /
+ * retrieval, while the latter is derived from the deterministic mass band.
  */
 
 import {
@@ -15,7 +16,33 @@ import {
 export const AUTO_ACCEPT = 0.75;
 export const ASK_BELOW = 0.40;
 
-/** Route a meal log in place, preserving the Python action and question text. */
+/**
+ * Map relative p10-p90 width to a bounded confidence signal.
+ *
+ * A zero-width band scores 1.0. A band as wide as its midpoint scores 0.0.
+ * Missing or malformed intervals fail closed instead of allowing an
+ * identity-only auto-accept. This is deliberately a separate value: the API's
+ * `confidence` field continues to mean identity confidence.
+ */
+export function portionConfidence(item: MealLog['items'][number]): number {
+  const values = [item.grams, item.grams_p10, item.grams_p90];
+  if (
+    !values.every(Number.isFinite)
+    || !(item.grams_p10 > 0 && item.grams_p10 <= item.grams && item.grams <= item.grams_p90)
+  ) {
+    return 0.0;
+  }
+
+  const relativeWidth = (item.grams_p90 - item.grams_p10) / item.grams;
+  return Math.round(Math.max(0.0, Math.min(1.0, 1.0 - relativeWidth)) * 1000) / 1000;
+}
+
+/** Use the weaker of identity confidence and portion confidence for routing. */
+export function effectiveConfidence(item: MealLog['items'][number]): number {
+  return Math.round(Math.min(item.confidence, portionConfidence(item)) * 1000) / 1000;
+}
+
+/** Route a meal log in place, preserving identity confidence and question text. */
 export function route(log: MealLog): MealLog {
   if (log.items.length === 0) {
     log.action = 'ask';
@@ -30,7 +57,7 @@ export function route(log: MealLog): MealLog {
     return log;
   }
 
-  const lowest = Math.min(...log.items.map((item) => item.confidence));
+  const lowest = Math.min(...log.items.map(effectiveConfidence));
   if (lowest >= AUTO_ACCEPT) {
     log.action = 'auto_accept';
   } else if (lowest < ASK_BELOW) {
