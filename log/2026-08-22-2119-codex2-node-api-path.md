@@ -26,6 +26,13 @@ Base: `4bcbfa3` (`origin/main`, after PR #199)
   V0–V3 regression guard.
 - `git diff --check` — passed.
 
+## CI follow-up
+
+The first pull-request check stopped at claim scope because the repository
+scope parser ignores a bare root filename. Claim #200 was corrected with its
+parser-normalized `Makefile/` spelling; this still resolves to exactly
+`Makefile`. No implementation scope changed.
+
 ## Eval impact
 
 No evaluator, golden data, baseline, scorecard, pipeline, or application
