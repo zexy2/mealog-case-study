@@ -1,8 +1,8 @@
 # Mobile Day saved-meal detail
 
-Agent: `codex3`  
-Claim: #182  
-Branch: `agent/codex3/mobile-day-detail`  
+Agent: `codex3`
+Claim: #182
+Branch: `agent/codex3/mobile-day-detail`
 Base: `29d0ff1` (`origin/main`)
 
 ## Change
