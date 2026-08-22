@@ -68,7 +68,8 @@ export const CONFIGS: Readonly<Record<string, Config>> = {
 const retrieval = createRetrieval();
 
 function ungroundedLog(
-  perceived: Awaited<ReturnType<VisionPort['perceive']>>,
+  perceived: Awaited<ReturnType<VisionPort['perceive']>>['observations'],
+  degraded: boolean,
   idempotencyKey: string,
   locale: string,
   config: Config,
@@ -90,7 +91,8 @@ function ungroundedLog(
     config: config.name,
     items,
     totals: roundedNutrients(totals),
-    action: 'auto_accept',
+    action: degraded ? 'review' : 'auto_accept',
+    degraded,
   });
 }
 
@@ -121,10 +123,12 @@ export async function run(
   }
 
   const pack = load(locale);
-  const perceived = await vision.perceive(input);
+  const perception = await vision.perceive(input);
+  const perceived = perception.observations;
+  const degraded = perception.degraded;
 
   if (!config.grounded) {
-    return ungroundedLog(perceived, idempotencyKey, locale, config);
+    return ungroundedLog(perceived, degraded, idempotencyKey, locale, config);
   }
 
   const normalized = normalize(
@@ -175,9 +179,15 @@ export async function run(
     config: config.name,
     items: resolved,
     totals: roundedNutrients(totals),
+    degraded,
   });
 
-  if (config.gating) {
+  if (degraded) {
+    // Provider fallback is never a first-class accepted answer, regardless of
+    // identity or portion confidence. The status came from this request's
+    // perception envelope, not from mutable adapter state.
+    log.action = 'review';
+  } else if (config.gating) {
     log = route(log);
   } else {
     log.action = 'auto_accept';

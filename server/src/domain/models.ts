@@ -220,6 +220,8 @@ export interface MealLog {
   action: string;
   question: string | null;
   config: string;
+  /** True when the provider used a fallback or otherwise degraded rung. */
+  degraded: boolean;
 }
 
 export function makeMealLog(
@@ -234,5 +236,6 @@ export function makeMealLog(
     action: init.action ?? 'review',
     question: init.question ?? null,
     config: init.config ?? 'V3',
+    degraded: init.degraded ?? false,
   };
 }

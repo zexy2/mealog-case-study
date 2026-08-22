@@ -143,11 +143,11 @@ describe('fixture adapter keys on the SHA-256 content hash', () => {
     const bytes = new Uint8Array([1, 2, 3, 4, 5]);
     writeFixture(dir, sha256(bytes), [OBSERVATION]);
 
-    const items = new FixtureVision(dir).perceive(
+    const result = new FixtureVision(dir).perceive(
       new VisionInput({ imageBytes: bytes, imageMediaType: 'image/jpeg' }),
     );
-    expect(items).toHaveLength(1);
-    expect(items[0].surface_form).toBe('kuru fasulye');
+    expect(result.observations).toHaveLength(1);
+    expect(result.observations[0].surface_form).toBe('kuru fasulye');
   });
 
   it('does NOT fall back to sample_id when bytes are present', () => {
@@ -195,9 +195,19 @@ describe('fixture adapter keys on the SHA-256 content hash', () => {
     writeFixture(dir, 'sample_0001', [OBSERVATION]);
     const adapter = new FixtureVision(dir);
 
-    expect(adapter.perceive(new VisionInput({ sampleId: 'sample_0001' }))).toHaveLength(1);
+    expect(adapter.perceive(new VisionInput({ sampleId: 'sample_0001' })).observations).toHaveLength(1);
     // The string form is the test-only convenience the Python module keeps.
-    expect(adapter.perceive('sample_0001')).toHaveLength(1);
+    expect(adapter.perceive('sample_0001').observations).toHaveLength(1);
+  });
+
+  it('replays fixture degradation as request-scoped metadata', () => {
+    const dir = tempFixtureDir();
+    writeFixture(dir, 'degraded', [OBSERVATION], { degraded: true });
+
+    const result = new FixtureVision(dir).perceive('degraded');
+
+    expect(result.degraded).toBe(true);
+    expect(result.observations).toHaveLength(1);
   });
 
   it('refuses an input that carries neither bytes nor a sample_id', () => {
@@ -224,9 +234,10 @@ describe('committed fixtures replay unchanged', () => {
       const raw = JSON.parse(readFileSync(join(FIXTURE_DIR, name), 'utf-8')) as {
         items: Record<string, unknown>[];
       };
-      const items = adapter.perceive(key);
-      expect(items, name).toHaveLength(raw.items.length);
-      items.forEach((item, i) => {
+      const result = adapter.perceive(key);
+      expect(result.degraded, name).toBe(false);
+      expect(result.observations, name).toHaveLength(raw.items.length);
+      result.observations.forEach((item, i) => {
         expect(item.surface_form, `${name}[${i}]`).toBe(raw.items[i].surface_form);
         expect(item.confidence, `${name}[${i}]`).toBe(raw.items[i].confidence ?? 0.5);
       });
@@ -376,8 +387,9 @@ describe('Gemini adapter', () => {
       envelope([OBSERVATION]),
     ]);
     const adapter = gemini({ transport });
-    const items = await adapter.perceive(new VisionInput({ text: 'pilav' }));
-    expect(items).toHaveLength(1);
+    const result = await adapter.perceive(new VisionInput({ text: 'pilav' }));
+    expect(result.observations).toHaveLength(1);
+    expect(result.degraded).toBe(false);
     expect(calls.length).toBeGreaterThanOrEqual(2);
     expect(adapter.degraded).toBe(false);
   });
@@ -402,9 +414,10 @@ describe('Gemini adapter', () => {
       return Promise.resolve({ status: 200, headers: {}, body: envelope([OBSERVATION]) });
     };
     const adapter = gemini({ transport, modelId: DEFAULT_MODEL, secondaryModel: SECONDARY_MODEL });
-    const items = await adapter.perceive(new VisionInput({ text: 'pilav' }));
+    const result = await adapter.perceive(new VisionInput({ text: 'pilav' }));
 
-    expect(items).toHaveLength(1);
+    expect(result.observations).toHaveLength(1);
+    expect(result.degraded).toBe(true);
     expect(adapter.degraded).toBe(true);
     expect(adapter.rung).toBe('secondary_model');
     expect(adapter.lastModel).toBe(SECONDARY_MODEL);
@@ -468,9 +481,9 @@ describe('fixture recording', () => {
   it('stamps provider, model_id, prompt_version and _synthetic: false', async () => {
     const adapter = gemini({ modelId: DEFAULT_MODEL });
     const input = new VisionInput({ text: 'kuru fasulye', sampleId: 'tr_9001' });
-    const items = await adapter.perceive(input);
+    const result = await adapter.perceive(input);
 
-    const payload = adapter.fixturePayload(input, items);
+    const payload = adapter.fixturePayload(input, result.observations);
     expect(payload._synthetic).toBe(false);
     expect(payload.provider).toBe('gemini');
     expect(payload.model_id).toBe(DEFAULT_MODEL);

@@ -31,5 +31,15 @@ assert.match(appSource, /function openSavedMeal\(savedMeal: MealLog\)/, "App mus
 assert.match(appSource, /current\.findIndex\(\(item\) => item\.idempotency_key === next\.idempotency_key\)/, "save must identify existing meals by idempotency key");
 assert.match(appSource, /return current\.map\(\(item, index\) => \(index === existingIndex \? saved : item\)\)/, "saving existing meal must replace, not append");
 assert.match(appSource, /setMeal\(null\);\n\s+setScreen\("day"\)/, "back from saved detail must return without a duplicate save");
+assert.match(
+  appSource,
+  /result\.action === "auto_accept" && !result\.degraded/,
+  "degraded API results must not take the auto-accept path",
+);
+assert.match(
+  reviewSource,
+  /const displayAction = meal\.degraded \? "review" : meal\.action/,
+  "degraded results must render as review in the mobile audit surface",
+);
 
 console.log("mobile Day detail checks passed");

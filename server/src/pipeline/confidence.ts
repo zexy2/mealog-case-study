@@ -44,6 +44,11 @@ export function effectiveConfidence(item: MealLog['items'][number]): number {
 
 /** Route a meal log in place, preserving identity confidence and question text. */
 export function route(log: MealLog): MealLog {
+  if (log.degraded) {
+    log.action = 'review';
+    return log;
+  }
+
   if (log.items.length === 0) {
     log.action = 'ask';
     log.question = 'I could not read this meal. What did you eat?';
