@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const { buildMealCorrections, replaceSavedMeal } = await import("./corrections.ts");
+const { buildMealCorrections, removeSavedMeal, replaceSavedMeal } = await import("./corrections.ts");
 
 const meal = {
   idempotency_key: "mobile-correction-test",
@@ -13,6 +13,7 @@ const meal = {
       candidates: [{ food_id: "tr.simit", name: "Simit", score: 1 }],
       quantity: null,
       unit: "several",
+      clarification: { kind: "count", unit: "adet", options: [1, 2, 3, null] },
       grams: 100,
       grams_p10: 65,
       grams_p90: 145,
@@ -38,16 +39,17 @@ const meal = {
 };
 
 const corrections = buildMealCorrections(meal, {}, {}, { 0: 2 });
-assert.deepEqual(corrections, [{ item_index: 0, quantity: 2 }]);
+assert.deepEqual(corrections, [{ item_index: 0, quantity: 2, unit: "adet" }]);
 assert.equal("nutrients" in corrections[0], false, "mobile must never send client nutrients");
 
 const knownQuantityMeal = { ...meal, items: [{ ...meal.items[0], quantity: 1 }, meal.items[1]] };
 const changed = buildMealCorrections(knownQuantityMeal, { 0: 120 }, { 0: "tr.simit" }, { 0: null });
-assert.deepEqual(changed, [{ item_index: 0, quantity: null, grams: 120 }]);
+assert.deepEqual(changed, [{ item_index: 0, quantity: null, unit: "adet", grams: 120 }]);
 
 const saved = replaceSavedMeal([meal], { ...meal, totals: { ...meal.totals, kcal: 500 } });
 assert.equal(saved.length, 1, "re-saving an opened meal must replace by idempotency key");
 assert.equal(saved[0].totals.kcal, 500);
+assert.equal(removeSavedMeal([meal], meal.idempotency_key).length, 0, "removal must delete local Day record");
 
 const reviewSource = readFileSync(new URL("../screens/Review.tsx", import.meta.url), "utf8");
 const apiSource = readFileSync(new URL("./api.ts", import.meta.url), "utf8");
