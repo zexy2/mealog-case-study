@@ -34,4 +34,3 @@ behavior changed. Coverage, F1, MAPE, and regression output remain unchanged.
 Traps: `make api` must not launch `server/src/mealog/api/main.py`; that is the
 legacy Python reference server. Do not delete Python dependencies or rewrite
 the Python evaluation targets while fixing this reviewer-facing Node path.
-
