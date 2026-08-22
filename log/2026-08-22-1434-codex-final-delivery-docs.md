@@ -3,7 +3,8 @@
 - Agent: `codex`
 - Issue: #189
 - Branch: `agent/codex/final-delivery-docs`
-- Base: `origin/main` at `e85975e`
+- Requested base: `origin/main` at `e85975e`; before push, fetch advanced
+  `origin/main` to `07b0945`, and the branch was rebased normally onto that commit.
 - Scope changed: `docs/assumptions.md`, `docs/comparison.md`, `docs/walkthrough.md`, this log.
 
 ## Done
