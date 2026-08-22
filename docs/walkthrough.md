@@ -1,399 +1,287 @@
-# Video walkthrough script
+# Video walkthrough script — Node/TypeScript submission
 
-Target runtime: **8:00**. This is a recording script, not a result. Record it
-after code freeze, and re-check every scorecard value against current `main` and
-its evidence anchor immediately before recording.
+Target runtime: **8:00**. This is a timed script, not a recording. Rehearse and
+re-check every evidence anchor against the recording commit immediately before
+the take. A sentence marked `PENDING` is not evidence until that check has
+passed; do not silently turn it into a claim.
+
+The walkthrough shows the Node/TypeScript edge and the Expo client. The Python
+path appears only as the offline evaluation harness. This is a decision-led
+walkthrough: enter a file only to support one boundary, never as a
+folder-by-folder code tour.
 
 ## Run of show
 
-| Time | Content | Evidence / fallback |
+| Time | Beat | Recording condition |
 |---|---|---|
-| 0:00–0:40 | Problem, scope, assumptions | Repository landing page and brief |
-| 0:40–2:20 | Mobile photo flow: capture or choose, analysing, review, portion range, audit panel | Expo device capture; deterministic demo clip if the device path is unavailable |
-| 2:20–2:50 | Live abstention: a catalogue miss becomes `ABSTAIN` | Abstention screen with observed item and candidates |
-| 2:50–4:00 | Architecture and data flow | One diagram, then two boundaries only |
-| 4:00–5:20 | Key decisions | Closed-set numbers, and worst-cuisine over mean |
-| 5:20–6:15 | Evaluation harness and regression guard | Current n=80 scorecard and CI result |
-| 6:15–6:50 | Security and privacy | Request boundary, key handling, what happens to a photograph |
-| 6:50–7:30 | Limitations and measurable sample sizes | `STATUS.md` and the golden manifest |
-| 7:30–8:00 | Next improvements, in priority order | Prioritised closing card |
-
-Every spoken metric must include its sample size in the same sentence. Never
-read a seeded, remembered, historical or projected number aloud.
-
-## What is safe to say out loud
-
-Verified against the working tree on the recording commit. Re-check each one
-immediately before recording; if a check disagrees, do not say the number.
-
-| Claim | Source |
-|---|---|
-| 3 locale packs | `locale_packs/`, `STATUS.md` |
-| 99 canonical foods | `STATUS.md` |
-| 80 golden samples | `eval/golden/manifest.jsonl`, `STATUS.md` |
-| 80 recorded fixtures | `eval/fixtures/` |
-| V3: 15% coverage, 12/80 committed, 68/80 ask | `docs/evaluation.md` |
-| V3: 12.7% calorie MAPE over 2/2 eligible/scored rows; Item F1 0.15; FP 86.0% | `docs/evaluation.md` |
-| Retrieval: Recall@1 100.0%, Accept@1 99.2%, MRR 1.000, 0/22 false accepts | `eval/retrieval_eval.py` |
-
-The current-main V3 scorecard is safe to speak only with its denominator: **n=80** overall,
-**12/80** committed, **68/80** ask, and calorie MAPE over **n=2** complete,
-positive-truth rows. **72/80** manifest rows have partial truth; seven are covered
-but excluded from calorie MAPE. Do not present partial-truth rows as zero calories.
+| 0:00–0:40 | Problem, scope, and assumptions | Title card and app shell |
+| 0:40–2:20 | Capture, loading, result, portion band, auditability, and routing | Current Node endpoint or deterministic fixture fallback |
+| 2:20–2:50 | Live out-of-catalogue abstention | **Required**; use the labelled fixture fallback only if the live shot cannot run |
+| 2:50–4:00 | One architecture diagram and the server-action routing table | Node/Nest boundary on screen |
+| 4:00–5:20 | The model mistake that changed the design; closed-set nutrition and worst-cuisine measurement | D1/D3 and one short code boundary |
+| 5:20–6:15 | Offline scorecard, ablation, retrieval, and regression guard | Scorecard SHA `bfb1703b…` |
+| 6:15–6:50 | Security and privacy | Request boundary and CI guard |
+| 6:50–7:30 | Limitations, exact calorie denominator, and the open photo-count defect | `n=80` scorecard plus #218 status |
+| 7:30–8:00 | Error/empty states and next steps | Close on the honest state, not a success animation |
 
 ## Recording rules
 
-- The backend on screen is the Node/TypeScript port: `server/src/main.ts`, the
-  Nest application module, and the framework-free domain and pipeline modules.
-  Do not show a Python API terminal.
-- **No folder-by-folder code tour.** Enter a file only to prove one boundary,
-  and only briefly. This is the most common way a walkthrough of this length
-  goes wrong.
-- Do not record an API key, a real person's photograph, a personal identifier,
-  or a raw provider response envelope. Keep the terminal on commands and the
-  device on product state.
-- Backend rehearsal commands, from `server/`:
-
-  ```text
-  npm ci
-  npm run build
-  npm run lint
-  npm test
-  ```
-
-- Device rehearsal commands, from `apps/mobile/`:
-
-  ```text
-  npm ci
-  npm run verify
-  npm start
-  ```
-
-- Demo order is deliberate: a meal the system handles well, then the portion
-  range and the audit panel, then the abstention. Leading with the failure
-  reads as a lack of confidence; hiding it reads as a lack of honesty.
-- The fallback recording is the deterministic Expo demo path. It shows the
-  interaction and the abstention state honestly, but it is not live-provider
-  evidence. If the device path is unavailable, use the clip and label it
-  **fixture / demo path** in the edit.
-- For live evidence, set `EXPO_PUBLIC_DEMO_MODE=false` and point the app at the
-  configured Node endpoint. Do not call a runtime smoke a deployment or a gate
-  until the corresponding claim is closed and its acceptance criteria are met.
-- Image input is checked by both declared MIME type and content signature at the
-  Nest edge, with a second adapter check; spoofed bytes are rejected before the
-  provider call. The request bytes are not persisted, and the adapter clears its
-  strong request-input reference after the call.
-- Explicit quantity evidence is preserved as normalized `quantity` and `unit`.
-  An unknown provider quantity stays unknown and routes to review; do not infer a
-  count from pixels or grams. Item corrections use the catalogue-backed,
-  server-recomputed `POST /v1/meals/correct` flow.
-- A degraded provider result propagates through the API and mobile result and
-  always requires `review`; it can never become `auto_accept`.
+- Every metric is spoken with its denominator or sample count in the same
+  sentence. Do not round a figure up or substitute a historical number.
+- The only live-provider evidence named here is the verified 2026-08-23 run on
+  `acfa6dd`: 8/8 text scenarios passed and `C7.jpg` returned exactly one
+  `tr.ayran`. This is not broad live accuracy and it does not prove visual
+  counting of every image.
+- Do not show an API key, a personal photograph, a raw provider envelope, or a
+  personal identifier. If the device path fails, use the deterministic fixture
+  recording and say **fixture / demo path** on screen.
+- The abstention at 2:20–2:50 is mandatory. It is the strongest proof that the
+  system knows when not to guess.
+- Do not say “production ready”. Do not narrate the multi-agent process.
 
 ## Script
 
 ### 0:00–0:40 — The problem, the scope, the assumptions
 
-**Picture:** Title card, then the three mobile screens side by side.
+**Picture:** Title card, then the mobile capture surface.
 
 **Say:**
 
-> A meal photograph is an uncertain observation, but a nutrition log has to be
-> a decision someone can inspect. Mealog narrows that to three things: a
-> catalogue food, an explicit portion range, and nutrition computed from the
-> food that was chosen. The scope is deliberately small — capture, inspect,
-> correct, save.
+> A meal photo is an uncertain observation, but a nutrition log has to be a
+> decision someone can inspect. Mealog identifies a catalogue food, shows a
+> portion band, and calculates nutrition from the chosen catalogue row.
 >
-> Where the brief was silent I made three assumptions, and I will show the cost
-> of each. Evidence is recorded and replayed offline, so the numbers reproduce
-> without a key. A market is data rather than code, so adding one does not mean
-> editing the pipeline. And when the catalogue cannot account for a food, the
-> system abstains instead of guessing.
+> The delivered runtime is Node and TypeScript behind a NestJS HTTP edge, with
+> an Expo client. Python remains the offline evaluator, so measurements replay
+> without a provider key. When the catalogue cannot support an identity, the
+> correct result is an abstention, not a plausible guess.
 
-**On-screen proof:** the repository landing page, the brief, `STATUS.md`. Show
-no scorecard value in this opening.
+**On-screen proof:** the app shell and the Node entrypoint. Do not open a file
+tree or read a scorecard in this opening.
 
-### 0:40–2:20 — The mobile photo flow
+### 0:40–2:20 — Capture, loading, result, and auditability
 
-**Picture:** Expo app on a device. `Capture` with the live camera, the library
-button, the analysing state, then `Review` with the portion range and the audit
-panel open.
+**Picture:** Choose a photo or enter a meal description, then show the loading
+state, the result, and the expanded **“Nasıl bulundu?”** panel.
 
 **Say:**
 
-> For the deterministic demo path I start with no provider key set. Capture offers the live camera or an
-> existing photograph from the library — the same boundary accepts both, and it
-> also accepts text, which is what makes a deterministic rehearsal possible.
+> I start with the deterministic demo path so the recording does not depend on
+> a live key. The same boundary accepts a camera photo, a library photo, or
+> text. The loading copy says **“Fotoğrafın işleniyor; öğünün için kanıt
+> oluşturuluyor.”** and names the stages: **“Tabak okunuyor”, “Katalogda
+> eşleşme aranıyor”, “Porsiyon tahmin ediliyor.”**
 >
-> While it works, the app names what it is doing rather than showing a
-> featureless spinner: reading the image, matching against the catalogue, then
-> estimating the portion. Those are the three real stages, in order, so the
-> wait itself tells the user how the answer is being built.
+> The server response decides the next screen. The client never guesses from
+> the local prompt. `auto_accept` goes to **Gün**, highlights the record, and
+> offers one-tap undo. `review` goes to **Kontrol et** with nothing written;
+> if there is a question, it is visible — **“Kaç adet?”**. The server's `ask`
+> action is the abstention surface: it shows the observation and next choices
+> without creating a record. Degraded stays in Review with a warning and never
+> auto-accepts. A `503` is an error-with-retry state, not a meal result; its
+> exact mobile copy remains `PENDING` until the client-to-Node rehearsal.
 >
-> Review is where the decision becomes inspectable. The food is a catalogue
-> entry, not free text. The portion is a range — about so many grams, with a
-> likely minimum and an upper bound — and the slider is bounded by that range,
-> so correcting the estimate cannot push it somewhere the evidence does not
-> support. A point estimate here would be a false certainty; mass error
-> dominates calorie error, so the width is the honest part.
->
-> Then the part I would want to see as a reviewer: **Why this result?** It
-> traces the decision — the matched `food_id`, the source database the numbers
-> came from, the confidence, the exact grams used, and the alternates that were
-> considered and not chosen. Nothing in that panel is a model opinion. Every
-> row is either catalogue provenance or an arithmetic input.
+> Review shows a band, never a single asserted mass: **“yaklaşık [gram] g
+> ([alt]–[üst] g)”**. The **“Nasıl bulundu?”** panel is open and shows the
+> `food_id`, catalogue source, confidence, portion source, provenance, and
+> p10–p90 evidence.
 
-The current-main evidence is the fresh live-provider iOS Simulator/Expo Go smoke
-from [PR #191](https://github.com/zexy2/mealog-case-study/pull/191). It reran four
-selected gallery flows against Node Gemini: plain rice resolved to `tr.pilav`
-with identity 100% and review; simit plus ayran returned as two resolved items
-with identity 100% and review; the repeat kept the same IDs, confidence,
-midpoint grams, and ranges; and lahmacun stayed `ABSTAIN` despite a visible
-candidate. This is a four-flow retest, not all twelve gallery images. The
-simit-plus-ayran result proves two returned items in that run; it does not prove
-that Gemini visually counted two simits. No degraded/retry state appeared in
-this smoke.
+The current live evidence available for the recording commit is bounded: on
+2026-08-23 at `acfa6dd`, 8/8 text scenarios passed and `C7.jpg` returned exactly
+one `tr.ayran`. If a fresh device rehearsal has not verified this exact screen
+against the current Node endpoint, mark the shot `PENDING` and use the fixture
+recording with that label rather than claiming a live device result.
 
-This is runtime smoke evidence only. It is not a hosted deployment proof, a
-physical-device claim, broad live-provider accuracy, or a completed live
-multi-item acceptance gate. Do not call a demo fixture or an explicit text
-quantity fixture visual-count evidence. Do not call catalogue defaults visually
-measured.
-
-**On-screen proof:** the capture screen with both input affordances, the
-analysing steps, the review screen, the portion range, and the expanded audit
-panel. Do not show an API response envelope.
+**On-screen proof:** loading copy, one result with its portion band, the open
+audit panel, and the action transition. Do not show raw JSON.
 
 ### 2:20–2:50 — A catalogue miss, live
 
-**Picture:** Same app. Submit a food the catalogue does not carry, and stop on
-the abstention screen with the observed item and the candidate list visible.
+**Picture:** Submit one out-of-catalogue image to the running Node path and stop
+on the abstention screen.
 
 **Say:**
 
-> Here the food is outside the catalogue, or close enough to a documented
-> confusion that the resolver will not commit to it. The result is `ABSTAIN`.
-> The user sees what was observed, the candidates that caused the hesitation,
-> and a question — not an invented food and not invented nutrition.
+> This food is outside the catalogue. The system says **“GÜVENLİ EŞLEŞME YOK”**
+> and **“Katalogda yeterli kanıt yok. Yakın bir tahmin seçmek yerine senden
+> yardım istiyoruz.”** It shows the observation but assigns no food ID, grams, or
+> calories. The next action is explicit: type the food or retake the photo. No
+> record is created.
 >
-> This costs a tap and it costs coverage. I am showing it on purpose. A system
-> that quietly picks the nearest neighbour looks better in a demo and is worse
-> in a kitchen, because the user cannot see that it guessed.
+> This is not an empty result. It is deliberate `ABSTAIN`: the boundary is
+> visible, the user has a next step, and a nearest neighbour is not truth.
 
-**On-screen proof:** the abstention screen — the `ABSTAIN` state, the observed
-item, and the candidate list. Label the shot **deliberate failure / correct
-abstention**.
+`PENDING — before recording, verify that this exact out-of-catalogue input
+reaches the current Node service and lands on this screen. This thirty-second
+live abstention is mandatory. If the live shot cannot run, use the recorded
+fixture state, label it **fixture / demo path**, and do not call it live.`
 
-### 2:50–4:00 — Architecture and data flow
+**On-screen proof:** `ABSTAIN · TAHMİN YOK`, the observed text, no accepted food
+ID, and the type-or-retake next action. Keep this segment; do not replace it with
+another success case.
 
-**Picture:** One diagram. Then two files, briefly, and nothing else.
+### 2:50–4:00 — One architecture, and why the route is server-owned
+
+**Picture:** One diagram, then the two boundaries that make the diagram true.
 
 ```text
-Expo capture (camera or library)
-    -> POST /v1/meals
-    -> NestJS edge  (server/src/main.ts, app module)
-    -> framework-free domain + pipeline
-         normalize -> retrieval -> resolve -> portion -> nutrition
-    -> vision port  (fixture replay | live provider)
-    -> review / abstain / save in the app
+Expo capture or text
+        -> POST /v1/meals
+        -> NestJS edge
+        -> VisionPort (fixture replay or provider)
+        -> normalize -> retrieval -> resolve -> portion -> nutrition
+        -> MealLog { action, degraded, items, totals }
+        -> Day / Review / Add
 ```
 
 **Say:**
 
-> The edge is NestJS and it is thin — controllers and providers. Everything
-> below it is plain TypeScript with no framework imports at all, which is what
-> lets the evaluation harness drive the exact modules the API serves without
-> booting a web server. That boundary is enforced in CI rather than described
-> in a README; a framework import in the pure directories fails the build.
+> The edge is thin. It validates the request, applies user-scoped idempotency,
+> and delegates to a framework-free pipeline. The provider is a port, so the
+> runner can use a recorded fixture without booting HTTP. The pipeline
+> normalizes observations, retrieves candidates, resolves to a catalogue ID or
+> `ABSTAIN`, estimates a p10–p90 band, and computes nutrients deterministically.
 >
-> The provider sits behind a port. Offline, a recorded response is replayed and
-> found by the hash of the image bytes, so the same photograph resolves to the
-> same recorded answer on any machine. That is what makes the numbers
-> reproducible without a key.
->
-> One line matters more than the rest: only the nutrition stage produces a
-> nutrient number. I will come back to why in a moment.
+> One contract controls the experience: `action` and `degraded` come from the
+> server. A fallback-backed answer is review, never acceptance. A provider
+> error is retry, not a saved record. The client does not infer success from a
+> local string, confidence, or screen transition.
 
-The `POST /v1/meals` edge is implemented in `server/src/app/meals.controller.ts`
-and `meals.service.ts`. The Node/Nest edge validates JSON or multipart image
-input, applies request-level idempotency, and delegates to the framework-free
-pipeline. `POST /v1/meals/correct` accepts item-scoped catalogue-backed
-clarification and recomputes the changed item server-side, preserving untouched
-items; client-submitted grams and nutrients are not trusted. A degraded provider
-result is carried through the same path and forces review, never auto-accept.
-The local endpoint is the supported reproducible boundary; no hosted URL is
-claimed. The Python harness remains the offline evaluator, not the mobile API.
+**On-screen proof:** the diagram, `POST /v1/meals`, and the VisionPort boundary.
+Show only enough of each file to support the boundary. Do not scroll through
+directories.
 
-**On-screen proof:** the diagram, then `server/src/pipeline/ports.ts` for the
-provider boundary and the CI invariant that keeps framework imports out of the
-pure directories. Two files. Do not tour the tree.
+### 4:00–5:20 — The wrong model answer, and the two design decisions
 
-### 4:00–5:20 — Two decisions
-
-**Picture:** Split screen — the audit panel on one side, the evaluation method
-card on the other.
+**Picture:** D1 and D3, then the nutrition boundary.
 
 **Say:**
 
-> The first decision came out of a failure I caught early. The first version
-> let the vision response carry a calorie number. It was plausible and it was
-> unauditable: there was no catalogue food and no measured portion to check it
-> against. So the contract changed. The model observes items. Resolution picks
-> an identifier from a closed set or abstains. Nutrition computes the number
-> from catalogue data. **The model is never given a field in which to put a
-> calorie**, and the adapter now rejects a provider response that tries — it
-> fails the request rather than quietly dropping the field, because a provider
-> that started guessing nutrition is something I want to hear about.
+> Here is the moment the model was wrong. An early vision response supplied a
+> plausible calorie number without a catalogue food or measured portion. We
+> caught it because it had no inspectable source: the evaluator could not tie it
+> to a closed-set identity or reproduce the arithmetic. That was the wrong
+> contract, not a number to polish.
 >
-> That is why the audit panel can exist at all. Every number on it has a source
-> that is not the model.
+> Now the model observes food surfaces only. Retrieval and resolution choose a
+> catalogue `food_id` or return `ABSTAIN`; only nutrition produces a number from
+> catalogue data and grams. That is the first decision.
 >
-> The second decision is how accuracy is read. A mean hides the cuisine that is
-> failing, and this product's whole risk is a cuisine it has not seen. So the
-> headline is the worst cuisine bucket, with coverage next to it, because a
-> system that answers fewer meals is not comparable to one that answers all of
-> them. Abstentions are not scored as zero-calorie answers — doing that once
-> inverted a result and is the reason the harness was built before the model.
+> The second is how to read accuracy. A mean can hide the failing cuisine, so
+> the headline is the worst bucket with coverage beside it. Abstention is not a
+> zero-calorie answer: it costs coverage, but avoids invented identity and
+> nutrition.
 
-Current offline V3 on **n=80** commits **12/80 (15%)**, asks **68/80**, and has
-Item F1 **0.15** with FP rate **86.0%**. Worst/mean calorie MAPE is **12.7%**
-over **2/2** complete-positive rows. The other 72 partial-truth rows are outside
-the calorie denominator; this is not a live-provider accuracy result.
+**On-screen proof:** D1 and D3, the closed-set resolver, and the pure nutrition
+boundary. Do not show a made-up provider response or a folder tour.
 
-**On-screen proof:** D1 and D3 in `docs/decisions.md`, the closed-set resolver,
-and the adapter check that rejects a nutrition field at the provider boundary.
+### 5:20–6:15 — Evaluation, ablation, and the regression guard
 
-### 5:20–6:15 — The evaluation harness and the regression guard
-
-**Picture:** The evaluation method in the repository, then the green CI checks.
+**Picture:** The scorecard, retrieval table, and CI regression check. Keep the
+scorecard hash visible: `bfb1703b…`.
 
 **Say:**
 
-> The harness replays recorded provider responses offline — no key, no network,
-> no spend. It splits results by cuisine, reports coverage beside error, and
-> keeps label tiers visible, because an error against a weaker label is weaker
-> evidence.
+> The current scorecard covers **15%: 12/80** samples. Item F1 is **0.15**, FP
+> is **86.0%**, and calorie MAPE is **12.7%**. I will state its exact denominator
+> again in the limitations segment; this is not broad live accuracy.
 >
-> The regression guard is the part I would look at first. It compares a
-> candidate run against a stored baseline and fails if **any** cuisine bucket
-> gets worse. A green aggregate is not sufficient to merge.
+> The ablation makes the trade-off visible: V0 ungated is **100% coverage at
+> 100% MAPE**; V3 is **15% coverage at 12.7% MAPE**. V3 answers less often
+> because it refuses unsupported identities.
+>
+> Retrieval is a separate guard: across **145 variants**, Recall@1 is **100%**
+> and MRR is **1.000**; across **22 negative probes**, there are zero wrong
+> accepts. On **10 out-of-catalogue images**, there are **10 correct
+> abstentions** and zero false accepts. CI compares buckets, not just an
+> aggregate, before a change can merge.
 
-When speaking the table, name the metric and its denominator in the same sentence.
-The regression guard still compares the selected configuration against the stored
-baseline per cuisine; a green aggregate is not sufficient to merge. Empty calorie
-buckets are shown as unavailable, not as zero error.
-
-**On-screen proof:** the harness, the regression check, and the CI run. A
-browser view of CI is the fallback if the local rehearsal cannot be shown.
+**On-screen proof:** scorecard SHA, the V0/V3 rows, the retrieval rows, the
+out-of-catalogue result summary, and the green regression check. If local output
+is unavailable, use a captured CI view; do not invent a new measurement during
+the recording.
 
 ### 6:15–6:50 — Security and privacy
 
-**Picture:** The request-boundary contract, then the secret-guard CI result.
+**Picture:** The HTTP boundary and the CI secret guard.
 
 **Say:**
 
-> A food photograph is health-adjacent data going to a third party, so the
-> boundary is explicit. The request validates image type and size. The bytes
-> are held only for the provider call — the application does not persist the
-> photograph, and a recorded fixture stores validated observations only, never
-> the image and never the raw response envelope.
+> The photo is handled as a bounded request. The edge checks the declared type
+> and the bytes themselves before transport. The request bytes live only for
+> the provider call; the adapter releases its strong reference afterward. The
+> application does not persist the photograph, and a fixture stores observations,
+> not the image or raw provider envelope.
 >
-> The provider key stays server-side and is read from configuration; it is
-> never in the repository, and CI scans both the tree and the diff on every
-> pull request. Idempotency is user-scoped, so one caller's replay cannot be
-> handed to another.
+> The provider key stays in server configuration and never appears in the
+> repository or recording. Idempotency is user-scoped, but its optional header
+> is not authentication. Health is liveness, not downstream-provider health.
 
-The Node/TypeScript request validator ships with the meal endpoint. The current
-edge checks declared MIME type and image content signature, rejects spoofed bytes
-before provider transport, keeps image bytes in memory for the provider call, and
-does not persist the photo or raw provider envelope. The adapter clears its strong
-input reference in `finally`; a fixture keeps only weak identity metadata. The
-Gemini key stays server-side. The process-local idempotency cache is user-scoped
-by an optional `X-User-Id` header, defaulting to `demo-user`; that is namespacing,
-not auth. Health is liveness only, and the adapter's event hook is not a durable
-request-observability system. PR #191 did not encounter a degraded/retry state;
-the degraded-review rule is supported by focused adapter, pipeline, API, and
-mobile tests, not by that smoke.
+**On-screen proof:** request validation, configuration boundary, and secret-scan
+CI result. Never show credentials, a user photo, or a user identifier.
 
-**On-screen proof:** the D5 contract, the configuration boundary, the CI
-secret-guard result, and a recorded fixture with no image bytes in it. Never
-show a key, a personal photograph, or a user identifier.
+### 6:50–7:30 — Limitations, with the denominator spoken aloud
 
-### 6:50–7:30 — Limitations, and how much is actually measurable
-
-**Picture:** `STATUS.md`, then the golden manifest and the fixture directory.
+**Picture:** The scorecard and the two-simit evidence note.
 
 **Say:**
 
-> Three limits, said plainly.
+> The scorecard has **n=80** samples, but the calorie MAPE denominator is **TWO
+> scorable rows**, not 80: **12.7% over 2 scorable rows**. The other rows do not
+> provide trustworthy calorie truth, so they are not zero-calorie errors.
+> Coverage is **15%: 12/80**: selective answers and a very small calorie
+> denominator.
 >
-> First, runtime proof. PR #191 records a current-main iOS Simulator/Expo Go
-> live-provider smoke across four selected gallery flows, but it does not prove a
-> physical-device run, a hosted deployment, broad live-provider accuracy, or the
-> pending live multi-item gate. Treat those boundaries as explicit.
+> **Still open:** the two-simit photo currently returns one `tr.simit` at 329
+> kcal in 3/3 runs — a 50% undercount. It is being fixed under #218; this script
+> does not call that fix done.
 >
-> Second, catalogue coverage. There are 99 canonical foods across three locale
-> packs. A food outside them cannot be logged — only abstained on. That is a
-> real ceiling on recall, and it is the direct cost of refusing to let the
-> model invent an identifier.
->
-> Third, and the one most easily oversold: the golden set has 80 samples with
-> 80 recorded fixtures, but **not every sample can be scored for calories**.
-> Some carry identity truth only, with no trustworthy mass, and a sample
-> without measured mass cannot support a calorie claim. So the number of rows
-> behind an accuracy figure is smaller than the number of samples, and any
-> figure I quote has to name that smaller number rather than the headline
-> count.
+> **Conditional — only if #218 has merged and the same live check has been
+> re-run before recording:** replace the previous sentence with “The two-simit
+> photo count fix is merged and verified; the prior 3/3 one-simit, 329 kcal,
+> 50% undercount is the defect the re-run closed.”
 
-The exact current calorie denominator is **2 eligible and 2 scored rows** out of
-**n=80**. Quote that denominator with the **12.7%** MAPE; do not turn the 72
-partial-truth rows into zero-calorie errors.
+The two #218 sentences are deliberately adjacent. The second is conditional,
+not current evidence; if its merge and re-run are absent, keep the **Still open**
+sentence.
 
-**On-screen proof:** `STATUS.md`, `eval/golden/manifest.jsonl`, and the fixture
-directory. Show the current denominator beside the scorecard, not a synthetic
-zero for partial truth.
+**On-screen proof:** scorecard with `n=80` and `2 scorable rows`, then the
+two-simit evidence. Do not hide the denominator in a footnote.
 
-### 7:30–8:00 — What I would do next
+### 7:30–8:00 — Error, empty, and what comes next
 
-**Picture:** Closing card with three priorities, then the abstention screen.
+**Picture:** The error-with-retry state, then an empty Day state, then the
+abstention screen as the closing frame.
 
 **Say:**
 
-> Three things, in this order. Complete an explicitly authorized live multi-item
-> retest and record its exact boundary; until then, make no visual-count claim.
-> Then record the Loom from current `main`, labelling fixture / demo states
-> separately from the PR #191 live-provider smoke and quoting every metric with
-> its denominator. Finally send the email with the repository link, local
-> commands, current n=80 scorecard, partial-truth denominator, and known
-> in-memory idempotency, unauthenticated user header, observability, and privacy
-> limits. Do not add a deployment URL, broad live-accuracy claim, or EatBetter
-> internals without public proof.
+> The last two states are also part of the product, not polish. A provider
+> failure says **“Bir sorun çıktı.”**, keeps the draft safe, and offers **“Tekrar
+> dene”**. A `503` is not a first-class answer: **PENDING — after the current
+> client-to-Node rehearsal verifies the boundary, show “Sağlayıcıya
+> ulaşılamadı”, create no record, and return to Add.** An empty day says
+> **“Henüz bir öğün yok.”** and gives one next action.
 >
-> The order is deliberate: the acceptance evidence first, then the recording and
-> email. The product is small on purpose, but every boundary is visible —
-> capture, correction, abstention, reproducible measurement, and an explicit
-> privacy limit.
+> Next, re-verify #218 if it has landed, record this eight-minute run from the
+> current commit, and send the submission with the scorecard hash and
+> denominators. End on the abstention: useful because it shows evidence, safe
+> because it can say no.
 
-**On-screen proof:** the CI result, the Codex5 retest handoff, the current scorecard
-denominators, and the abstention screen as the last thing on screen.
+**On-screen proof:** retry button, empty state, and the deliberate abstention.
+Do not end on a fabricated success state.
 
 ## Final edit checklist
 
-- [ ] Rehearse the full run once from a clean checkout after code freeze.
-- [ ] Re-verify every number in **What is safe to say out loud** against the
-      recording commit. If a source disagrees, cut the number.
-- [ ] Confirm the backend on screen is Node/TypeScript; no Python API terminal.
-- [ ] Confirm the abstention shot is in the final cut and labelled a deliberate
-      failure / correct abstention.
-- [ ] Confirm the audit panel is shown expanded, with `food_id`, source, and
-      alternates legible.
-- [ ] Confirm every spoken metric carries its sample size in the same sentence,
-      and that scorable counts are used where a calorie claim is made.
-- [ ] Do not remove the live multi-item caveat until Codex5's retest is complete
-      and its evidence is reviewed.
-- [ ] Confirm no API key, personal photograph, user identifier, or raw provider
-      payload appears in the recording, the terminal, or the narration.
-- [ ] Confirm the runtime is at or under 8:00.
-- [ ] Keep unknown provider quantity as unknown and route it to review; do not
-      narrate a visual count that has not been live-tested.
-- [ ] Confirm degraded results show `review` and never `auto_accept`.
+- [ ] Rehearse from a clean checkout after code freeze.
+- [ ] Re-check `bfb1703b…`, every scorecard figure, and every denominator against
+      the recording commit.
+- [ ] Keep the 2:20–2:50 live abstention in the final cut; use and label the
+      fixture fallback only if the live shot cannot run.
+- [ ] Confirm the server action, not a local guess, controls every screen.
+- [ ] Confirm degraded results show Review and never auto-accept.
+- [ ] Confirm the portion is always spoken and shown as a band.
+- [ ] Confirm the **Still open** #218 sentence remains unless the conditional
+      merge and live re-run are both verified before recording.
+- [ ] Confirm no API key, personal photo, personal identifier, or raw provider
+      payload appears in the recording.
+- [ ] Confirm the full script is exactly 8:00 or under the brief's ceiling.
