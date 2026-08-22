@@ -69,8 +69,9 @@ Additional checks:
   `npm run typecheck` -> passed; after `npm ci` from the committed lockfile,
   `npm run verify` -> Android export succeeded. The install reported 16 audit
   vulnerabilities (7 moderate, 9 high); no dependency files were changed.
-- Hosted CI was still pending when this log entry was created; it must be read
-  after the push before the PR is described as green.
+- Hosted CI read after the push: workflow runs `32590519536` and `32590521495`
+  both passed `check`, `server (node)`, and `mobile`; only the expected
+  `main-arrived-via-pull-request` check was skipped.
 
 Traps: Do not edit README.md or invent an email document under this claim. Do
 not call the two-item simit-plus-ayran smoke a visual-count proof. Do not turn
