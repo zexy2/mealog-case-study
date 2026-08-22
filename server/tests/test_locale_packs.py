@@ -5,7 +5,10 @@ The licence tests below are the enforcement half of that claim: a pack may
 declare restrictive terms, and in commercial mode the loader must refuse it
 rather than log about it (issue #8).
 """
+from pathlib import Path
+
 import pytest
+import yaml
 
 from mealog.config import Settings
 from mealog.locales.loader import (
@@ -37,6 +40,23 @@ def test_turkish_dotless_i_folds_for_retrieval():
     pack = load("tr")
     # 'Mercimek Corbasi' typed with either I must reach the same retrieval key.
     assert fold("MERCIMEK", pack) == fold("mercimek", pack) == "mercimek"
+
+
+def test_en_us_pack_count_matches_catalogue():
+    pack = load("en_US")
+    metadata_path = Path(__file__).resolve().parents[2] / "locale_packs" / "en_US" / "pack.yaml"
+    metadata = yaml.safe_load(metadata_path.read_text(encoding="utf-8"))
+
+    assert metadata["food_count"] == len(pack.foods) == 38
+
+
+def test_brussels_sprouts_uses_the_recorded_half_cup_basis():
+    food = load("en_US").foods["us.brussels_sprouts_cooked"]
+
+    assert food.default_serving_g == 78
+    assert food.default_serving_name == "1/2 cup"
+    assert food.density_g_per_ml == pytest.approx(0.65)
+    assert food.density_source == "USDA FDC 169971 serving basis: 78 g per 120 ml half-cup"
 
 
 # --- licence vocabulary -----------------------------------------------------
