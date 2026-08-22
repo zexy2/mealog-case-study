@@ -95,6 +95,16 @@ describe('POST /v1/meals', () => {
     expect(response.body).toEqual({ detail: 'unsupported image content type' });
   });
 
+  it('rejects MIME-spoofed image bytes before provider handling', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .field('idempotency_key', 'http-spoofed-image')
+      .attach('image', Buffer.from('not a JPEG'), { filename: 'meal.jpg', contentType: 'image/jpeg' });
+
+    expect(response.status).toBe(415);
+    expect(response.body).toEqual({ detail: 'unsupported image content' });
+  });
+
   it('rejects an image over 10 MiB with the Python-compatible 413', async () => {
     const response = await request(app.getHttpServer())
       .post('/v1/meals')
