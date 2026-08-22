@@ -28,7 +28,9 @@ positive** and **23 negative/confusion** rows. Blended retrieval ranks the targe
 first for **122/122 positive rows (100.0% Recall@1)**, reaches it in the top five
 for **122/122 (100.0% Recall@5)**, and records **MRR 1.000**. Its 22 deliberately
 absent rows produce **0/22 false accepts**; confusion rows are checked
-separately and must surface the neighbour while still abstaining.
+separately and must surface the neighbour while still abstaining. This is a fixed
+ambiguity guard, not a claim that the 145 variants cover every newly added
+catalogue entry; catalogue-growth evidence must name its own sample set.
 
 **Example.** The `baked beans` negative row forbids Turkish
 `tr.kuru_fasulye`; the resolver must abstain rather than turn a regional
@@ -48,11 +50,12 @@ wrong food and its calories look complete while being harder to notice or
 repair. The cost is friction and lower automatic coverage.
 
 **How it is measured.** The current offline V3 replay on **n=80** golden
-samples reports **6% coverage**: **5/80** samples auto-accept and **75/80** ask.
-The partial-truth evaluator correction in merged [PR #173](https://github.com/zexy2/mealog-case-study/pull/173)
-changed calorie eligibility for affected rows, so covered calorie MAPE remains
-**pending** a post-#173 run and is not guessed here. Coverage and action counts
-do not need that calorie-denominator correction.
+samples reports **15% coverage**: **12/80** samples commit and **68/80** ask.
+After the TypeScript confidence gate in merged [PR #184](https://github.com/zexy2/mealog-case-study/pull/184)
+and the scorecard refresh in merged [PR #185](https://github.com/zexy2/mealog-case-study/pull/185),
+worst/mean calorie MAPE is **12.7%** over **2/2** complete-positive rows. The
+other 72 manifest rows have partial truth and stay outside the calorie denominator;
+seven of those are covered but remain diagnostic only.
 
 **Example.** `jp_0002` contains three foods absent from the `ja_JP` pack. V3
 returns three `ABSTAIN` items and `action=ask`; it does not save a Japanese food
@@ -73,8 +76,9 @@ future confidence gating.
 
 **How it is measured.** `server/tests/test_portion.py` asserts the p10–p90
 contract for known density, unknown density, packaged serving evidence, and
-provenance. The exact current fixture outputs are deterministic and offline;
-calorie MAPE remains pending the evaluator correction above.
+provenance. The exact current fixture outputs are deterministic and offline. The
+current V3 calorie result is **12.7% MAPE over n=2 scored rows**; it is not a live
+provider accuracy claim.
 
 **Example.** `pkg_0001` resolves to `us.yogurt_greek_plain` with `grams=170`,
 `p10=153`, `p90=187`, and `portion_source=label_serving`. The recorded serving
@@ -97,15 +101,15 @@ read together.
 **How it is measured.** `eval/harness.py` emits `n`, coverage, Item F1, kcal
 MAPE, within-20%, and FP rate for every cuisine. The current V3 sample sizes are
 western **n=12**, mediterranean **n=12**, east_asian **n=16**, other_mixed
-**n=8**, south_asian **n=16**, and latin_american **n=16**. Calorie MAPE values
-are **pending** a post-#173 refresh; PR #173 merged the partial-truth evaluator
-fix, and publishing this document's pre-refresh values would mix two
-denominators.
+**n=8**, south_asian **n=16**, and latin_american **n=16**. Current V3 coverage is
+**15% (12/80)**, Item F1 is **0.15**, FP rate is **86.0%**, and calorie MAPE is
+**12.7% over n=2 scored complete-positive rows**. Empty cuisine calorie buckets
+render `—`; they are not zero-error results.
 
-**Example.** In the current V3 replay, western is **17% covered on n=12** while
-east_asian is **0% covered on n=16**. A single mean would hide that the Japanese
-market currently has no committed V3 meals in this set, so the reviewer sees
-where catalogue coverage fails.
+**Example.** In the current V3 replay, western is **42% covered on n=12** while
+east_asian is **6% covered on n=16**. A single mean would hide that the Japanese
+bucket has almost no committed V3 meals in this set, so the reviewer sees where
+catalogue coverage fails.
 
 ## 5. Auditable food, source, alternatives, confidence, and grams
 
@@ -123,7 +127,7 @@ feedback positioning, not its internal result schema.
 **How it is measured.** The fields are defined in `ResolvedItem` and rendered
 by the mobile review path. `server/tests/test_portion.py` checks that portion
 provenance reaches the resolved item, while `server/tests/test_retrieval_eval.py`
-checks candidate ranking and abstention. The current tree has **69/69** food
+checks candidate ranking and abstention. The current tree has **99/99** food
 rows with a non-empty food source across **3** locale packs.
 
 **Example.** The current `pkg_0001` trace is:
@@ -157,6 +161,10 @@ boundary in the current reference API.
 replay pair, a multipart replay with **one pipeline call**, and a cross-user
 pair with **two distinct results**. These are deterministic request tests, not a
 claim about production-scale storage; the current reference cache is in-memory.
+The optional `X-User-Id` header selects the cache namespace and defaults to
+`demo-user`; it is not an authentication mechanism. The edge exposes a liveness
+health check and the adapter has an event hook, but durable request metrics and
+traces are not implemented.
 
 **Example.** The test sends `shared-key` as `user-a` for `tr_0001` and as
 `user-b` for `tr_0002`; both requests execute and keep different bodies. A
@@ -175,7 +183,7 @@ restricted or unknown before serving it. [D2](decisions.md#d2--a-locale-is-a-dat
 keeps market and licence variation in data, while the loader fails closed when
 commercial use is not established.
 
-**How it is measured.** The current tree has **69/69** sourced food rows in
+**How it is measured.** The current tree has **99/99** sourced food rows in
 **3** packs. `en_US` is `public-domain` and allowed in commercial mode;
 `tr` is `restricted-noncommercial` and refused; `ja_JP` is `unverified` and
 also refused. `server/tests/test_locale_packs.py` covers declared licence
@@ -191,7 +199,7 @@ this provenance and licence boundary.
 
 **What is better.** EatBetter has the practical coverage advantage in this
 comparison: its public listing positions photo scanning as a general meal
-workflow, while mealog can accept only the **69 canonical foods** in its **3**
+workflow, while mealog can accept only the **99 canonical foods** in its **3**
 locale packs and must ask or abstain outside them. This concedes user-facing
 long-tail breadth without claiming an EatBetter catalogue count or internal
 matching policy.
@@ -216,7 +224,12 @@ case abstains rather than charging brewed tea against dry-leaf nutrition.
 
 All repository measurements above are offline and reproducible with `make eval`
 or `python eval/retrieval_eval.py` against committed fixtures and labels. The
-current **n=80** golden set is real according to `STATUS.md`. PR #173 merged the
-partial-truth evaluator correction, but this comparison has not been regenerated
-after it; every affected calorie MAPE figure therefore remains explicitly
-pending, and no pre-correction replacement is published here.
+current **n=80** golden set is real according to `STATUS.md`. The current V3
+scorecard reports **12/80 committed**, **68/80 ask**, Item F1 **0.15**, FP rate
+**86.0%**, and **12.7% MAPE over 2/2 calorie-eligible/scored rows**; 72 partial
+truth rows remain outside that denominator. The iOS live-provider smoke in claim
+[#187](https://github.com/zexy2/mealog-case-study/issues/187) is separate runtime
+evidence, not offline accuracy or hosted deployment proof, and no live multi-item
+gate is claimed before Codex5's retest. EatBetter comparison remains limited to
+its public App Store listing; no internal metrics or implementation details are
+inferred.

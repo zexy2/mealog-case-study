@@ -1,8 +1,8 @@
 # Video walkthrough script
 
 Target runtime: **8:00**. This is a recording script, not a result. Record it
-after code freeze, and keep every scorecard value behind its evidence anchor
-until the refreshed run is committed.
+after code freeze, and re-check every scorecard value against current `main` and
+its evidence anchor immediately before recording.
 
 ## Run of show
 
@@ -13,7 +13,7 @@ until the refreshed run is committed.
 | 2:20–2:50 | Live abstention: a catalogue miss becomes `ABSTAIN` | Abstention screen with observed item and candidates |
 | 2:50–4:00 | Architecture and data flow | One diagram, then two boundaries only |
 | 4:00–5:20 | Key decisions | Closed-set numbers, and worst-cuisine over mean |
-| 5:20–6:15 | Evaluation harness and regression guard | Method and CI result; result cells pending refresh |
+| 5:20–6:15 | Evaluation harness and regression guard | Current n=80 scorecard and CI result |
 | 6:15–6:50 | Security and privacy | Request boundary, key handling, what happens to a photograph |
 | 6:50–7:30 | Limitations and measurable sample sizes | `STATUS.md` and the golden manifest |
 | 7:30–8:00 | Next improvements, in priority order | Prioritised closing card |
@@ -29,15 +29,16 @@ immediately before recording; if a check disagrees, do not say the number.
 | Claim | Source |
 |---|---|
 | 3 locale packs | `locale_packs/`, `STATUS.md` |
-| 69 canonical foods | `STATUS.md` |
+| 99 canonical foods | `STATUS.md` |
 | 80 golden samples | `eval/golden/manifest.jsonl`, `STATUS.md` |
 | 80 recorded fixtures | `eval/fixtures/` |
+| V3: 15% coverage, 12/80 committed, 68/80 ask | `docs/evaluation.md` |
+| V3: 12.7% calorie MAPE over 2/2 eligible/scored rows; Item F1 0.15; FP 86.0% | `docs/evaluation.md` |
 
-**No accuracy, coverage or error figure is currently safe to speak.**
-`docs/evaluation.md` still describes an earlier, smaller run than the manifest
-now holds, so every result number in it is superseded until that document is
-refreshed against the current golden set. Those beats stay `<!-- PENDING -->`.
-Say "the refreshed scorecard is pending" rather than reading a stale figure.
+The V3 scorecard is safe to speak only with its denominator: **n=80** overall,
+**12/80** committed, **68/80** ask, and calorie MAPE over **n=2** complete,
+positive-truth rows. **72/80** manifest rows have partial truth; seven are covered
+but excluded from calorie MAPE. Do not present partial-truth rows as zero calories.
 
 ## Recording rules
 
@@ -74,6 +75,9 @@ Say "the refreshed scorecard is pending" rather than reading a stale figure.
   interaction and the abstention state honestly, but it is not live-provider
   evidence. If the device path is unavailable, use the clip and label it
   **fixture / demo path** in the edit.
+- For live evidence, set `EXPO_PUBLIC_DEMO_MODE=false` and point the app at the
+  configured Node endpoint. Do not call a runtime smoke a deployment or a gate
+  until the corresponding claim is closed and its acceptance criteria are met.
 
 ## Script
 
@@ -128,18 +132,19 @@ panel open.
 > considered and not chosen. Nothing in that panel is a model opinion. Every
 > row is either catalogue provenance or an arithmetic input.
 
-<!-- PENDING -->
+The repository also records a live-provider iOS Simulator/Expo Go gallery smoke
+in claim [#187](https://github.com/zexy2/mealog-case-study/issues/187): twelve
+gallery images plus one repeat, real Photos picker input, provider health
+`vision=gemini`, rice resolving to `tr.pilav`, simit plus ayran preserved as two
+items with item-level ranges, and deterministic repeat output. Karniyarik,
+bulgur, iced coffee, and a non-food input abstained. Lahmacun exposed a
+conservative false reject: an exact candidate was visible but the action stayed
+`ABSTAIN`. No degraded/retry state appeared.
 
-This beat is recorded against the deterministic Expo demo path. The mobile
-client has not yet been shown running against the ported Node/TypeScript meal
-endpoint — `server/src/app/` currently exposes the application module and the
-health controller only. Re-record against the live endpoint once it lands, and
-until then label the clip **fixture / demo path**.
-
-<!-- PENDING -->
-
-Running on a physical device is shown in this recording but is not provable
-from the repository. Treat the device shot as demonstration, not as evidence.
+This is runtime smoke evidence only. It is not a hosted deployment proof, a
+physical-device claim, or the live multi-item acceptance gate; do not claim that
+gate until Codex5's retest completes. Do not count the discarded old-bundle
+result, and do not call catalogue defaults visually measured.
 
 **On-screen proof:** the capture screen with both input affordances, the
 analysing steps, the review screen, the portion range, and the expanded audit
@@ -195,12 +200,12 @@ Expo capture (camera or library)
 > One line matters more than the rest: only the nutrition stage produces a
 > nutrient number. I will come back to why in a moment.
 
-<!-- PENDING -->
-
-The `POST /v1/meals` edge is drawn as the intended contract. It is not yet
-implemented in the TypeScript app layer; keep it in the diagram, and say
-plainly that the endpoint is the next piece of work rather than implying it is
-running.
+The `POST /v1/meals` edge is implemented in `server/src/app/meals.controller.ts`
+and `meals.service.ts`. The Node/Nest edge validates JSON or multipart image
+input, applies request-level idempotency, and delegates to the framework-free
+pipeline. The local endpoint is the supported reproducible boundary; no hosted
+URL is claimed. The Python harness remains the offline evaluator, not the mobile
+API.
 
 **On-screen proof:** the diagram, then `server/src/pipeline/ports.ts` for the
 provider boundary and the CI invariant that keeps framework imports out of the
@@ -233,11 +238,10 @@ card on the other.
 > them. Abstentions are not scored as zero-calorie answers — doing that once
 > inverted a result and is the reason the harness was built before the model.
 
-<!-- PENDING -->
-
-Do not put a scorecard figure on the method card until the refreshed run is
-committed. Show the method and the shape of the table with the result cells
-covered.
+Current offline V3 on **n=80** commits **12/80 (15%)**, asks **68/80**, and has
+Item F1 **0.15** with FP rate **86.0%**. Worst/mean calorie MAPE is **12.7%**
+over **2/2** complete-positive rows. The other 72 partial-truth rows are outside
+the calorie denominator; this is not a live-provider accuracy result.
 
 **On-screen proof:** D1 and D3 in `docs/decisions.md`, the closed-set resolver,
 and the adapter check that rejects a nutrition field at the provider boundary.
@@ -257,13 +261,10 @@ and the adapter check that rejects a nutrition field at the provider boundary.
 > candidate run against a stored baseline and fails if **any** cuisine bucket
 > gets worse. A green aggregate is not sufficient to merge.
 
-<!-- PENDING -->
-
-The scorecard has not been regenerated against the current golden set, so no
-result is spoken here. When it is refreshed, each sentence must name the
-metric, its sample size, the label tier, the baseline commit, and the exact
-command that produced it. Until then this segment proves the method and the
-guard, not a performance claim.
+When speaking the table, name the metric and its denominator in the same sentence.
+The regression guard still compares the selected configuration against the stored
+baseline per cuisine; a green aggregate is not sufficient to merge. Empty calorie
+buckets are shown as unavailable, not as zero error.
 
 **On-screen proof:** the harness, the regression check, and the CI run. A
 browser view of CI is the fallback if the local rehearsal cannot be shown.
@@ -285,11 +286,13 @@ browser view of CI is the fallback if the local rehearsal cannot be shown.
 > pull request. Idempotency is user-scoped, so one caller's replay cannot be
 > handed to another.
 
-<!-- PENDING -->
-
-The Node/TypeScript request validator ships with the meal endpoint, which is
-not yet implemented. Show the contract and the CI guard, and do not imply this
-rehearsal exercised a live provider call.
+The Node/TypeScript request validator ships with the meal endpoint. The current
+edge keeps image bytes in memory for the provider call and does not persist the
+photo or raw provider envelope. The Gemini key stays server-side. The process-local
+idempotency cache is user-scoped by an optional `X-User-Id` header, defaulting to
+`demo-user`; that is namespacing, not auth. Health is liveness only, and the
+adapter's event hook is not a durable request-observability system. The #187 smoke
+did not encounter a degraded/retry state, so do not narrate one as tested.
 
 **On-screen proof:** the D5 contract, the configuration boundary, the CI
 secret-guard result, and a recorded fixture with no image bytes in it. Never
@@ -303,11 +306,11 @@ show a key, a personal photograph, or a user identifier.
 
 > Three limits, said plainly.
 >
-> First, device proof. You are watching this run on a phone, but the repository
-> cannot prove that; it can prove the app typechecks and bundles. Treat the
-> device footage as a demonstration and the CI result as the evidence.
+> First, runtime proof. Claim #187 records an iOS Simulator/Expo Go live-provider
+> smoke, but it does not prove a physical-device run, a hosted deployment, or the
+> pending Codex5 live multi-item gate. Treat those boundaries as explicit.
 >
-> Second, catalogue coverage. There are 69 canonical foods across three locale
+> Second, catalogue coverage. There are 99 canonical foods across three locale
 > packs. A food outside them cannot be logged — only abstained on. That is a
 > real ceiling on recall, and it is the direct cost of refusing to let the
 > model invent an identifier.
@@ -320,14 +323,13 @@ show a key, a personal photograph, or a user identifier.
 > figure I quote has to name that smaller number rather than the headline
 > count.
 
-<!-- PENDING -->
-
-Read the exact scorable count from the refreshed run before recording this
-segment. Do not estimate it, and do not reuse the count from the earlier,
-smaller manifest.
+The exact current calorie denominator is **2 eligible and 2 scored rows** out of
+**n=80**. Quote that denominator with the **12.7%** MAPE; do not turn the 72
+partial-truth rows into zero-calorie errors.
 
 **On-screen proof:** `STATUS.md`, `eval/golden/manifest.jsonl`, and the fixture
-directory. Do not invent a coverage or accuracy percentage for a pending run.
+directory. Show the current denominator beside the scorecard, not a synthetic
+zero for partial truth.
 
 ### 7:30–8:00 — What I would do next
 
@@ -335,19 +337,21 @@ directory. Do not invent a coverage or accuracy percentage for a pending run.
 
 **Say:**
 
-> Three things, in this order. Finish the meal endpoint so the same contract
-> runs end to end from the device. Refresh the scorecard against the current
-> golden set so the numbers describe what is actually in the repository. Then
-> measure what a larger catalogue costs before changing retrieval — coverage is
-> the binding limit, and I would rather measure that curve than guess at it.
+> Three things, in this order. Complete Codex5's live multi-item retest and record
+> its exact boundary. Then record the Loom from current `main`, labelling fixture /
+> demo states separately from the #187 live-provider smoke and quoting every metric
+> with its denominator. Finally send the email with the repository link, local
+> commands, current n=80 scorecard, partial-truth denominator, and known
+> in-memory idempotency, unauthenticated user header, observability, and privacy
+> limits. Do not add a deployment URL or EatBetter internals without public proof.
 >
-> The order is deliberate: the contract first, then the measurement, then the
-> change. The product is small on purpose, but every boundary is visible —
+> The order is deliberate: the acceptance evidence first, then the recording and
+> email. The product is small on purpose, but every boundary is visible —
 > capture, correction, abstention, reproducible measurement, and an explicit
 > privacy limit.
 
-**On-screen proof:** the CI result, the remaining `<!-- PENDING -->` markers
-and who clears them, and the abstention screen as the last thing on screen.
+**On-screen proof:** the CI result, the Codex5 retest handoff, the current scorecard
+denominators, and the abstention screen as the last thing on screen.
 
 ## Final edit checklist
 
@@ -361,8 +365,8 @@ and who clears them, and the abstention screen as the last thing on screen.
       alternates legible.
 - [ ] Confirm every spoken metric carries its sample size in the same sentence,
       and that scorable counts are used where a calorie claim is made.
-- [ ] Replace a `<!-- PENDING -->` beat only when the corresponding endpoint,
-      device evidence, or refreshed scorecard exists in the repository.
+- [ ] Do not remove the live multi-item caveat until Codex5's retest is complete
+      and its evidence is reviewed.
 - [ ] Confirm no API key, personal photograph, user identifier, or raw provider
       payload appears in the recording, the terminal, or the narration.
 - [ ] Confirm the runtime is at or under 8:00.

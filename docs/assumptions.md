@@ -91,19 +91,22 @@ applied inside it, not three paths attempted shallowly.
 
 **Checked.** The brief accepts either.
 
-**Decision.** Both, because the real failure mode is a reviewer who cannot run the
-project. `make eval` reproduces the published scorecard **fully offline** from recorded
-fixtures — no API key, no network, no spend — so every number in the README can be
-re-derived independently. The backend is additionally deployed so the mobile app runs
-from a QR code with no local setup.
+**Decision.** The reproducible reference path is local. `make eval` reproduces the
+published scorecard **fully offline** from recorded fixtures — no API key, no network,
+no spend — and the Node/Nest edge can be run locally for the mobile contract. A live
+iOS smoke run is recorded separately in claim [#187](https://github.com/zexy2/mealog-case-study/issues/187)
+with `EXPO_PUBLIC_DEMO_MODE=false`; it is runtime evidence, not proof of a hosted
+deployment. No deployed URL or deployment claim is part of this submission.
 
 **Reversal cost.** None.
 
 ---
 
-## A6 — When the seven-day clock starts
+## A6 — When the three-day clock starts
 
-**Decision.** Working to **Wednesday 26 August 2026** for the full submission.
+**Decision.** The brief gives a **three-day deadline**. I keep the schedule
+brief-relative rather than hardcoding a calendar date that could contradict the
+submission context.
 
 **Reversal cost.** n/a. Recorded so the assumption is visible rather than implied.
 
@@ -135,3 +138,26 @@ by SHA-256 content hash.
 multipart endpoint later, but needs upload expiry, cleanup and provider-fetch
 behaviour. Provider-side retention remains governed by its own terms and is not
 controlled by this application.
+
+## A9 — What the current live boundary proves
+
+**Checked.** The current edge is Node.js/TypeScript: NestJS owns `POST /v1/meals`,
+multipart validation, and the health endpoint; the framework-free pipeline remains
+the computation boundary. Claim #187 recorded a live-provider iOS Simulator/Expo Go
+gallery smoke with twelve images and one repeat. It observed provider health,
+catalogue resolution, abstention, and repeat stability without recording a key or
+photo in the repository.
+
+**Decision.** Call the fixture path **demo/offline**, and call the #187 run a
+**live-provider runtime smoke**. Do not call either a hosted deployment proof or a
+completed live multi-item acceptance gate; Codex5's retest remains the dependency for
+that gate. The smoke's lahmacun abstention is a conservative false reject, not a
+reason to silently widen acceptance.
+
+**Operational limits.** The current idempotency maps are process-local and in-memory:
+restart or multiple instances lose the cache. `X-User-Id` is optional and defaults to
+`demo-user`; it scopes the reference cache but is not authentication. The health
+endpoint is liveness only. The Gemini adapter exposes an injectable event hook and
+bounded retry/fallback metadata, but the edge does not yet provide durable request
+traces, metrics, or a production observability backend. These are known reference
+implementation limits, not deployment guarantees.
