@@ -6,13 +6,13 @@
 {"food_id": "us.strawberries_raw", "alias": ["strawberries", "strawberry"]}
 {"food_id": "us.blueberries_raw", "alias": ["blueberries", "blueberry"]}
 {"food_id": "us.pineapple_raw", "alias": ["pineapple", "fresh pineapple"]}
-{"food_id": "us.grapes_raw", "alias": ["grapes", "grape"]}
+{"food_id": "us.grapes_raw", "alias": ["grapes", "grape"], "negative_alias": ["green salad"]}
 {"food_id": "us.sweet_potato_baked", "alias": ["sweet potato", "sweet potatoes", "roasted sweet potato", "baked sweet potato"]}
 {"food_id": "us.watermelon_raw", "alias": ["watermelon"]}
 {"food_id": "us.raspberries_raw", "alias": ["raspberries", "raspberry"]}
 {"food_id": "us.blackberries_raw", "alias": ["blackberries", "blackberry"]}
 {"food_id": "us.chicken_breaded_fried", "alias": ["breaded chicken", "breaded chicken cutlet", "fried chicken pieces", "frango empanado"], "negative_alias": ["chicken", "chicken and rice"]}
-{"food_id": "us.squash_summer_cooked", "alias": ["squash", "summer squash", "roasted squash"]}
+{"food_id": "us.squash_summer_cooked", "alias": ["summer squash", "roasted squash"], "negative_alias": ["squash"]}
 {"food_id": "us.kale_cooked", "alias": ["kale", "cooked kale"]}
 {"food_id": "us.pork_roasted", "alias": ["pork", "roasted pork", "fried pork"], "negative_alias": ["meat"]}
 {"food_id": "us.tofu_firm", "alias": ["tofu", "firm tofu", "pan-fried tofu"]}
@@ -25,9 +25,9 @@
 {"food_id": "us.salmon_cooked", "alias": ["salmon", "cooked salmon", "baked salmon", "grilled salmon", "pan-fried salmon"], "negative_alias": ["fish"]}
 {"food_id": "us.long_beans_cooked", "alias": ["long beans", "yardlong beans", "yardlong bean"]}
 {"food_id": "us.zucchini_cooked", "alias": ["zucchini", "cooked zucchini", "steamed zucchini", "sauteed zucchini", "sautéed zucchini"]}
-{"food_id": "us.yellow_squash_cooked", "alias": ["yellow squash", "cooked yellow squash"]}
+{"food_id": "us.yellow_squash_cooked", "alias": ["yellow squash", "cooked yellow squash"], "negative_alias": ["squash"]}
 {"food_id": "us.lasagna_meat", "alias": ["lasagna", "lasagne", "lasagna with meat sauce"], "negative_alias": ["meat", "rice with meat"]}
-{"food_id": "us.leaf_lettuce_raw", "alias": ["green salad", "leaf salad", "salada de folhas", "leafy greens"], "negative_alias": ["salad", "caesar salad", "arugula salad", "chickpea salad"]}
-{"food_id": "us.arugula_raw", "alias": ["arugula", "arugula salad", "rocket"], "negative_alias": ["salad", "caesar salad", "chickpea salad"]}
+{"food_id": "us.leaf_lettuce_raw", "alias": ["leaf salad", "salada de folhas", "leafy greens"], "negative_alias": ["salad", "green salad", "caesar salad", "arugula salad", "chickpea salad"]}
+{"food_id": "us.arugula_raw", "alias": ["arugula", "rocket"], "negative_alias": ["salad", "green salad", "arugula salad", "caesar salad", "chickpea salad"]}
 {"food_id": "us.spinach_raw", "alias": ["spinach", "raw spinach"]}
 {"food_id": "us.brussels_sprouts_cooked", "alias": ["brussels sprouts", "brussel sprouts", "roasted brussels sprouts"]}

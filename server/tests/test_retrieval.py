@@ -15,6 +15,19 @@ from mealog.pipeline.normalize import fold
 from mealog.pipeline.resolve import MIN_ACCEPT_SCORE, resolve
 from mealog.pipeline.retrieval import CONFUSION_SCORE, search
 
+NEW_EN_US_FOOD_IDS = frozenset({
+    "us.potatoes_baked", "us.broccoli_cooked", "us.strawberries_raw",
+    "us.blueberries_raw", "us.pineapple_raw", "us.grapes_raw",
+    "us.sweet_potato_baked", "us.watermelon_raw", "us.raspberries_raw",
+    "us.blackberries_raw", "us.chicken_breaded_fried", "us.squash_summer_cooked",
+    "us.kale_cooked", "us.pork_roasted", "us.tofu_firm", "us.corn_cooked",
+    "us.beef_cooked", "us.tomatoes_cooked", "us.mushrooms_cooked", "us.coleslaw",
+    "us.chickpeas_cooked", "us.salmon_cooked", "us.long_beans_cooked",
+    "us.zucchini_cooked", "us.yellow_squash_cooked", "us.lasagna_meat",
+    "us.leaf_lettuce_raw", "us.arugula_raw", "us.spinach_raw",
+    "us.brussels_sprouts_cooked",
+})
+
 
 def top(query: str, locale: str) -> str | None:
     pack = load(locale)
@@ -125,3 +138,53 @@ def test_scores_are_ordered_and_bounded():
     assert cands
     assert all(0.0 <= c.score <= 1.0 for c in cands)
     assert [c.score for c in cands] == sorted((c.score for c in cands), reverse=True)
+
+
+def test_all_thirty_new_en_us_entries_have_an_unambiguous_positive_alias():
+    pack = load("en_US")
+    assert len(NEW_EN_US_FOOD_IDS) == 30
+    assert NEW_EN_US_FOOD_IDS <= pack.foods.keys()
+
+    negative_forms = {
+        fold(alias, pack)
+        for aliases in pack.negative_aliases.values()
+        for alias in aliases
+    }
+    covered = set()
+    for food_id in NEW_EN_US_FOOD_IDS:
+        aliases = [alias for alias in pack.aliases[food_id]
+                   if fold(alias, pack) not in negative_forms]
+        assert aliases, f"{food_id} has no unambiguous positive alias"
+        for alias in aliases:
+            query = fold(alias, pack)
+            candidates = search(query, pack)
+            result = resolve(query, candidates, allow_abstain=True)
+            assert result.food_id == food_id, (food_id, alias, candidates, result)
+            covered.add(food_id)
+
+    assert covered == NEW_EN_US_FOOD_IDS
+
+
+def test_new_en_us_negative_aliases_abstain():
+    pack = load("en_US")
+    for food_id in NEW_EN_US_FOOD_IDS:
+        for alias in pack.negative_aliases.get(food_id, []):
+            query = fold(alias, pack)
+            result = resolve(query, search(query, pack), allow_abstain=True)
+            assert result.abstained, (food_id, alias, result)
+
+
+@pytest.mark.parametrize(
+    ("query", "confusable_food_ids"),
+    [
+        ("squash", {"us.squash_summer_cooked", "us.yellow_squash_cooked"}),
+        ("green salad", {"us.leaf_lettuce_raw"}),
+    ],
+)
+def test_new_en_us_ambiguities_surface_neighbours_and_abstain(query, confusable_food_ids):
+    pack = load("en_US")
+    folded = fold(query, pack)
+    candidates = search(folded, pack)
+
+    assert confusable_food_ids <= {candidate.food_id for candidate in candidates}
+    assert resolve(folded, candidates, allow_abstain=True).abstained
