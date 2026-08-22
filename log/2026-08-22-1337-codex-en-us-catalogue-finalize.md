@@ -4,8 +4,8 @@ Agent: `codex`
 Issue: #147
 Claim: #150
 Branch: `agent/codex/en-us-catalogue`
-Base: `origin/main` at `29d0ff1`
-Pre-log HEAD: `428261c`
+Initial verification base: `origin/main` at `29d0ff1`
+Initial verification HEAD: `428261c`
 
 ## Scope check
 
@@ -57,3 +57,12 @@ pre-existing `food_count: 8` in each locale pack and is outside this claim's
 declared files; use the generated STATUS count for actual catalogue size. Do not
 turn the partial-truth regression evidence into a label, baseline, threshold, or
 evaluator change.
+
+## Rebase follow-up
+
+After the initial verification, `origin/main` advanced to `6c6f14b` through the
+mobile day-detail merge. The branch was rebased normally onto that commit. The
+rebase encountered stale intermediate catalogue/STATUS/log snapshots from the
+branch's published merge history; current `en_US` data and the 80-sample generated
+STATUS were retained. The rebased history was reconciled with the published remote
+branch using a normal merge, not a force-push. Resulting merge commit: `37dc750`.
