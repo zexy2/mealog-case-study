@@ -4,7 +4,8 @@
   "input_sha256": "d58dd655ae5586f37e7d1ce4762a39c2f24661fb59efda943967ac9b4ca566bf",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
@@ -12,32 +13,32 @@
     {
       "surface_form": "pizza",
       "cooking_method": "baked",
-      "portion_hint": "one slice",
+      "portion_hint": "slice",
       "confidence": 0.95
     },
     {
       "surface_form": "broccoli",
       "cooking_method": "steamed",
-      "portion_hint": "medium portion",
+      "portion_hint": "cluster",
       "confidence": 0.95
-    },
-    {
-      "surface_form": "salad",
-      "cooking_method": "raw",
-      "portion_hint": "medium portion",
-      "confidence": 0.9
     },
     {
       "surface_form": "carrots",
       "cooking_method": "roasted",
-      "portion_hint": "few slices",
+      "portion_hint": "pieces",
       "confidence": 0.9
     },
     {
       "surface_form": "chicken",
-      "cooking_method": "baked",
-      "portion_hint": "small portion",
+      "cooking_method": "roasted",
+      "portion_hint": "portion",
       "confidence": 0.9
+    },
+    {
+      "surface_form": "salad",
+      "cooking_method": "raw",
+      "portion_hint": "heap",
+      "confidence": 0.85
     }
   ]
 }

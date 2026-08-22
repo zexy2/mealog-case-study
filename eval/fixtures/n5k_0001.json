@@ -4,31 +4,29 @@
   "input_sha256": "2742ad6f049b8e62885c8f3bfd7b43f39e3d4dc50486e471596275abbd9763bf",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
+  "degraded": false,
+  "rung": "configured_model",
+  "attempts": 1,
   "items": [
     {
-      "surface_form": "breaded chicken breast",
+      "surface_form": "chicken schnitzel",
       "cooking_method": "breaded and fried",
-      "portion_hint": "several slices",
+      "portion_hint": "sliced",
       "confidence": 0.95
     },
     {
-      "surface_form": "white rice",
+      "surface_form": "rice",
       "cooking_method": "boiled",
-      "portion_hint": "medium serving",
+      "portion_hint": "scoop",
       "confidence": 0.95
     },
     {
       "surface_form": "broccoli",
       "cooking_method": "steamed",
-      "portion_hint": "several florets",
+      "portion_hint": "florets",
       "confidence": 0.95
-    },
-    {
-      "surface_form": "spinach",
-      "cooking_method": "raw",
-      "portion_hint": "few leaves",
-      "confidence": 0.8
     }
   ]
 }

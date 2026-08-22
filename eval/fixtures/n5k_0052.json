@@ -4,7 +4,8 @@
   "input_sha256": "b4480a66e4f0ef9763b7ddbe21377bf1a11dda58fd3ab3396c2c933f92e6208a",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
@@ -16,22 +17,22 @@
       "confidence": 0.95
     },
     {
-      "surface_form": "fish",
-      "cooking_method": "baked",
-      "portion_hint": "serving",
-      "confidence": 0.85
-    },
-    {
       "surface_form": "cauliflower",
       "cooking_method": "steamed",
-      "portion_hint": "serving",
+      "portion_hint": "florets",
       "confidence": 0.9
     },
     {
       "surface_form": "lemon",
-      "cooking_method": "none",
+      "cooking_method": "raw",
       "portion_hint": "wedges",
       "confidence": 0.9
+    },
+    {
+      "surface_form": "fish",
+      "cooking_method": "baked",
+      "portion_hint": "portion",
+      "confidence": 0.85
     }
   ]
 }

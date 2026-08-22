@@ -11,6 +11,7 @@ import base64
 import json
 import os
 import random
+import re
 import socket
 import time
 from collections.abc import Callable
@@ -25,10 +26,10 @@ from urllib.request import Request, urlopen
 from pydantic import ValidationError
 
 from mealog import obs
-from mealog.domain.models import PerceivedItem
+from mealog.domain.models import CountOrigin, PerceivedItem
 from mealog.pipeline.ports import VisionInput
 
-PROMPT_VERSION = "p2"
+PROMPT_VERSION = "p3"
 DEFAULT_MODEL = "gemini-flash-lite-latest"
 SECONDARY_MODEL = "gemini-2.5-flash-lite"
 MODEL_ENV_VAR = "GEMINI_MODEL"
@@ -54,8 +55,17 @@ Rules:
 - Name dishes in the language on the plate's origin if you recognise it.
 - If unsure between two dishes, return the more general one and lower confidence.
 - Never invent an item you cannot see. Omission is cheaper than invention.
-- `portion_hint` may describe a visible serving or user-provided text, but is not
-  a numeric gram estimate.
+- Set `count` only when items are individually countable and every instance is
+  distinctly visible. Overlapping, stacked, cropped, or occluded instances must
+  return `count: null`; never guess.
+- A single serving in one glass, bowl, plate, or other container is one observed
+  item: return one item with `count: null`. Never count liquid volume, pixels,
+  or a serving container as multiple food instances. Do not report garnish,
+  decorative leaves, or unidentifiable background as separate food items. Do not
+  add ABSTAIN or other placeholder items.
+- `count` is the only count field. Keep `portion_hint` non-numeric: use a
+  qualitative description such as `whole`, `bowl`, or `stacked`, never a count,
+  gram estimate, or numeric serving estimate.
 """
 
 RESPONSE_SCHEMA = {
@@ -78,6 +88,12 @@ RESPONSE_SCHEMA = {
                         "type": "STRING",
                         "description": "Non-numeric serving description, if visible or stated.",
                     },
+                    "count": {
+                        "type": "INTEGER",
+                        "nullable": True,
+                        "minimum": 1,
+                        "description": "Count only when each individually countable instance is distinctly visible; otherwise null.",
+                    },
                     "confidence": {
                         "type": "NUMBER",
                         "minimum": 0,
@@ -89,6 +105,7 @@ RESPONSE_SCHEMA = {
                     "surface_form",
                     "cooking_method",
                     "portion_hint",
+                    "count",
                     "confidence",
                 ],
             },
@@ -109,6 +126,7 @@ _FORBIDDEN_NUTRIENT_FIELDS = {
     "ungrounded_kcal",
 }
 _ALLOWED_ITEM_FIELDS = frozenset(RESPONSE_SCHEMA["properties"]["items"]["items"]["properties"])
+_CONTAINER_HINT = re.compile(r"\b(?:bowl|glass|cup|plate|serving|container)\b", re.IGNORECASE)
 _IMAGE_MIME_FALLBACKS = {
     ".avif": "image/avif",
     ".gif": "image/gif",
@@ -201,7 +219,7 @@ def _response_text(response: dict[str, Any]) -> str:
     return text
 
 
-def _parse_items(text: str) -> list[PerceivedItem]:
+def _parse_items(text: str, count_origin: CountOrigin = None) -> list[PerceivedItem]:
     try:
         document = json.loads(text)
     except json.JSONDecodeError as exc:
@@ -226,6 +244,15 @@ def _parse_items(text: str) -> list[PerceivedItem]:
             item = PerceivedItem.model_validate(raw)
         except ValidationError as exc:
             raise RuntimeError(f"Gemini item {index} failed response validation") from exc
+        count = raw.get("count")
+        if count is not None and (not isinstance(count, int) or isinstance(count, bool) or count < 1):
+            raise RuntimeError(f"Gemini item {index} count must be a positive integer or null")
+        if count_origin == "vision" and (
+            count == 1
+            or (item.portion_hint and _CONTAINER_HINT.search(item.portion_hint))
+        ):
+            item = item.model_copy(update={"count": None})
+        item = item.model_copy(update={"count_origin": count_origin})
         if not item.surface_form.strip():
             raise RuntimeError(f"Gemini item {index} has an empty surface_form")
         if not 0 <= item.confidence <= 1:
@@ -417,7 +444,10 @@ class GeminiVision:
             attempts = 0
             try:
                 response, attempts = self._request_with_retry(parts, model, deadline)
-                items = _parse_items(_response_text(response))
+                items = _parse_items(
+                    _response_text(response),
+                    "vision" if has_image else "user_text",
+                )
             except _ProviderFailure as exc:
                 total_attempts += exc.attempts
                 failures.append((rung, model, exc))
@@ -479,10 +509,11 @@ class GeminiVision:
             "provider": self.name,
             "model_id": self.last_model,
             "prompt_version": PROMPT_VERSION,
+            "input_kind": "user_text" if input_ref.text and input_ref.text.strip() else "vision",
             "degraded": self.degraded,
             "rung": self.rung,
             "attempts": self.last_attempts,
-            "items": [item.model_dump(exclude_none=True) for item in items],
+            "items": [item.model_dump(exclude_none=True, exclude={"count_origin"}) for item in items],
         }
 
     def record_fixture(

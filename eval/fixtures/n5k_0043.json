@@ -4,7 +4,8 @@
   "input_sha256": "e07f9f4e8bb07e9561c3fcd1719a18c0efbc8e0b1a642484390323670e39d179",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
@@ -12,26 +13,26 @@
     {
       "surface_form": "chickpeas",
       "cooking_method": "boiled",
-      "portion_hint": "partial plate serving",
+      "portion_hint": "handful",
       "confidence": 0.95
     },
     {
-      "surface_form": "leafy greens",
+      "surface_form": "salad greens",
       "cooking_method": "raw",
-      "portion_hint": "partial plate serving",
+      "portion_hint": "handful",
       "confidence": 0.9
-    },
-    {
-      "surface_form": "apple slices",
-      "cooking_method": "raw",
-      "portion_hint": "few slices",
-      "confidence": 0.8
     },
     {
       "surface_form": "black olives",
       "cooking_method": "cured",
-      "portion_hint": "few pieces",
-      "confidence": 0.9
+      "portion_hint": "handful",
+      "confidence": 0.85
+    },
+    {
+      "surface_form": "pear slice",
+      "cooking_method": "raw",
+      "portion_hint": "piece",
+      "confidence": 0.8
     }
   ]
 }

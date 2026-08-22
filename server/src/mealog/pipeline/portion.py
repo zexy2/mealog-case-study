@@ -154,7 +154,7 @@ def _catalogue_per_unit_grams(
 
 
 def estimate(food: CanonicalFood, quantity: float | None, unit: str | None,
-             pack: LocalePack) -> PortionEstimate:
+             pack: LocalePack, count_origin: str | None = None) -> PortionEstimate:
     """Estimate mass and evidence, preserving legacy three-value unpacking."""
     if packaged := _packaged_portion(food):
         return packaged
@@ -164,52 +164,61 @@ def estimate(food: CanonicalFood, quantity: float | None, unit: str | None,
     source = "catalogue_default"
     provenance = f"catalogue.default_serving_g={food.default_serving_g:g}"
 
-    per_unit_grams = _catalogue_per_unit_grams(food, unit)
-    if per_unit_grams is not None:
-        multiplier = quantity if quantity is not None else 1.0
-        grams = per_unit_grams * multiplier
-        spread = _spread_for_unit(quantity)
-        source = "explicit_unit" if quantity is not None else "assumed_unit"
-        provenance = (
-            f"unit={unit}; quantity={quantity!r}; per_unit_g={per_unit_grams:g}; "
-            "source=catalogue_serving"
-        )
-    elif unit and (conv := pack.units.get(unit)):
-        multiplier = quantity if quantity is not None else 1.0
-        if conv.get("g"):
-            grams = conv["g"] * multiplier
-            spread = _spread_for_unit(quantity)
-            source = "explicit_unit" if quantity is not None else "assumed_unit"
-            provenance = f"unit={unit}; quantity={quantity!r}; conversion_g={conv['g']:g}"
-        elif conv.get("ml"):
-            density = food.density_g_per_ml
-            if isinstance(density, (int, float)) and density > 0:
-                grams = conv["ml"] * density * multiplier
-                spread = _spread_for_unit(quantity)
-                source = "known_density" if quantity is not None else "assumed_density"
-                provenance = (
-                    f"unit={unit}; quantity={quantity!r}; density_g_per_ml={density:g}; "
-                    f"density_source={food.density_source}"
-                )
-            else:
-                # Do not silently turn volume into mass. The midpoint is an
-                # explicit, documented fallback only; the wide interval is
-                # the signal consumed later by confidence routing.
-                grams = (conv["ml"] * UNKNOWN_DENSITY_MIDPOINT_G_PER_ML
-                          * multiplier)
-                spread = UNKNOWN_DENSITY_SPREAD
-                source = "unknown_density"
-                provenance = (
-                    f"unit={unit}; quantity={quantity!r}; "
-                    "density_missing; midpoint_g_per_ml=1.0"
-                )
-    elif quantity is not None:
+    if count_origin == "vision" and quantity is not None:
         grams = food.default_serving_g * quantity
         spread = (0.75, 1.35)
-        source = "catalogue_default_scaled"
+        source = "vision_count"
         provenance = (
-            f"fallback=catalogue.default_serving_g={food.default_serving_g:g}; "
-            f"quantity={quantity:g}; unit=unknown"
+            f"count={quantity:g}; count_origin=vision; "
+            f"fallback=catalogue.default_serving_g={food.default_serving_g:g}; unit=unknown"
         )
+    else:
+        per_unit_grams = _catalogue_per_unit_grams(food, unit)
+        if per_unit_grams is not None:
+            multiplier = quantity if quantity is not None else 1.0
+            grams = per_unit_grams * multiplier
+            spread = _spread_for_unit(quantity)
+            source = "explicit_unit" if quantity is not None else "assumed_unit"
+            provenance = (
+                f"unit={unit}; quantity={quantity!r}; per_unit_g={per_unit_grams:g}; "
+                "source=catalogue_serving"
+            )
+        elif unit and (conv := pack.units.get(unit)):
+            multiplier = quantity if quantity is not None else 1.0
+            if conv.get("g"):
+                grams = conv["g"] * multiplier
+                spread = _spread_for_unit(quantity)
+                source = "explicit_unit" if quantity is not None else "assumed_unit"
+                provenance = f"unit={unit}; quantity={quantity!r}; conversion_g={conv['g']:g}"
+            elif conv.get("ml"):
+                density = food.density_g_per_ml
+                if isinstance(density, (int, float)) and density > 0:
+                    grams = conv["ml"] * density * multiplier
+                    spread = _spread_for_unit(quantity)
+                    source = "known_density" if quantity is not None else "assumed_density"
+                    provenance = (
+                        f"unit={unit}; quantity={quantity!r}; density_g_per_ml={density:g}; "
+                        f"density_source={food.density_source}"
+                    )
+                else:
+                    # Do not silently turn volume into mass. The midpoint is an
+                    # explicit, documented fallback only; the wide interval is
+                    # the signal consumed later by confidence routing.
+                    grams = (conv["ml"] * UNKNOWN_DENSITY_MIDPOINT_G_PER_ML
+                             * multiplier)
+                    spread = UNKNOWN_DENSITY_SPREAD
+                    source = "unknown_density"
+                    provenance = (
+                        f"unit={unit}; quantity={quantity!r}; "
+                        "density_missing; midpoint_g_per_ml=1.0"
+                    )
+        elif quantity is not None:
+            grams = food.default_serving_g * quantity
+            spread = (0.75, 1.35)
+            source = "catalogue_default_scaled"
+            provenance = (
+                f"fallback=catalogue.default_serving_g={food.default_serving_g:g}; "
+                f"quantity={quantity:g}; unit=unknown"
+            )
 
     return _result(grams, spread, source, provenance)

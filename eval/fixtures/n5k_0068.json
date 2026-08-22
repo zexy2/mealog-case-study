@@ -4,7 +4,8 @@
   "input_sha256": "2d349865a95641cf313fda1c9039393297bc7808026a0f6ff314d83f1a8617b6",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
@@ -12,25 +13,26 @@
     {
       "surface_form": "pizza",
       "cooking_method": "baked",
-      "portion_hint": "one slice",
+      "portion_hint": "slice",
       "confidence": 0.95
     },
     {
-      "surface_form": "corn",
+      "surface_form": "corn on the cob",
       "cooking_method": "boiled",
-      "portion_hint": "four corn cobs slices",
+      "portion_hint": "rounds",
+      "count": 4,
       "confidence": 0.95
     },
     {
-      "surface_form": "bulgur",
+      "surface_form": "bulgur wheat",
       "cooking_method": "boiled",
-      "portion_hint": "small serving",
+      "portion_hint": "pile",
       "confidence": 0.9
     },
     {
       "surface_form": "stuffed pepper",
       "cooking_method": "baked",
-      "portion_hint": "few pieces",
+      "portion_hint": "portion",
       "confidence": 0.85
     }
   ]

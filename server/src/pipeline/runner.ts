@@ -94,6 +94,11 @@ function reconcileResolved(items: ResolvedItem[]): ResolvedItem[] {
       ? null
       : existing.quantity + item.quantity;
     existing.unit = existing.unit === item.unit ? existing.unit : null;
+    existing.count_origin = existing.count_origin === item.count_origin
+      ? existing.count_origin
+      : existing.count_origin === 'vision' || item.count_origin === 'vision'
+        ? 'vision'
+        : existing.count_origin ?? item.count_origin;
     existing.confidence = Math.min(existing.confidence, item.confidence);
   }
 
@@ -176,6 +181,7 @@ export async function run(
     const result = resolve(item.query, candidates, config.gating);
     result.quantity = item.quantity;
     result.unit = item.unit;
+    result.count_origin = item.count_origin;
 
     // Keep ABSTAIN as an item. In particular, do not run it through portion or
     // nutrition: a missing catalogue food is not a zero-calorie food.
@@ -196,6 +202,8 @@ export async function run(
       result.quantity,
       result.quantity === null ? null : result.unit,
       pack,
+      undefined,
+      result.count_origin,
     );
     result.grams = portion.grams;
     result.grams_p10 = portion.p10;

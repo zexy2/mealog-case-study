@@ -4,52 +4,53 @@
   "input_sha256": "4ab976ae139217f5b5077f7827c3f6b7764f41e073c08bfc61244183ec0b5531",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
   "items": [
     {
-      "surface_form": "salad",
+      "surface_form": "salade de épinards",
       "cooking_method": "raw",
-      "portion_hint": "handful",
+      "portion_hint": "side",
       "confidence": 0.95
     },
     {
-      "surface_form": "fish",
+      "surface_form": "poisson pané",
       "cooking_method": "baked",
-      "portion_hint": "one fillet piece",
-      "confidence": 0.85
-    },
-    {
-      "surface_form": "chicken",
-      "cooking_method": "baked",
-      "portion_hint": "several slices",
+      "portion_hint": "filet",
       "confidence": 0.9
     },
     {
-      "surface_form": "pizza slice",
-      "cooking_method": "baked",
-      "portion_hint": "one small piece",
-      "confidence": 0.85
-    },
-    {
-      "surface_form": "carrots",
+      "surface_form": "poulet",
       "cooking_method": "roasted",
-      "portion_hint": "small side portion",
+      "portion_hint": "pieces",
       "confidence": 0.9
     },
     {
-      "surface_form": "zucchini",
-      "cooking_method": "sauteed",
-      "portion_hint": "several slices",
-      "confidence": 0.85
+      "surface_form": "pizza",
+      "cooking_method": "baked",
+      "portion_hint": "slice",
+      "confidence": 0.9
     },
     {
-      "surface_form": "broccoli",
+      "surface_form": "carottes",
+      "cooking_method": "roasted",
+      "portion_hint": "side",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "courgettes",
       "cooking_method": "steamed",
-      "portion_hint": "small side portion",
-      "confidence": 0.85
+      "portion_hint": "side",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "brocoli",
+      "cooking_method": "steamed",
+      "portion_hint": "side",
+      "confidence": 0.9
     }
   ]
 }

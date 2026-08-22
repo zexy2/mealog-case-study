@@ -4,40 +4,35 @@
   "input_sha256": "a5d37227c618746e152ff39e16b2ee2602e312327a02e4fcc7c9463cff5561cf",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
   "items": [
     {
+      "surface_form": "salad",
+      "cooking_method": "raw",
+      "portion_hint": "plate",
+      "confidence": 0.95
+    },
+    {
       "surface_form": "beef",
       "cooking_method": "cooked",
-      "portion_hint": "portion on plate",
-      "confidence": 0.85
-    },
-    {
-      "surface_form": "rice",
-      "cooking_method": "boiled",
-      "portion_hint": "small portion mixed with meat",
-      "confidence": 0.8
-    },
-    {
-      "surface_form": "zucchini",
-      "cooking_method": "sliced",
-      "portion_hint": "few slices",
+      "portion_hint": "serving",
       "confidence": 0.85
     },
     {
       "surface_form": "asparagus",
       "cooking_method": "steamed",
-      "portion_hint": "several spears",
-      "confidence": 0.95
+      "portion_hint": "serving",
+      "confidence": 0.9
     },
     {
-      "surface_form": "salad",
-      "cooking_method": "raw",
-      "portion_hint": "side portion",
-      "confidence": 0.95
+      "surface_form": "zucchini",
+      "cooking_method": "sautéed",
+      "portion_hint": "serving",
+      "confidence": 0.8
     }
   ]
 }

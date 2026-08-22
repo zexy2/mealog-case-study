@@ -125,6 +125,10 @@ export interface PerceivedItem {
   surface_form: string;
   cooking_method: string | null;
   portion_hint: string | null;
+  /** Provider count; null means count was not evidenced. */
+  count: number | null;
+  /** Where quantity evidence originated, never inferred from the food name. */
+  count_origin: CountOrigin;
   confidence: number;
   /**
    * Only populated by the V0 baseline, which asks the model for calories
@@ -133,6 +137,8 @@ export interface PerceivedItem {
   ungrounded_kcal: number | null;
 }
 
+export type CountOrigin = 'vision' | 'user_text' | null;
+
 export function makePerceivedItem(
   init: Partial<PerceivedItem> & Pick<PerceivedItem, 'surface_form'>,
 ): PerceivedItem {
@@ -140,6 +146,8 @@ export function makePerceivedItem(
     surface_form: init.surface_form,
     cooking_method: init.cooking_method ?? null,
     portion_hint: init.portion_hint ?? null,
+    count: init.count ?? null,
+    count_origin: init.count_origin ?? null,
     confidence: init.confidence ?? 0.5,
     ungrounded_kcal: init.ungrounded_kcal ?? null,
   };
@@ -151,6 +159,7 @@ export interface NormalizedItem {
   query: string;
   quantity: number | null;
   unit: string | null;
+  count_origin: CountOrigin;
 }
 
 export interface Candidate {
@@ -175,6 +184,7 @@ export interface ResolvedItem {
   /** Normalized provider quantity evidence; null means the quantity is unknown. */
   quantity: number | null;
   unit: string | null;
+  count_origin: CountOrigin;
   grams: number;
   grams_p10: number;
   grams_p90: number;
@@ -194,6 +204,7 @@ export function makeResolvedItem(
     candidates: init.candidates ?? [],
     quantity: init.quantity ?? null,
     unit: init.unit ?? null,
+    count_origin: init.count_origin ?? null,
     grams: init.grams ?? 0.0,
     grams_p10: init.grams_p10 ?? 0.0,
     grams_p90: init.grams_p90 ?? 0.0,

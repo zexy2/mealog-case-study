@@ -37,4 +37,5 @@ class FixtureVision:
                 f"Record one with `make eval-live` before adding it to the golden set."
             )
         raw = json.loads(path.read_text(encoding="utf-8"))
-        return [PerceivedItem(**item) for item in raw["items"]]
+        origin = "user_text" if raw.get("input_kind") == "user_text" else "vision"
+        return [PerceivedItem(**item, count_origin=origin) for item in raw["items"]]

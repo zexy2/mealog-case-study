@@ -76,6 +76,25 @@ def provider_response(surface_form: str = "rice") -> dict:
     }
 
 
+def test_vision_single_count_is_not_explicit_quantity() -> None:
+    payload = {
+        "items": [
+            {
+                "surface_form": "simit",
+                "cooking_method": "baked",
+                "portion_hint": "whole",
+                "count": 1,
+                "confidence": 0.9,
+            }
+        ]
+    }
+
+    items = vision_gemini._parse_items(json.dumps(payload), "vision")
+
+    assert items[0].count is None
+    assert items[0].count_origin == "vision"
+
+
 def provider_error(status: int, headers: dict[str, str] | None = None) -> HTTPError:
     return HTTPError(
         "https://fake.invalid/generateContent",

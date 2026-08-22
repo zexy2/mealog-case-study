@@ -162,6 +162,16 @@ def normalize(items: list[PerceivedItem], pack: LocalePack,
     out = []
     for it in items:
         query = fold(it.surface_form, pack) if apply_rules else it.surface_form.lower()
-        qty, unit = parse_portion(it.portion_hint, pack) if apply_rules else (None, None)
-        out.append(NormalizedItem(original=it, query=query, quantity=qty, unit=unit))
+        qty = it.count
+        unit = None
+        if it.count_origin != "vision" and apply_rules:
+            hint_qty, unit = parse_portion(it.portion_hint, pack)
+            qty = qty if qty is not None else hint_qty
+        out.append(NormalizedItem(
+            original=it,
+            query=query,
+            quantity=qty,
+            unit=unit,
+            count_origin=it.count_origin,
+        ))
     return out

@@ -4,7 +4,8 @@
   "input_sha256": "56a3ea2a90faa7d8a78a101e0fc4bede8222a7e03abf1c7d1c8eb213201f5b06",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
@@ -12,37 +13,38 @@
     {
       "surface_form": "fish",
       "cooking_method": "baked",
-      "portion_hint": "two fillets",
+      "portion_hint": "filet",
       "confidence": 0.95
     },
     {
       "surface_form": "couscous",
       "cooking_method": "steamed",
-      "portion_hint": "serving portion",
+      "portion_hint": "scoop",
       "confidence": 0.9
     },
     {
       "surface_form": "kale salad",
       "cooking_method": "raw",
-      "portion_hint": "side portion",
+      "portion_hint": "serving",
       "confidence": 0.9
     },
     {
       "surface_form": "beef",
       "cooking_method": "grilled",
-      "portion_hint": "sliced portion",
+      "portion_hint": "sliced",
       "confidence": 0.85
     },
     {
       "surface_form": "avocado",
-      "cooking_method": "fresh",
+      "cooking_method": "raw",
       "portion_hint": "sliced",
       "confidence": 0.95
     },
     {
       "surface_form": "cherry tomatoes",
-      "cooking_method": "fresh",
-      "portion_hint": "a few pieces",
+      "cooking_method": "raw",
+      "portion_hint": "handful",
+      "count": 4,
       "confidence": 0.95
     }
   ]

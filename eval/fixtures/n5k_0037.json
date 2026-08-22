@@ -4,7 +4,8 @@
   "input_sha256": "f04992d16e8246a71f7665c2931360d1d81272de987e10d969e0acac152cb080",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
@@ -12,25 +13,25 @@
     {
       "surface_form": "chicken breast",
       "cooking_method": "baked",
-      "portion_hint": "several slices",
+      "portion_hint": "fillets",
       "confidence": 0.95
-    },
-    {
-      "surface_form": "salad greens",
-      "cooking_method": "raw",
-      "portion_hint": "side portion",
-      "confidence": 0.9
-    },
-    {
-      "surface_form": "carrots",
-      "cooking_method": "boiled",
-      "portion_hint": "few slices",
-      "confidence": 0.9
     },
     {
       "surface_form": "eggplant",
       "cooking_method": "roasted",
-      "portion_hint": "side portion",
+      "portion_hint": "cubed",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "carrots",
+      "cooking_method": "sliced",
+      "portion_hint": "slices",
+      "confidence": 0.9
+    },
+    {
+      "surface_form": "salad greens",
+      "cooking_method": "raw",
+      "portion_hint": "mixed",
       "confidence": 0.85
     }
   ]

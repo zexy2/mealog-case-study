@@ -63,6 +63,7 @@ describe('normalize', () => {
         query: 'mercimek',
         quantity: 2.0,
         unit: 'kepce',
+        count_origin: null,
       },
     ]);
   });
@@ -76,7 +77,41 @@ describe('normalize', () => {
         query: 'i\u0307ki\u0307',
         quantity: null,
         unit: null,
+        count_origin: null,
       },
     ]);
+  });
+
+  it('does not parse numeric vision hints as user quantity evidence', () => {
+    const item = makePerceivedItem({
+      surface_form: 'simit',
+      portion_hint: '1 whole',
+      count_origin: 'vision',
+    });
+
+    expect(normalize([item], trPack)).toEqual([
+      {
+        original: item,
+        query: 'simit',
+        quantity: null,
+        unit: null,
+        count_origin: 'vision',
+      },
+    ]);
+  });
+
+  it('uses structured vision count without parsing portion_hint', () => {
+    const item = makePerceivedItem({
+      surface_form: 'simit',
+      portion_hint: 'stacked',
+      count: 2,
+      count_origin: 'vision',
+    });
+
+    expect(normalize([item], trPack)[0]).toMatchObject({
+      quantity: 2,
+      unit: null,
+      count_origin: 'vision',
+    });
   });
 });

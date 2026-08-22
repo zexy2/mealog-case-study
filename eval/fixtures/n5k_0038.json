@@ -4,7 +4,8 @@
   "input_sha256": "362c004ab229f54f263d899376d30e32eee6a4c7701f1c731c321a57ba2f5488",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
@@ -12,32 +13,26 @@
     {
       "surface_form": "couscous",
       "cooking_method": "steamed",
-      "portion_hint": "serving",
+      "portion_hint": "pile",
       "confidence": 0.95
     },
     {
       "surface_form": "broccoli",
-      "cooking_method": "boiled",
-      "portion_hint": "serving",
+      "cooking_method": "steamed",
+      "portion_hint": "florets",
       "confidence": 0.9
     },
     {
       "surface_form": "arugula salad",
       "cooking_method": "raw",
-      "portion_hint": "serving",
+      "portion_hint": "side",
       "confidence": 0.9
     },
     {
       "surface_form": "chicken",
       "cooking_method": "baked",
-      "portion_hint": "serving",
+      "portion_hint": "pieces",
       "confidence": 0.85
-    },
-    {
-      "surface_form": "chickpeas",
-      "cooking_method": "boiled",
-      "portion_hint": "small amount",
-      "confidence": 0.8
     }
   ]
 }

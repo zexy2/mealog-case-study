@@ -4,45 +4,46 @@
   "input_sha256": "f7522fd5fa4b6d6f05b308dca1c231ba086e154eebc6725ab00e3297582210ad",
   "provider": "gemini",
   "model_id": "gemini-flash-lite-latest",
-  "prompt_version": "p2",
+  "prompt_version": "p3",
+  "input_kind": "vision",
   "degraded": false,
   "rung": "configured_model",
   "attempts": 1,
   "items": [
     {
       "surface_form": "bacon",
-      "cooking_method": "fried",
-      "portion_hint": "1 strip",
+      "cooking_method": "pan-fried",
+      "portion_hint": "strip",
       "confidence": 0.95
     },
     {
       "surface_form": "scrambled eggs",
       "cooking_method": "scrambled",
-      "portion_hint": "side portion",
+      "portion_hint": "pile",
       "confidence": 0.95
     },
     {
       "surface_form": "pineapple",
-      "cooking_method": "raw",
-      "portion_hint": "several chunks",
-      "confidence": 0.95
-    },
-    {
-      "surface_form": "raspberries",
-      "cooking_method": "raw",
-      "portion_hint": "handful",
+      "cooking_method": "fresh",
+      "portion_hint": "chunks",
       "confidence": 0.95
     },
     {
       "surface_form": "blueberries",
-      "cooking_method": "raw",
+      "cooking_method": "fresh",
+      "portion_hint": "handful",
+      "confidence": 0.95
+    },
+    {
+      "surface_form": "raspberries",
+      "cooking_method": "fresh",
       "portion_hint": "handful",
       "confidence": 0.95
     },
     {
       "surface_form": "chia pudding",
-      "cooking_method": "none",
-      "portion_hint": "small scoop",
+      "cooking_method": "soaked",
+      "portion_hint": "portion",
       "confidence": 0.9
     }
   ]

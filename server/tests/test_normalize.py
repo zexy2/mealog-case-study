@@ -1,8 +1,9 @@
 """Portion hints must preserve quantity evidence instead of silently dropping it."""
 import pytest
 
+from mealog.domain.models import PerceivedItem
 from mealog.locales.loader import load
-from mealog.pipeline.normalize import parse_portion
+from mealog.pipeline.normalize import normalize, parse_portion
 
 
 @pytest.mark.parametrize(
@@ -35,3 +36,36 @@ def test_known_unit_without_quantity_keeps_unit_but_no_quantity_evidence():
     quantity, unit = parse_portion("kepçe", load("tr"))
     assert quantity is None
     assert unit == "kepce"
+
+
+def test_vision_hint_never_becomes_user_quantity():
+    item = PerceivedItem(
+        surface_form="simit",
+        portion_hint="1 whole",
+        count_origin="vision",
+    )
+
+    normalized = normalize([item], load("tr"))[0]
+
+    assert (normalized.quantity, normalized.unit, normalized.count_origin) == (
+        None,
+        None,
+        "vision",
+    )
+
+
+def test_structured_vision_count_survives_without_hint_parsing():
+    item = PerceivedItem(
+        surface_form="simit",
+        portion_hint="stacked",
+        count=2,
+        count_origin="vision",
+    )
+
+    normalized = normalize([item], load("tr"))[0]
+
+    assert (normalized.quantity, normalized.unit, normalized.count_origin) == (
+        2,
+        None,
+        "vision",
+    )
