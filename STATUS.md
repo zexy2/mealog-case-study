@@ -26,7 +26,7 @@
 | | |
 |---|---:|
 | Locale packs | 3 (en_US, ja_JP, tr) |
-| Canonical foods | 69 |
+| Canonical foods | 99 |
 | Golden-set samples | 80 |
 
 ## Order of work

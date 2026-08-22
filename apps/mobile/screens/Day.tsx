@@ -13,9 +13,19 @@ export type DayScreenProps = {
   totalCalories: number;
   totalProtein: number;
   onCapture: () => void;
+  onOpenMeal: (meal: MealLog) => void;
 };
 
-export function DayScreen({ meals, totalCalories, totalProtein, onCapture }: DayScreenProps) {
+function itemName(item: MealLog["items"][number]) {
+  return item.candidates.find((candidate) => candidate.food_id === item.food_id)?.name ?? item.query;
+}
+
+export function mealTitle(meal: MealLog) {
+  const names = meal.items.map(itemName).filter(Boolean);
+  return names.length > 0 ? names.join(" · ") : t("mealFallback");
+}
+
+export function DayScreen({ meals, totalCalories, totalProtein, onCapture, onOpenMeal }: DayScreenProps) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header eyebrow={t("dayEyebrow")} title={t("dayTitle")} subtitle={formatDate()} />
@@ -44,16 +54,23 @@ export function DayScreen({ meals, totalCalories, totalProtein, onCapture }: Day
             <Text style={styles.listCount}>{t("loggedCount", { count: meals.length })}</Text>
           </View>
           {meals.map((item, index) => (
-            <View style={styles.mealRow} key={item.idempotency_key}>
+            <Pressable
+              style={styles.mealRow}
+              key={item.idempotency_key}
+              onPress={() => onOpenMeal(item)}
+              accessibilityRole="button"
+              accessibilityLabel={mealTitle(item)}
+            >
               <View style={[styles.mealTime, index === 0 && styles.mealTimeCurrent]}>
                 <Text style={[styles.mealTimeText, index === 0 && styles.mealTimeTextCurrent]}>{formatTime(item.createdAt)}</Text>
               </View>
               <View style={styles.mealRowBody}>
-                <Text style={styles.mealTitle}>{item.items[0]?.candidates.find((candidate) => candidate.food_id === item.items[0]?.food_id)?.name ?? item.items[0]?.query ?? t("mealFallback")}</Text>
+                <Text style={styles.mealTitle} numberOfLines={2}>{mealTitle(item)}</Text>
                 <Text style={styles.mealMeta}>{t("itemCount", { count: item.items.length, plural: item.items.length === 1 ? "" : "s" })} · {actionLabel(item.action)}</Text>
               </View>
               <Text style={styles.mealKcal}>{Math.round(item.totals.kcal)} kcal</Text>
-            </View>
+              <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+            </Pressable>
           ))}
         </>
       )}
