@@ -49,7 +49,9 @@ are excluded from calorie MAPE and within-20% metrics.
   per-cuisine V3 regression.
 - `python scripts/status.py --check`: pass — STATUS matches the repository.
 - `git diff --check`: pass.
-- Hosted CI: pending after this push; CI remains the authority.
+- Hosted CI for head `fe6f6fa`: pass. Run `32569348064` had check, mobile,
+  and server (node) pass; `main-arrived-via-pull-request` was skipped by
+  design. The older run for the pre-refresh head is not used as evidence.
 
 ## Traps
 
