@@ -1,6 +1,7 @@
 import { Inject, Injectable, HttpException, HttpStatus } from '@nestjs/common';
 
 import { settings, Settings } from '../config';
+import { event, stageAsync } from '../obs';
 import { CONFIGS, run, type Config } from '../pipeline/runner';
 import { VisionInput, type VisionPort } from '../pipeline/ports';
 import type { MealLog } from '../domain/models';
@@ -48,10 +49,18 @@ export class MealsService {
     const normalizedUserId = userId?.trim() || DEMO_USER_ID;
     const cacheKey = `${normalizedUserId}\u0000${request.idempotency_key}`;
     const cached = this.completed.get(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      // Replays are logged. A duplicate that silently returns the first answer
+      // looks like a fresh success in metrics unless it is named.
+      event('idempotent_replay', { config: request.config, source: 'completed' });
+      return cached;
+    }
 
     const pending = this.inFlight.get(cacheKey);
-    if (pending) return pending;
+    if (pending) {
+      event('idempotent_replay', { config: request.config, source: 'in_flight' });
+      return pending;
+    }
 
     if (this.runtimeSettings.vision_provider !== 'fixture' && input.sampleId) {
       error(
@@ -83,17 +92,34 @@ export class MealsService {
     config: Config,
   ): Promise<MealLog> {
     try {
-      const result = await run(
-        this.vision,
-        input,
-        request.locale,
-        config,
-        request.idempotency_key,
+      // The identity of what produced the answer travels with the timing:
+      // provider, config, locale, and input mode. Without those, a latency or
+      // accuracy change cannot be attributed to a cause.
+      const result = await stageAsync(
+        'pipeline',
+        () => run(this.vision, input, request.locale, config, request.idempotency_key),
+        {
+          config: request.config,
+          provider: this.runtimeSettings.vision_provider,
+          locale: request.locale,
+          input_mode: this.inputModeOf(input),
+        },
       );
       this.completed.set(cacheKey, result);
       return result;
     } finally {
       this.inFlight.delete(cacheKey);
     }
+  }
+
+  /**
+   * Which path produced the meal. Photo and text are different products with
+   * different failure modes — issue #218 is a photo-path defect that the text
+   * path does not have — so the mode has to be on the record.
+   */
+  private inputModeOf(input: VisionInput): string {
+    if (input.imageBytes) return 'image';
+    if (input.text) return 'text';
+    return 'sample_id';
   }
 }

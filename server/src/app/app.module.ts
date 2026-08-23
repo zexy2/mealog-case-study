@@ -1,15 +1,17 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 import { FixtureVision } from '../adapters/vision.fixture';
 import { GeminiVision } from '../adapters/vision.gemini';
 import { settings, Settings } from '../config';
+import { configure as configureLogging } from '../obs';
 import type { VisionPort } from '../pipeline/ports';
 
-import { HealthController } from './health.controller';
+import { HealthController, MetricsController } from './health.controller';
 import { HttpExceptionFilter } from './http-exception.filter';
 import { MealsController } from './meals.controller';
 import { MealsService, VISION_PORT } from './meals.service';
+import { ObservabilityInterceptor } from './observability.interceptor';
 
 function makeVision(runtimeSettings: Settings): VisionPort {
   if (runtimeSettings.vision_provider === 'fixture') {
@@ -21,6 +23,10 @@ function makeVision(runtimeSettings: Settings): VisionPort {
   throw new Error(`unknown vision provider: ${runtimeSettings.vision_provider}`);
 }
 
+// LOG_LEVEL is read once, here, so the level is fixed before the first request
+// rather than re-derived per log line.
+configureLogging(settings.log_level);
+
 /**
  * Composition root for the edge.
  *
@@ -30,9 +36,12 @@ function makeVision(runtimeSettings: Settings): VisionPort {
  * modules without booting Nest.
  */
 @Module({
-  controllers: [HealthController, MealsController],
+  controllers: [HealthController, MetricsController, MealsController],
   providers: [
     { provide: Settings, useValue: settings },
+    // Observability is global at the edge, not sprinkled per controller: a
+    // request that is not logged is a request that cannot be explained.
+    { provide: APP_INTERCEPTOR, useClass: ObservabilityInterceptor },
     {
       provide: VISION_PORT,
       useFactory: (runtimeSettings: Settings) => makeVision(runtimeSettings),

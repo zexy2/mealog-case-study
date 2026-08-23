@@ -1,6 +1,7 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 
 import { Settings } from '../config';
+import { metrics, type MetricsSnapshot } from '../obs';
 
 export interface HealthResponse {
   status: 'ok';
@@ -21,5 +22,26 @@ export class HealthController {
   @Get()
   check(): HealthResponse {
     return { status: 'ok', vision: this.settings.vision_provider };
+  }
+}
+
+/**
+ * Metrics scrape endpoint.
+ *
+ * JSON rather than Prometheus text: nothing in this case study scrapes it, and
+ * a shape a reviewer can read with `curl | jq` is worth more here than a wire
+ * format for a collector that is not deployed.
+ *
+ * Security note: this route is unauthenticated, like the rest of the service
+ * (see README "Security and privacy limits"). It exposes counts and latencies
+ * only — no meal contents, no user ids, no image bytes — so the exposure is
+ * traffic-shape metadata. Before any real deployment it needs to sit behind
+ * authentication or bind to an internal interface.
+ */
+@Controller('metrics')
+export class MetricsController {
+  @Get()
+  snapshot(): MetricsSnapshot {
+    return metrics.snapshot();
   }
 }
