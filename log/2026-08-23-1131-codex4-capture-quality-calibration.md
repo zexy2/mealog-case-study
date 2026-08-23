@@ -13,6 +13,8 @@
   normalized Laplacian/texture ratio.
 - Added an explicit textureless result for a uniform frame; it does not become
   a blurry result from a zero-over-zero ratio.
+- Added the diagnostic threshold band (`<0.10`, `0.10–0.15`, `0.15–0.30`, or
+  `>=0.30`); it is not a production gate.
 - Added focused tests for normalization, the white-frame case, deterministic
   re-encoding, dimensions, and malformed PNG input.
 - Added `docs/capture-quality-calibration.md` with the six available

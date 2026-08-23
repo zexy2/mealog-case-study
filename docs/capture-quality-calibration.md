@@ -14,7 +14,8 @@ variance for:
 - the 4-neighbour Laplacian over the interior pixels (`laplacianVariance`),
 - all luma pixels (`textureVariance`), and
 - `laplacianVariance / textureVariance`
-  (`normalizedLaplacianVariance`).
+  (`normalizedLaplacianVariance`), with the diagnostic `thresholdBand` cut at
+  `0.10`, `0.15`, and `0.30`.
 
 A genuinely uniform frame has zero texture variance, so the ratio is undefined
 (`null`) and the measurement is marked `textureless`. It is not labelled
@@ -28,14 +29,14 @@ under `/tmp/mealog-adversarial/`. They are all known refusal/adversarial cases;
 there are **zero real-food controls** in this set. The rows below are therefore
 an observed adversarial distribution, not a food-quality validation set.
 
-| image | known case | dimensions | texture variance | Laplacian variance | normalized score |
-| --- | --- | ---: | ---: | ---: | ---: |
-| `BULANIK RESIM.png` | blurred | 398×325 | 1372.554130 | 119.049239 | 0.086736 |
-| `BOS TABAK.png` | empty plate | 392×328 | 3728.459326 | 532.328904 | 0.142774 |
-| `TELEFON EKRANINDA YEMEK.png` | screen | 418×322 | 2772.630133 | 754.643317 | 0.272176 |
-| `OYUNCAK YEMEK.png` | toy | 380×325 | 1420.336427 | 557.855628 | 0.392763 |
-| `ANAHTARLIK KALEM.png` | non-food | 387×326 | 1028.448734 | 1047.761921 | 1.018779 |
-| `BIR BARDAKSU.png` | non-food | 383×321 | 702.633738 | 886.441623 | 1.261598 |
+| image | known case | dimensions | texture variance | Laplacian variance | normalized score | threshold band |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `BULANIK RESIM.png` | blurred | 398×325 | 1372.554130 | 119.049239 | 0.086736 | below 0.10 |
+| `BOS TABAK.png` | empty plate | 392×328 | 3728.459326 | 532.328904 | 0.142774 | 0.10–0.15 |
+| `TELEFON EKRANINDA YEMEK.png` | screen | 418×322 | 2772.630133 | 754.643317 | 0.272176 | 0.15–0.30 |
+| `OYUNCAK YEMEK.png` | toy | 380×325 | 1420.336427 | 557.855628 | 0.392763 | at or above 0.30 |
+| `ANAHTARLIK KALEM.png` | non-food | 387×326 | 1028.448734 | 1047.761921 | 1.018779 | at or above 0.30 |
+| `BIR BARDAKSU.png` | non-food | 383×321 | 702.633738 | 886.441623 | 1.261598 | at or above 0.30 |
 
 For the known unusable set (`n=6`), the normalized-score distribution is:
 
@@ -50,9 +51,10 @@ with a labelled real-food blur set.
 
 ## Candidate thresholds
 
-These are diagnostic candidates only. The policy under test is “flag when the
-normalized score is below the candidate”; textureless frames are handled by
-the explicit textureless branch. `False rejects` require real-food controls,
+These are diagnostic candidates only, and the module exposes their interval as
+`thresholdBand`; this is not a production gate. The policy under test is “flag
+when the normalized score is below the candidate”; textureless frames are
+handled by the explicit textureless branch. `False rejects` require real-food controls,
 which are absent. The observed catches are shown so the limitation is
 quantified, but they are not a true-catch estimate for food photographs.
 

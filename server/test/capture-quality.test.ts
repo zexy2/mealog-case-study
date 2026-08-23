@@ -73,6 +73,7 @@ describe('capture quality measurement', () => {
       result.laplacianVariance / result.textureVariance,
       12,
     );
+    expect(result.thresholdBand).toBe('at_or_above_0_30');
   });
 
   it('treats a uniform white frame as textureless, not blurry', () => {
@@ -86,6 +87,7 @@ describe('capture quality measurement', () => {
     expect(result.laplacianVariance).toBe(0);
     expect(result.normalizedLaplacianVariance).toBeNull();
     expect(result.textureless).toBe(true);
+    expect(result.thresholdBand).toBe('textureless');
   });
 
   it('produces the same measurement after the same image is re-encoded', () => {

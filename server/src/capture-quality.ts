@@ -16,6 +16,13 @@ export interface GrayImage {
   readonly pixels: Uint8Array;
 }
 
+export type CaptureQualityBand =
+  | 'textureless'
+  | 'below_0_10'
+  | '0_10_to_0_15'
+  | '0_15_to_0_30'
+  | 'at_or_above_0_30';
+
 export interface CaptureQualityMeasurement {
   readonly width: number;
   readonly height: number;
@@ -24,6 +31,8 @@ export interface CaptureQualityMeasurement {
   /** Null means the image is textureless and the ratio is undefined. */
   readonly normalizedLaplacianVariance: number | null;
   readonly textureless: boolean;
+  /** Diagnostic bands from this calibration; not a production gate. */
+  readonly thresholdBand: CaptureQualityBand;
 }
 
 const PNG_SIGNATURE = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -190,6 +199,14 @@ function laplacianValues(image: GrayImage): Iterable<number> {
   })();
 }
 
+function thresholdBand(score: number | null): CaptureQualityBand {
+  if (score === null) return 'textureless';
+  if (score < 0.1) return 'below_0_10';
+  if (score < 0.15) return '0_10_to_0_15';
+  if (score < 0.3) return '0_15_to_0_30';
+  return 'at_or_above_0_30';
+}
+
 export function measureCaptureQuality(image: GrayImage): CaptureQualityMeasurement {
   if (image.width < 1 || image.height < 1 || image.pixels.length !== image.width * image.height) {
     throw new Error('grayscale image dimensions do not match its pixels');
@@ -198,13 +215,15 @@ export function measureCaptureQuality(image: GrayImage): CaptureQualityMeasureme
   const texture = variance(image.pixels);
   const laplacian = variance(laplacianValues(image));
   const textureless = texture.value <= TEXTURE_EPSILON;
+  const normalizedLaplacianVariance = textureless ? null : laplacian.value / texture.value;
   return {
     width: image.width,
     height: image.height,
     laplacianVariance: laplacian.value,
     textureVariance: texture.value,
-    normalizedLaplacianVariance: textureless ? null : laplacian.value / texture.value,
+    normalizedLaplacianVariance,
     textureless,
+    thresholdBand: thresholdBand(normalizedLaplacianVariance),
   };
 }
 
