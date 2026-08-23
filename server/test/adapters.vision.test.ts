@@ -320,13 +320,15 @@ describe('a provider response carrying a nutrition field is rejected', () => {
   );
 
   it('requires medium on live-shaped responses', () => {
-    const { medium: _medium, ...legacyObservation } = OBSERVATION;
+    const legacyObservation: Record<string, unknown> = { ...OBSERVATION };
+    delete legacyObservation.medium;
     expect(() => parseObservationItems([legacyObservation])).toThrow(/medium must be one of/);
   });
 
   it('defaults a legacy fixture missing medium to neutral real_plate', () => {
     const dir = tempFixtureDir();
-    const { medium: _medium, ...legacyObservation } = OBSERVATION;
+    const legacyObservation: Record<string, unknown> = { ...OBSERVATION };
+    delete legacyObservation.medium;
     writeFixture(dir, 'legacy-medium', [legacyObservation]);
     expect(new FixtureVision(dir).perceive('legacy-medium').observations[0].capture_medium).toBe('real_plate');
   });

@@ -112,8 +112,8 @@ export class FixtureVision {
     // Backward compatibility for p3 and older fixtures: an omitted medium is
     // explicitly replayed as neutral real_plate. Live responses still require
     // the field; this default exists only at the recorded-fixture boundary.
-    const items = Array.isArray(raw.items)
-      ? raw.items.map((item) => {
+    const items: unknown = Array.isArray(raw.items)
+      ? (raw.items as unknown[]).map((item: unknown): unknown => {
         if (typeof item !== 'object' || item === null || Array.isArray(item)) return item;
         const record = item as Record<string, unknown>;
         return 'medium' in record ? item : { ...record, medium: 'real_plate' };

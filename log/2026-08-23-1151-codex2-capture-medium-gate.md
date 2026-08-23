@@ -33,6 +33,9 @@ Branch: `agent/codex2/capture-medium-gate`
 - Mobile: `npm test` and `npm run typecheck` green after installing the
   existing lockfile; no dependency or lockfile change.
 - `git diff --check`: green.
+- Hosted CI's first Node run caught four lint errors in the explicit legacy
+  fixture helper (unsafe `any` narrowing and unused destructuring names); those
+  are fixed in the follow-up commit and the pull-request workflow is rerunning.
 
 ## Live evidence
 
