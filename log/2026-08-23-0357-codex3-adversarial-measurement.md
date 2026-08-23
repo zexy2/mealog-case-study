@@ -162,4 +162,4 @@ call 12 correct refusals a complete safety result, do not treat action ask as
 proof that the resolved food_id was safe, and do not turn the Laplacian value
 into a threshold.
 Branch: agent/codex3/adversarial-measurement
-Commit: pending log-only commit.
+Commit: 2384863 contains the measurement log; the final branch tip is stated in the issue handoff.
