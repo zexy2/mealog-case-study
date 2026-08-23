@@ -109,9 +109,19 @@ export class FixtureVision {
     // D1 validation a live response does. All 80 committed fixtures pass
     // unchanged; the difference is that a tampered one is rejected rather than
     // silently stripped of its nutrition field.
+    // Backward compatibility for p3 and older fixtures: an omitted medium is
+    // explicitly replayed as neutral real_plate. Live responses still require
+    // the field; this default exists only at the recorded-fixture boundary.
+    const items = Array.isArray(raw.items)
+      ? raw.items.map((item) => {
+        if (typeof item !== 'object' || item === null || Array.isArray(item)) return item;
+        const record = item as Record<string, unknown>;
+        return 'medium' in record ? item : { ...record, medium: 'real_plate' };
+      })
+      : raw.items;
     return {
       observations: parseObservationItems(
-        raw.items,
+        items,
         `fixture '${key}'`,
         raw.input_kind === 'user_text' ? 'user_text' : 'vision',
       ),

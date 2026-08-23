@@ -34,6 +34,11 @@ export type StringKey =
   | "reviewEyebrow"
   | "reviewTitle"
   | "reviewSubtitle"
+  | "captureMedium"
+  | "captureMediumScreen"
+  | "captureMediumPrinted"
+  | "captureMediumToy"
+  | "captureMediumUnclear"
   | "savedReviewTitle"
   | "savedReviewSubtitle"
   | "actionAutoAccept"
@@ -172,6 +177,11 @@ export const tr: Dictionary = {
   reviewEyebrow: "KONTROL ET VE DÜZELT",
   reviewTitle: "Gününe eklemeden önce bak.",
   reviewSubtitle: "Sonucu incele; kaydetmeden önce karar sende.",
+  captureMedium: "FOTOĞRAF ORTAMI",
+  captureMediumScreen: "Bu görüntü bir ekranda gösterilen yemeğe benziyor. Gerçek öğünün doğrudan fotoğrafını yükleyin.",
+  captureMediumPrinted: "Bu görüntü basılı bir yemek görseline benziyor. Gerçek öğünün doğrudan fotoğrafını yükleyin.",
+  captureMediumToy: "Bu görüntü gerçek yemek yerine oyuncak veya modele benziyor. Gerçek öğünün doğrudan fotoğrafını yükleyin.",
+  captureMediumUnclear: "Görüntünün gerçek bir öğün fotoğrafı olduğunu doğrulayamadık. Daha net bir yemek fotoğrafı yükleyin.",
   savedReviewTitle: "Günündeki kaydı incele.",
   savedReviewSubtitle: "Düzeltmelerini sunucuya göndererek kaydı güncelle.",
   actionAutoAccept: "Kaydedildi",
@@ -308,6 +318,11 @@ export const en: Dictionary = {
   reviewEyebrow: "REVIEW & CORRECT",
   reviewTitle: "Review before it reaches your day.",
   reviewSubtitle: "Inspect the result; you decide before saving.",
+  captureMedium: "CAPTURE MEDIUM",
+  captureMediumScreen: "This image appears to show food on a screen. Upload a direct photo of the real meal.",
+  captureMediumPrinted: "This image appears to be printed food imagery. Upload a direct photo of the real meal.",
+  captureMediumToy: "This image may show a toy or model rather than real food. Upload a direct photo of the real meal.",
+  captureMediumUnclear: "I could not confirm this is a direct photo of a real meal. Upload a clearer meal photo.",
   savedReviewTitle: "Review the saved record.",
   savedReviewSubtitle: "Send corrections to the server to update this record.",
   actionAutoAccept: "Saved",

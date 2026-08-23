@@ -37,6 +37,11 @@ assert.match(reviewSource, /quantityLabel/, "Review must expose provider quantit
 assert.match(reviewSource, /quantityUnknown/, "Review must surface unknown quantity");
 assert.match(reviewSource, /isSaved/, "Review must distinguish an existing saved record");
 assert.match(reviewSource, /portionBand/, "Review must never collapse a valid portion to a point");
+assert.match(reviewSource, /capture_medium/, "Review must surface capture medium evidence");
+assert.match(reviewSource, /captureMediumScreen/, "screen medium must have cause-specific copy");
+assert.match(reviewSource, /captureMediumPrinted/, "printed medium must have cause-specific copy");
+assert.match(reviewSource, /captureMediumToy/, "toy medium must have cause-specific copy");
+assert.match(reviewSource, /captureMediumUnclear/, "unclear medium must have cause-specific copy");
 assert.match(reviewSource, /expandedItem === index/, "Review must expose the audit panel state");
 assert.match(abstainSource, /onDescribe/, "abstention must offer a typed description path");
 assert.match(captureSource, /demoAutoAccept/, "demo mode must expose auto-accept");

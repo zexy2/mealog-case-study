@@ -38,4 +38,12 @@ class FixtureVision:
             )
         raw = json.loads(path.read_text(encoding="utf-8"))
         origin = "user_text" if raw.get("input_kind") == "user_text" else "vision"
-        return [PerceivedItem(**item, count_origin=origin) for item in raw["items"]]
+        # Backward compatibility for p3 and older fixtures: an omitted medium
+        # is explicitly replayed as neutral real_plate. Live responses still
+        # require the field; this default exists only at the fixture boundary.
+        items = []
+        for item in raw["items"]:
+            record = dict(item)
+            record.setdefault("medium", "real_plate")
+            items.append(PerceivedItem(**record, count_origin=origin))
+        return items

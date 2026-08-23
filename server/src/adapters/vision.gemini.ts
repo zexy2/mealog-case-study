@@ -22,10 +22,10 @@ import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { VisionInput, type VisionResult } from '../pipeline/ports';
-import type { CountOrigin, PerceivedItem } from '../domain/models';
+import type { CaptureMedium, CountOrigin, PerceivedItem } from '../domain/models';
 import { makePerceivedItem } from '../domain/models';
 
-export const PROMPT_VERSION = 'p3';
+export const PROMPT_VERSION = 'p4';
 export const DEFAULT_MODEL = 'gemini-flash-lite-latest';
 export const SECONDARY_MODEL = 'gemini-2.5-flash-lite';
 export const MODEL_ENV_VAR = 'GEMINI_MODEL';
@@ -55,7 +55,8 @@ Rules:
 - Never invent an item you cannot see. Omission is cheaper than invention.
 - Set \`count\` only when items are individually countable and every instance is
   distinctly visible. Overlapping, stacked, cropped, or occluded instances must
-  return \`count: null\`; never guess.
+  return \`count: null\`; never guess. Two stacked simit rings are an occluded
+  arrangement: return \`count: null\` even if two rings appear recognisable.
 - A single serving in one glass, bowl, plate, or other container is one observed
   item: return one item with \`count: null\`. Never count liquid volume, pixels,
   or a serving container as multiple food instances. Do not report garnish,
@@ -64,6 +65,14 @@ Rules:
 - \`count\` is the only count field. Keep \`portion_hint\` non-numeric: use a
   qualitative description such as \`whole\`, \`bowl\`, or \`stacked\`, never a
   count, gram estimate, or numeric serving estimate.
+- Set \`medium\` to exactly one of \`real_plate\`, \`screen\`, \`printed\`,
+  \`toy_or_model\`, or \`unclear\` for every observed item. Use \`screen\` for food
+  shown inside a display, \`printed\` for paper, packaging, or other printed
+  imagery, and \`toy_or_model\` for a toy, miniature, moulded replica, or
+  obviously synthetic food. Use \`real_plate\` only for a real serving
+  photographed directly. If you cannot tell, or the image is torn between a
+  real serving and another medium, use \`unclear\`. \`real_plate\` is neutral
+  evidence, never positive evidence.
 `;
 
 export const RESPONSE_SCHEMA = {
@@ -92,6 +101,11 @@ export const RESPONSE_SCHEMA = {
             minimum: 1,
             description: 'Count only when each individually countable instance is distinctly visible; otherwise null.',
           },
+          medium: {
+            type: 'STRING',
+            enum: ['real_plate', 'screen', 'printed', 'toy_or_model', 'unclear'],
+            description: 'Capture medium; real_plate is neutral, every other value is a safety red flag.',
+          },
           confidence: {
             type: 'NUMBER',
             minimum: 0,
@@ -99,7 +113,7 @@ export const RESPONSE_SCHEMA = {
             description: 'Confidence that this item is present, from 0 to 1.',
           },
         },
-        required: ['surface_form', 'cooking_method', 'portion_hint', 'count', 'confidence'],
+        required: ['surface_form', 'cooking_method', 'portion_hint', 'count', 'medium', 'confidence'],
       },
     },
   },
@@ -424,6 +438,14 @@ export function parseObservationItems(
       throw new Error(`${label} item ${index} count must be a positive integer or null`);
     }
 
+    const mediumRaw = record.medium;
+    const captureMediums: readonly CaptureMedium[] = [
+      'real_plate', 'screen', 'printed', 'toy_or_model', 'unclear',
+    ];
+    if (!captureMediums.includes(mediumRaw as CaptureMedium)) {
+      throw new Error(`${label} item ${index} medium must be one of ${captureMediums.join(', ')}`);
+    }
+
     const portionHint = (record.portion_hint as string | null | undefined) ?? null;
     const safeCount = countOrigin === 'vision' && (
       countRaw === 1
@@ -438,6 +460,7 @@ export function parseObservationItems(
       portion_hint: portionHint,
       count: safeCount,
       count_origin: countOrigin,
+      capture_medium: mediumRaw as CaptureMedium,
       confidence: confidenceRaw,
     });
   });
@@ -850,6 +873,7 @@ export class GeminiVision {
         if (item.cooking_method !== null) out.cooking_method = item.cooking_method;
         if (item.portion_hint !== null) out.portion_hint = item.portion_hint;
         if (item.count !== null) out.count = item.count;
+        out.medium = item.capture_medium;
         out.confidence = item.confidence;
         if (item.ungrounded_kcal !== null) out.ungrounded_kcal = item.ungrounded_kcal;
         return out;

@@ -12,6 +12,11 @@ assert.equal(t("portionBand", { grams: 180, low: 140, high: 230 }), "yaklaşık 
 assert.equal(t("reviewTitle"), "Gününe eklemeden önce bak.");
 assert.equal(t("abstainTitle"), "Tanıyamadım.");
 assert.equal(t("providerUnavailable"), "Sağlayıcıya ulaşılamadı");
+assert.equal(t("captureMedium"), "FOTOĞRAF ORTAMI");
+assert.match(t("captureMediumScreen"), /ekranda/);
+assert.match(t("captureMediumPrinted"), /basılı/);
+assert.match(t("captureMediumToy"), /oyuncak/);
+assert.match(t("captureMediumUnclear"), /doğrulayamadık/);
 
 assert.match(demoSource, /question: questionText\(askItem\)/);
 assert.doesNotMatch(demoSource, /Is this kuru fasulye/);

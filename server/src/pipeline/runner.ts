@@ -21,7 +21,7 @@ import { normalize } from './normalize';
 import { estimate } from './portion';
 import { createRetrieval } from './retrieval/index';
 import { resolve } from './resolve';
-import { route } from './confidence';
+import { captureMediumQuestion, route } from './confidence';
 import { addClarifications } from './clarification';
 import { scalePer100g } from './nutrition';
 import { VisionInput, type VisionPort } from './ports';
@@ -99,6 +99,9 @@ function reconcileResolved(items: ResolvedItem[]): ResolvedItem[] {
       : existing.count_origin === 'vision' || item.count_origin === 'vision'
         ? 'vision'
         : existing.count_origin ?? item.count_origin;
+    if (existing.capture_medium === 'real_plate' && item.capture_medium !== 'real_plate') {
+      existing.capture_medium = item.capture_medium;
+    }
     existing.confidence = Math.min(existing.confidence, item.confidence);
   }
 
@@ -116,6 +119,7 @@ function ungroundedLog(
     query: item.surface_form,
     food_id: `ungrounded:${item.surface_form}`,
     confidence: item.confidence,
+    capture_medium: item.capture_medium,
     nutrients: makeNutrients({ kcal: item.ungrounded_kcal || 0.0 }),
   }));
 
@@ -123,13 +127,15 @@ function ungroundedLog(
     (acc, item) => addNutrients(acc, item.nutrients),
     makeNutrients(),
   );
+  const mediumFlag = items.find((item) => item.capture_medium !== 'real_plate');
   return makeMealLog({
     idempotency_key: idempotencyKey,
     locale,
     config: config.name,
     items,
     totals: roundedNutrients(totals),
-    action: degraded ? 'review' : 'auto_accept',
+    action: degraded ? 'review' : mediumFlag === undefined ? 'auto_accept' : 'ask',
+    question: mediumFlag === undefined ? null : captureMediumQuestion(mediumFlag),
     degraded,
   });
 }
@@ -182,6 +188,7 @@ export async function run(
     result.quantity = item.quantity;
     result.unit = item.unit;
     result.count_origin = item.count_origin;
+    result.capture_medium = item.original.capture_medium;
 
     // Keep ABSTAIN as an item. In particular, do not run it through portion or
     // nutrition: a missing catalogue food is not a zero-calorie food.
@@ -236,7 +243,13 @@ export async function run(
   } else if (config.gating) {
     log = route(log);
   } else {
-    log.action = 'auto_accept';
+    const mediumFlag = reconciled.find((item) => item.capture_medium !== 'real_plate');
+    if (mediumFlag !== undefined) {
+      log.action = 'ask';
+      log.question = captureMediumQuestion(mediumFlag);
+    } else {
+      log.action = 'auto_accept';
+    }
   }
   return addClarifications(log, pack);
 }

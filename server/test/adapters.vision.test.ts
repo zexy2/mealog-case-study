@@ -79,6 +79,7 @@ const OBSERVATION = {
   surface_form: 'kuru fasulye',
   cooking_method: 'stewed',
   portion_hint: 'one bowl',
+  medium: 'real_plate',
   confidence: 0.9,
 };
 
@@ -252,7 +253,9 @@ describe('committed fixtures replay unchanged', () => {
       expect(raw._synthetic, name).toBe(false);
       expect(raw.provider, name).toBe('gemini');
       expect(typeof raw.model_id, name).toBe('string');
-      expect(raw.prompt_version, name).toBe(PROMPT_VERSION);
+      // Committed fixtures remain p3 by design; p4 applies only to new live
+      // responses because this change must not re-record the golden set.
+      expect(raw.prompt_version, name).toBe('p3');
     }
   });
 });
@@ -307,6 +310,25 @@ describe('a provider response carrying a nutrition field is rejected', () => {
     expect(items).toHaveLength(1);
     expect(items[0].surface_form).toBe('kuru fasulye');
     expect(Object.keys(OBSERVATION).every((k) => ALLOWED_ITEM_FIELDS.has(k))).toBe(true);
+  });
+
+  it.each(['real_plate', 'screen', 'printed', 'toy_or_model', 'unclear'] as const)(
+    'preserves the %s capture medium',
+    (medium) => {
+      expect(parseObservationItems([{ ...OBSERVATION, medium }])[0].capture_medium).toBe(medium);
+    },
+  );
+
+  it('requires medium on live-shaped responses', () => {
+    const { medium: _medium, ...legacyObservation } = OBSERVATION;
+    expect(() => parseObservationItems([legacyObservation])).toThrow(/medium must be one of/);
+  });
+
+  it('defaults a legacy fixture missing medium to neutral real_plate', () => {
+    const dir = tempFixtureDir();
+    const { medium: _medium, ...legacyObservation } = OBSERVATION;
+    writeFixture(dir, 'legacy-medium', [legacyObservation]);
+    expect(new FixtureVision(dir).perceive('legacy-medium').observations[0].capture_medium).toBe('real_plate');
   });
 
   it('accepts nullable positive integer counts and rejects guessed decimals', () => {
