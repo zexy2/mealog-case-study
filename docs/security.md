@@ -16,8 +16,8 @@ Consumer camera captures (JPEG/PNG/WebP/GIF) embed sensitive binary metadata:
 - **Pure Zero-Dependency Sanitizer:** Implemented in `server/src/pipeline/privacy.ts`.
 - **JPEG Sanitization:** Strips `0xFFE1` (APP1 EXIF), `0xFFE2` (FlashPix/ICC), `0xFFED` (IPTC), and `0xFFFE` (Comments) while strictly preserving critical visual frame markers (`SOI`, `DQT`, `SOF0`, `DHT`, `SOS`, `EOI`).
 - **PNG Sanitization:** Strips ancillary metadata chunks (`eXIf`, `tEXt`, `zTXt`, `iTXt`, `tIME`) while retaining structural chunks (`IHDR`, `PLTE`, `IDAT`, `IEND`).
-- **WebP Sanitization:** Strips `EXIF` and `XMP ` RIFF chunks while updating container length.
-- **GIF Sanitization:** Strips Comment (`0x21, 0xFE`) and XMP Application extensions (`0x21, 0xFF`).
+- **Supported Formats:** JPEG, PNG, WebP, and GIF are binary-sanitized in RAM before perception ingestion.
+- **Documented Limitation:** ISOBMFF container formats (HEIC, HEIF, AVIF) pass raw bytes through without in-memory EXIF item stripping, as full ISOBMFF box repacking without native C++ libraries is outside the current zero-native-dependency prototype scope.
 - **Edge Integration:** Every incoming multipart image in `MealsController` is sanitized in-memory *before* being processed or forwarded to perception adapters.
 
 ---
