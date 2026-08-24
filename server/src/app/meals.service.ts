@@ -28,6 +28,11 @@ interface CachedEntry {
   readonly fingerprint: string;
 }
 
+interface InFlightEntry {
+  readonly promise: Promise<MealLog>;
+  readonly fingerprint: string;
+}
+
 function fingerprintRequest(request: MealRequest, input: VisionInput): string {
   return [
     request.locale,
@@ -42,7 +47,7 @@ function fingerprintRequest(request: MealRequest, input: VisionInput): string {
 @Injectable()
 export class MealsService {
   private readonly completed = new Map<string, CachedEntry>();
-  private readonly inFlight = new Map<string, Promise<MealLog>>();
+  private readonly inFlight = new Map<string, InFlightEntry>();
 
   constructor(
     @Inject(VISION_PORT) private readonly vision: VisionPort,
@@ -81,8 +86,14 @@ export class MealsService {
 
     const pending = this.inFlight.get(cacheKey);
     if (pending) {
+      if (pending.fingerprint !== currentFingerprint) {
+        error(
+          HttpStatus.CONFLICT,
+          'idempotency key reused with different request payload',
+        );
+      }
       event('idempotent_replay', { config: request.config, source: 'in_flight' });
-      return pending;
+      return pending.promise;
     }
 
     if (this.runtimeSettings.vision_provider !== 'fixture' && input.sampleId) {
@@ -100,7 +111,7 @@ export class MealsService {
     }
 
     const result = this.runOnce(cacheKey, request, input, config);
-    this.inFlight.set(cacheKey, result);
+    this.inFlight.set(cacheKey, { promise: result, fingerprint: currentFingerprint });
     return result;
   }
 
@@ -161,6 +172,12 @@ export class MealsService {
     } catch (caught) {
       if (caught instanceof Error && /no locale pack at|unknown locale/i.test(caught.message)) {
         error(HttpStatus.UNPROCESSABLE_ENTITY, `unsupported or unknown locale '${request.locale}'`);
+      }
+      if (caught instanceof Error && /no recorded response for/i.test(caught.message)) {
+        error(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'fixture replay has no recorded response for this image; for live photo perception configure VISION_PROVIDER=gemini',
+        );
       }
       throw caught;
     } finally {
