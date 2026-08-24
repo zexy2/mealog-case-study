@@ -99,27 +99,27 @@ export function AbstentionScreen({
         </View>
       ) : null}
 
-      {/* Interactive Quick Confirmation Card for All Observed Foods */}
+      {/* Informative Guidance Card explaining catalogue boundary */}
       {!isEmptyPlate && observedNames.length > 0 ? (
         <View style={styles.confirmationCard}>
           <View style={styles.confirmHeaderRow}>
-            <Ionicons name="sparkles" size={18} color={colors.moss} />
+            <Ionicons name="information-circle" size={18} color={colors.terracotta} />
             <Text style={styles.confirmHeader}>{t("confirmModelDetectionTitle")}</Text>
           </View>
           <Text style={styles.confirmCopy}>
             {t("confirmObservedPrefix")}<Text style={styles.bold}>{observedNames.join(", ")}</Text>{t("confirmObservedSuffix")}
           </Text>
+          <Text style={styles.unmappedHelpCopy}>
+            {t("abstainUnmappedHelp")}
+          </Text>
           <View style={styles.confirmActions}>
-            <Pressable
-              style={styles.confirmYesButton}
-              onPress={() => (onConfirmObserved ? onConfirmObserved(observedNames.join(", ")) : onDescribe())}
-            >
-              <Ionicons name="checkmark-circle" size={18} color={colors.white} />
-              <Text style={styles.confirmYesText}>{t("confirmYesLabel", { names: observedNames.join(", ") })}</Text>
+            <Pressable style={styles.confirmYesButton} onPress={onDescribe}>
+              <Ionicons name="create-outline" size={18} color={colors.white} />
+              <Text style={styles.confirmYesText}>{t("confirmNoLabel")}</Text>
             </Pressable>
-            <Pressable style={styles.confirmNoButton} onPress={onDescribe}>
-              <Ionicons name="close-circle-outline" size={18} color={colors.ink} />
-              <Text style={styles.confirmNoText}>{t("confirmNoLabel")}</Text>
+            <Pressable style={styles.confirmNoButton} onPress={onRetake}>
+              <Ionicons name="camera-outline" size={18} color={colors.ink} />
+              <Text style={styles.confirmNoText}>{t("retakePhoto")}</Text>
             </Pressable>
           </View>
         </View>
@@ -318,17 +318,23 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15,
     lineHeight: 21,
-    marginBottom: 14,
+    marginBottom: 6,
   },
   bold: {
     fontWeight: "800",
     color: colors.terracotta,
   },
+  unmappedHelpCopy: {
+    fontSize: 13,
+    color: colors.muted,
+    lineHeight: 19,
+    marginBottom: 14,
+  },
   confirmActions: {
     gap: 9,
   },
   confirmYesButton: {
-    backgroundColor: colors.moss,
+    backgroundColor: colors.terracotta,
     borderRadius: 15,
     paddingVertical: 13,
     paddingHorizontal: 16,

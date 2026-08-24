@@ -72,8 +72,8 @@ delivered HTTP API.
 | Brief requirement | Status | Evidence or reason |
 | --- | --- | --- |
 | Mobile app, not a web app | Delivered | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection, EXIF stripping, iOS Simulator and Expo Go verified. |
-| Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 292 tests passing. |
-| Technical write-up | Delivered | Comprehensive documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D13), [docs/interview_questions_answers.md](docs/interview_questions_answers.md), and [CASE-STUDY-GAP-REPORT.md](CASE-STUDY-GAP-REPORT.md). |
+| Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 296 tests passing. |
+| Technical write-up | Delivered | Comprehensive documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D14), [docs/interview_questions_answers.md](docs/interview_questions_answers.md), and [CASE-STUDY-GAP-REPORT.md](CASE-STUDY-GAP-REPORT.md). |
 | Walkthrough video | Script Delivered | The [recording script](docs/walkthrough.md) is complete with exact scene-by-scene presentation guidance. |
 | Email summary | Draft Delivered | The complete submission email is drafted in [docs/submission_email_draft.md](docs/submission_email_draft.md). |
 | Explicit EatBetter comparison | Delivered | Evidence-backed comparison and benchmark report merged in [CASE-STUDY-GAP-REPORT.md](CASE-STUDY-GAP-REPORT.md) and [docs/comparison.md](docs/comparison.md). |
