@@ -80,9 +80,9 @@ export function AbstentionScreen({
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header
-        eyebrow={isEmptyPlate ? "YEMEK BULUNAMADI" : t("abstainEyebrow")}
-        title={isEmptyPlate ? "Tabakta Yemek Görünmüyor." : t("abstainTitle")}
-        subtitle={isEmptyPlate ? "Boş tabak veya yiyecek dışı görüntü" : t("actionAsk")}
+        eyebrow={isEmptyPlate ? t("emptyPlateEyebrow") : t("abstainEyebrow")}
+        title={isEmptyPlate ? t("emptyPlateTitle") : t("abstainTitle")}
+        subtitle={isEmptyPlate ? t("emptyPlateSubtitle") : t("actionAsk")}
       />
 
       {imageUri ? (
@@ -90,11 +90,11 @@ export function AbstentionScreen({
           <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
           <View style={styles.imageBadge}>
             <Ionicons name="image-outline" size={13} color={colors.white} />
-            <Text style={styles.imageBadgeText}>Yüklenen Fotoğraf</Text>
+            <Text style={styles.imageBadgeText}>{t("uploadedPhotoBadge")}</Text>
           </View>
           <View style={styles.privacyBadge}>
             <Ionicons name="shield-checkmark" size={12} color={colors.moss} />
-            <Text style={styles.privacyBadgeText}>EXIF & PII Güvende</Text>
+            <Text style={styles.privacyBadgeText}>{t("privacyBadgeSafe")}</Text>
           </View>
         </View>
       ) : null}
@@ -104,10 +104,10 @@ export function AbstentionScreen({
         <View style={styles.confirmationCard}>
           <View style={styles.confirmHeaderRow}>
             <Ionicons name="sparkles" size={18} color={colors.moss} />
-            <Text style={styles.confirmHeader}>Modelin Tespiti Doğru mu?</Text>
+            <Text style={styles.confirmHeader}>{t("confirmModelDetectionTitle")}</Text>
           </View>
           <Text style={styles.confirmCopy}>
-            Yapay zeka bu fotoğrafta: <Text style={styles.bold}>{observedNames.join(", ")}</Text> gördü.
+            {t("confirmObservedPrefix")}<Text style={styles.bold}>{observedNames.join(", ")}</Text>{t("confirmObservedSuffix")}
           </Text>
           <View style={styles.confirmActions}>
             <Pressable
@@ -115,11 +115,11 @@ export function AbstentionScreen({
               onPress={() => (onConfirmObserved ? onConfirmObserved(observedNames.join(", ")) : onDescribe())}
             >
               <Ionicons name="checkmark-circle" size={18} color={colors.white} />
-              <Text style={styles.confirmYesText}>Evet, Doğru ({observedNames.join(", ")})</Text>
+              <Text style={styles.confirmYesText}>{t("confirmYesLabel", { names: observedNames.join(", ") })}</Text>
             </Pressable>
             <Pressable style={styles.confirmNoButton} onPress={onDescribe}>
               <Ionicons name="close-circle-outline" size={18} color={colors.ink} />
-              <Text style={styles.confirmNoText}>Hayır, Farklı Bir Yemek Yaz</Text>
+              <Text style={styles.confirmNoText}>{t("confirmNoLabel")}</Text>
             </Pressable>
           </View>
         </View>
@@ -129,10 +129,10 @@ export function AbstentionScreen({
         <View style={styles.iconCircle}>
           <Ionicons name={isEmptyPlate ? "restaurant-outline" : "help-circle-outline"} size={31} color={colors.yellow} />
         </View>
-        <Text style={styles.heroTitle}>{isEmptyPlate ? "BOŞ TABAK VEYA NESNE" : t("abstainCode")}</Text>
+        <Text style={styles.heroTitle}>{isEmptyPlate ? t("emptyPlateEyebrow") : t("abstainCode")}</Text>
         <Text style={styles.heroCopy}>
           {isEmptyPlate
-            ? "Bu fotoğrafta yenilebilir bir yemek tespit edilemedi (boş tabak veya yiyecek dışı görüntü). Lütfen ne yediğini kendin yaz veya yeni bir fotoğraf çek."
+            ? t("emptyPlateCopy")
             : t("abstainCopy")}
         </Text>
       </View>
@@ -153,7 +153,7 @@ export function AbstentionScreen({
                         onPress={() => (isEditing ? cancelEditing() : startEditing(idx, currentItemName))}
                       >
                         <Ionicons name={isEditing ? "close-outline" : "create-outline"} size={14} color={colors.terracotta} />
-                        <Text style={styles.inlineEditText}>{isEditing ? "Vazgeç" : "Bu Yemeği Düzelt"}</Text>
+                        <Text style={styles.inlineEditText}>{isEditing ? t("cancelEdit") : t("correctThisFood")}</Text>
                       </Pressable>
                       {items.length > 1 ? (
                         <Pressable style={styles.inlineRemoveButton} onPress={() => removeItem(idx)}>
@@ -165,22 +165,22 @@ export function AbstentionScreen({
 
                   {isEditing ? (
                     <View style={styles.inlineEditBox}>
-                      <Text style={styles.inlineEditLabel}>Doğru yemek ismini veya tarifini yazın:</Text>
+                      <Text style={styles.inlineEditLabel}>{t("editFoodPrompt")}</Text>
                       <TextInput
                         style={styles.inlineInput}
                         value={editValue}
                         onChangeText={setEditValue}
-                        placeholder="Örn: Kıymalı makarna, salata..."
+                        placeholder={t("editFoodPlaceholder")}
                         placeholderTextColor={colors.muted}
                         autoFocus
                       />
                       <View style={styles.inlineEditActions}>
                         <Pressable style={styles.inlineSaveButton} onPress={() => applyItemEdit(idx)}>
                           <Ionicons name="checkmark" size={15} color={colors.white} />
-                          <Text style={styles.inlineSaveText}>Güncelle & Eşleştir</Text>
+                          <Text style={styles.inlineSaveText}>{t("updateAndMatch")}</Text>
                         </Pressable>
                         <Pressable style={styles.inlineCancelButton} onPress={cancelEditing}>
-                          <Text style={styles.inlineCancelText}>İptal</Text>
+                          <Text style={styles.inlineCancelText}>{t("cancel")}</Text>
                         </Pressable>
                       </View>
                     </View>
@@ -188,7 +188,7 @@ export function AbstentionScreen({
                     <>
                       <Text style={styles.observedText}>{currentItemName}</Text>
                       <Text style={styles.observedSubtext}>
-                        Görsel modelimiz fotoğrafta "{currentItemName}" tespit etti; ancak kapalı besin kataloğumuzda güvenli eşleşme olmadığı için uydurma tahminde bulunmayıp sana soruyoruz.
+                        {t("abstainCopy")}
                       </Text>
                     </>
                   )}
@@ -209,7 +209,7 @@ export function AbstentionScreen({
                           </View>
                           <Text style={styles.candidateName}>{candidate.name}</Text>
                           <View style={styles.candidatePickPill}>
-                            <Text style={styles.candidatePickText}>Seç & Kaydet</Text>
+                            <Text style={styles.candidatePickText}>{t("chooseAndSave")}</Text>
                           </View>
                         </Pressable>
                       ))}

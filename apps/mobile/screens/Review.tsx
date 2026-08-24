@@ -101,7 +101,7 @@ export function ReviewScreen({
           <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
           <View style={styles.imageBadge}>
             <Ionicons name="image-outline" size={13} color={colors.white} />
-            <Text style={styles.imageBadgeText}>Öğün Fotoğrafı</Text>
+            <Text style={styles.imageBadgeText}>{t("mealPhotoBadge")}</Text>
           </View>
         </View>
       ) : null}

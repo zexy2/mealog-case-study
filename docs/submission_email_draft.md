@@ -44,6 +44,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 ### ⚠️ Key Trade-Offs & Boundaries
 * **Precision over Recall:** When a dish is not in the regional catalogue or confidence is low, mealog safely returns `ABSTAIN` (70/80 golden samples) and asks the user rather than hallucinating wrong calories.
 * **Process-Local Idempotency:** The MVP uses an in-memory idempotency cache suitable for single-instance review; production scaling requires distributed Redis locks.
+* **Client-Device Scoped Auth:** Authentication in this take-home demo is bounded by client device ID / `X-User-Id` header for isolation rather than signed OAuth/JWT tokens.
 * **Evaluation Scope:** Focused on reproducible offline golden evaluation rather than unconstrained live API spend.
 
 ---

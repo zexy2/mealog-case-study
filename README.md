@@ -231,7 +231,7 @@ Detailed, evidence-backed answers to the four core case study questions are docu
 1. **Biggest Trade-off:** Prioritizing **Precision over Recall** (abstaining with `ABSTAIN` when confidence/catalogue is lacking rather than hallucinating calories).
 2. **Top 3 Accuracy Improvements Next:** Automated regional catalogue expansion (TÜRKOMP / OpenFoodFacts), hybrid multimodal visual embeddings (CLIP + BM25), and interactive multi-item bounding box clarification.
 3. **What Breaks at Scale:** In-memory idempotency cache (solved by Redis distributed locks), synchronous LLM latency under burst traffic (solved by Kafka / BullMQ worker queues), and provider API rate limits.
-4. **Biggest Security / Privacy Risks:** Biometrics & PII in background photos (solved by on-device face blurring & EXIF stripping in [D13](docs/decisions.md#d13)), and Prompt Injection / calorie tampering attacks (prevented by D1 architectural invariant).
+4. **Biggest Security / Privacy Risks:** Biometrics & PII in background photos (solved by Edge/Server-side face blurring & EXIF scrubbing in [D13](docs/decisions.md#d13)), and Prompt Injection / calorie tampering attacks (prevented by D1 architectural invariant).
 
 
 ### Concrete Model Error and Human Override

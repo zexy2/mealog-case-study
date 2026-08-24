@@ -122,17 +122,17 @@ tier_2 row in that denominator.
 
 The current offline replay on **n=80** produces these ablation rows. V3's
 worst-cuisine (`western`) MAPE is **12.7%**, computed over **n=2** covered,
-calorie-eligible samples. The V3 coverage is **15%** (**12/80** committed
-samples), while **68/80** samples ask for clarification. These are current
+calorie-eligible samples. The V3 coverage is **12%** (**10/80** committed
+samples), while **70/80** samples ask for clarification. These are current
 outputs of `python eval/harness.py`, not claims about unmeasured provider
 behaviour.
 
 | Config | Worst-cuisine MAPE | Mean MAPE | Spread | Coverage | Calorie eligible | Calorie scored | Item F1 | FP rate |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | V0 | 100.0% (western) | 100.0% | 1.00x | 100% | 2 | 2 | 0.00 | 100.0% |
-| V1 | 12.7% (western) | 12.7% | 1.00x | 49% | 2 | 2 | 0.13 | 89.8% |
-| V2 | 12.7% (western) | 12.7% | 1.00x | 49% | 2 | 2 | 0.13 | 89.8% |
-| V3 | 12.7% (western) | 12.7% | 1.00x | 15% | 2 | 2 | 0.15 | 86.0% |
+| V1 | 12.7% (western) | 12.7% | 1.00x | 44% | 2 | 2 | 0.14 | 89.0% |
+| V2 | 12.7% (western) | 12.7% | 1.00x | 44% | 2 | 2 | 0.14 | 89.0% |
+| V3 | 12.7% (western) | 12.7% | 1.00x | 12% | 2 | 2 | 0.15 | 86.0% |
 
 The current V3 cuisine slices are:
 
@@ -252,7 +252,7 @@ baseline and fails if any cuisine bucket gets worse.
 
 ## Current evidence boundary
 
-The 80 recorded provider responses are real inputs from [#3](../../issues/3),
+The 80 recorded provider responses are real inputs from [#3](https://github.com/zexy2/mealog-case-study/issues/3),
 and this manifest uses source-backed labels where the upstream datasets provide
 them. The baseline in `eval/reports/baseline.json` is deliberately retained
 unchanged here; this documentation refresh does not reset it. Current

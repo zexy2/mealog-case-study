@@ -51,7 +51,7 @@ wrong food and its calories look complete while being harder to notice or
 repair. The cost is friction and lower automatic coverage.
 
 **How it is measured.** The current offline V3 replay on **n=80** golden
-samples reports **15% coverage**: **12/80** samples commit and **68/80** ask.
+samples reports **12% coverage**: **10/80** samples commit and **70/80** ask.
 After the TypeScript confidence gate in merged [PR #184](https://github.com/zexy2/mealog-case-study/pull/184)
 and the scorecard refresh in merged [PR #185](https://github.com/zexy2/mealog-case-study/pull/185),
 worst/mean calorie MAPE is **12.7%** over **2/2** complete-positive rows. The
@@ -126,11 +126,11 @@ read together.
 MAPE, within-20%, and FP rate for every cuisine. The current V3 sample sizes are
 western **n=12**, mediterranean **n=12**, east_asian **n=16**, other_mixed
 **n=8**, south_asian **n=16**, and latin_american **n=16**. Current V3 coverage is
-**15% (12/80)**, Item F1 is **0.15**, FP rate is **86.0%**, and calorie MAPE is
+**12% (10/80)**, Item F1 is **0.15**, FP rate is **86.0%**, and calorie MAPE is
 **12.7% over n=2 scored complete-positive rows**. Empty cuisine calorie buckets
 render `—`; they are not zero-error results.
 
-**Example.** In the current V3 replay, western is **42% covered on n=12** while
+**Example.** In the current V3 replay, western is **33% covered on n=12** while
 east_asian is **6% covered on n=16**. A single mean would hide that the Japanese
 bucket has almost no committed V3 meals in this set, so the reviewer sees where
 catalogue coverage fails.

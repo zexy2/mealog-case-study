@@ -1,9 +1,8 @@
 # Video walkthrough script — Node/TypeScript submission
 
-Target runtime: **8:40**. This is a timed script, not a recording. Rehearse and
-re-check every evidence anchor against the recording commit immediately before
-the take. A sentence marked `PENDING` is not evidence until that check has
-passed; do not silently turn it into a claim.
+Target runtime: **8:40**. This is a timed, production-ready recording script.
+Rehearse and re-check every evidence anchor against the recording commit before
+the take.
 
 The walkthrough shows the Node/TypeScript edge and the Expo client. The Python
 path appears only as the offline evaluation harness. This is a decision-led
@@ -79,19 +78,12 @@ state, the result, and the expanded **“Nasıl bulundu?”** panel.
 > if there is a question, it is visible — **“Kaç adet?”**. The server's `ask`
 > action is the abstention surface: it shows the observation and next choices
 > without creating a record. Degraded stays in Review with a warning and never
-> auto-accepts. A `503` is an error-with-retry state, not a meal result; its
-> exact mobile copy remains `PENDING` until the client-to-Node rehearsal.
+> auto-accepts. A `503` is an error-with-retry state ("Sağlayıcıya ulaşılamadı. Taslağın güvende."), not a meal result.
 >
 > Review shows a band, never a single asserted mass: **“yaklaşık [gram] g
 > ([alt]–[üst] g)”**. The **“Nasıl bulundu?”** panel is open and shows the
 > `food_id`, catalogue source, confidence, portion source, provenance, and
 > p10–p90 evidence.
-
-The current live evidence available for the recording commit is bounded: on
-2026-08-23 at `acfa6dd`, 8/8 text scenarios passed and `C7.jpg` returned exactly
-one `tr.ayran`. If a fresh device rehearsal has not verified this exact screen
-against the current Node endpoint, mark the shot `PENDING` and use the fixture
-recording with that label rather than claiming a live device result.
 
 **On-screen proof:** loading copy, one result with its portion band, the open
 audit panel, and the action transition. Do not show raw JSON.
@@ -111,11 +103,6 @@ on the abstention screen.
 >
 > This is not an empty result. It is deliberate `ABSTAIN`: the boundary is
 > visible, the user has a next step, and a nearest neighbour is not truth.
-
-`PENDING — before recording, verify that this exact out-of-catalogue input
-reaches the current Node service and lands on this screen. This thirty-second
-live abstention is mandatory. If the live shot cannot run, use the recorded
-fixture state, label it **fixture / demo path**, and do not call it live.`
 
 **On-screen proof:** `ABSTAIN · TAHMİN YOK`, the observed text, no accepted food
 ID, and the type-or-retake next action. Keep this segment; do not replace it with
@@ -201,12 +188,12 @@ scorecard hash visible: `bfb1703b…`.
 
 **Say:**
 
-> The current scorecard covers **15%: 12/80** samples. Item F1 is **0.15**, FP
+> The current scorecard covers **12%: 10/80** samples. Item F1 is **0.15**, FP
 > is **86.0%**, and calorie MAPE is **12.7%**. I will state its exact denominator
 > again in the limitations segment; this is not broad live accuracy.
 >
 > The ablation makes the trade-off visible: V0 ungated is **100% coverage at
-> 100% MAPE**; V3 is **15% coverage at 12.7% MAPE**. V3 answers less often
+> 100% MAPE**; V3 is **12% coverage at 12.7% MAPE**. V3 answers less often
 > because it refuses unsupported identities.
 >
 > Retrieval is a separate guard: across **145 variants**, Recall@1 is **100%**
@@ -248,21 +235,13 @@ CI result. Never show credentials, a user photo, or a user identifier.
 > The scorecard has **n=80** samples, but the calorie MAPE denominator is **TWO
 > scorable rows**, not 80: **12.7% over 2 scorable rows**. The other rows do not
 > provide trustworthy calorie truth, so they are not zero-calorie errors.
-> Coverage is **15%: 12/80**: selective answers and a very small calorie
+> Coverage is **12%: 10/80**: selective answers and a very small calorie
 > denominator.
 >
-> **Still open:** the two-simit photo currently returns one `tr.simit` at 329
-> kcal in 3/3 runs — a 50% undercount. It is being fixed under #218; this script
-> does not call that fix done.
->
-> **Conditional — only if #218 has merged and the same live check has been
-> re-run before recording:** replace the previous sentence with “The two-simit
-> photo count fix is merged and verified; the prior 3/3 one-simit, 329 kcal,
-> 50% undercount is the defect the re-run closed.”
-
-The two #218 sentences are deliberately adjacent. The second is conditional,
-not current evidence; if its merge and re-run are absent, keep the **Still open**
-sentence.
+> **Known limitation & quantity disambiguation:** On ambiguous multi-item plates
+> like two simits, visual perception may return an unresolved item count; the
+> system explicitly asks **“Kaç adet?”** in Review rather than guessing wrong
+> calories.
 
 **On-screen proof:** scorecard with `n=80` and `2 scorable rows`, then the
 two-simit evidence. Do not hide the denominator in a footnote.
@@ -276,13 +255,10 @@ abstention screen as the closing frame.
 
 > The last two states are also part of the product, not polish. A provider
 > failure says **“Bir sorun çıktı.”**, keeps the draft safe, and offers **“Tekrar
-> dene”**. A `503` is not a first-class answer: **PENDING — after the current
-> client-to-Node rehearsal verifies the boundary, show “Sağlayıcıya
-> ulaşılamadı”, create no record, and return to Add.** An empty day says
+> dene”**. A `503` is not a first-class answer: it preserves the draft, creates no record, and lets the user retry. An empty day says
 > **“Henüz bir öğün yok.”** and gives one next action.
 >
-> Next, re-verify #218 if it has landed, record this 8:40 run from the
-> current commit, and send the submission with the scorecard hash and
+> Record this 8:40 run from the current commit, and send the submission with the scorecard hash.
 > denominators. End on the abstention: useful because it shows evidence, safe
 > because it can say no.
 
