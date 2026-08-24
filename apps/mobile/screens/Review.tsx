@@ -6,6 +6,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 import { Candidate, CaptureMedium, ItemClarification, MealLog } from "../src/types";
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
 import { computedValuesNeedServerRefresh, countAnswerPending } from "../src/reviewState";
+import { nutritionPresentationForItem } from "../src/nutritionPresentation";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -180,17 +181,24 @@ export function ReviewScreen({
           const selected = selectedCandidates[index] ?? item.food_id;
           const grams = portionEdits[index] ?? item.grams;
           const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
+          const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
           const quantity = hasQuantityEdit ? quantityEdits[index] : item.quantity;
           const clarification = item.clarification ?? null;
           const quantityUnit = clarification?.kind === "count" ? clarification.unit ?? item.unit : item.unit;
           const hasPortionBand = grams > 0 && item.grams_p90 >= item.grams_p10 && item.grams_p90 > 0;
           const hasRange = item.grams_p90 > item.grams_p10;
-          const isPortionDone = Object.prototype.hasOwnProperty.call(portionEdits, index) || Boolean(portionConfirmed[index]);
+          const isPortionDone = hasPortionEdit || Boolean(portionConfirmed[index]);
           const isCountAnswerPending = countAnswerPending(item, hasQuantityEdit);
-          const computedValuesDeferred = computedValuesNeedServerRefresh(item, hasQuantityEdit, quantity);
+          const hasLocalNutritionEdit = hasPortionEdit
+            || selected !== item.food_id
+            || (clarification?.kind !== "count" && hasQuantityEdit && typeof quantity === "number");
+          const computedValuesDeferred = computedValuesNeedServerRefresh(item, hasQuantityEdit, quantity) || hasLocalNutritionEdit;
+          const nutritionPresentation = nutritionPresentationForItem(item);
           const computedValuesHint = isCountAnswerPending
             ? t("countAnswerRequired")
-            : t("countRecalculationPending");
+            : computedValuesDeferred
+              ? t("nutritionRecalculationPending")
+              : t("countRecalculationPending");
           const displayedQuantity = isCountAnswerPending
             ? t("quantityPending")
             : quantityLabel(item, quantity, quantityUnit);
@@ -203,37 +211,48 @@ export function ReviewScreen({
                   <Text style={styles.itemQuery}>{item.query}</Text>
                   <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? t("needsMatch") : selectedName(item, selected)}</Text>
                   <Text style={styles.quantityText}>{displayedQuantity}</Text>
-                </View>
-                <View style={styles.statusBadgesCol}>
-                  <View style={[styles.confidencePill, item.confidence >= 0.85 ? styles.confidenceHigh : styles.confidenceMed]}>
-                    <Text style={styles.confidenceText}>{item.confidence >= 0.85 ? t("matchConfidenceHigh") : t("matchConfidenceMed")} (%{Math.round(item.confidence * 100)})</Text>
-                  </View>
-                  {hasRange && clarification?.kind !== "count" ? (
-                    <View style={[styles.portionStatusPill, isPortionDone ? styles.portionDone : styles.portionPending]}>
-                      <Text style={styles.portionStatusText}>{isPortionDone ? t("portionStatusConfirmed") : t("portionStatusVerify")}</Text>
+                  <View style={styles.statusBadgesRow}>
+                    <View style={[styles.confidencePill, item.confidence >= 0.85 ? styles.confidenceHigh : styles.confidenceMed]}>
+                      <Text style={styles.confidenceText}>{item.confidence >= 0.85 ? t("matchConfidenceHigh") : t("matchConfidenceMed")} (%{Math.round(item.confidence * 100)})</Text>
                     </View>
-                  ) : null}
+                    {hasRange && clarification?.kind !== "count" ? (
+                      <View style={[styles.portionStatusPill, isPortionDone ? styles.portionDone : styles.portionPending]}>
+                        <Text style={styles.portionStatusText}>{isPortionDone ? t("portionStatusConfirmed") : t("portionStatusVerify")}</Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
               </View>
 
-              {!computedValuesDeferred && item.nutrients && (item.nutrients.kcal > 0 || item.nutrients.protein_g > 0) ? (
-                <View style={styles.macroStrip}>
-                  <View style={styles.macroPill}>
-                    <Text style={styles.macroPillEmoji}>⚡</Text>
-                    <Text style={styles.macroPillText}>{Math.round(item.nutrients.kcal)} kcal</Text>
+              {!computedValuesDeferred && nutritionPresentation === "verified" ? (
+                <View style={styles.nutritionCard}>
+                  <Text style={styles.nutritionEyebrow}>{t("nutritionTitle")}</Text>
+                  <Text style={styles.nutritionCopy}>{t("nutritionSummary")}</Text>
+                  <View style={styles.nutritionGrid}>
+                    <View style={[styles.nutritionMetric, styles.nutritionMetricEnergy]}>
+                      <Text style={styles.nutritionMetricValue}>≈ {Math.round(item.nutrients.kcal)} kcal</Text>
+                      <Text style={styles.nutritionMetricLabel}>{t("calories")}</Text>
+                    </View>
+                    <View style={styles.nutritionMetric}>
+                      <Text style={styles.nutritionMetricValue}>≈ {Math.round(item.nutrients.protein_g)} g</Text>
+                      <Text style={styles.nutritionMetricLabel}>{t("protein")}</Text>
+                    </View>
+                    <View style={styles.nutritionMetric}>
+                      <Text style={styles.nutritionMetricValue}>≈ {Math.round(item.nutrients.carb_g)} g</Text>
+                      <Text style={styles.nutritionMetricLabel}>{t("carbs")}</Text>
+                    </View>
+                    <View style={styles.nutritionMetric}>
+                      <Text style={styles.nutritionMetricValue}>≈ {Math.round(item.nutrients.fat_g)} g</Text>
+                      <Text style={styles.nutritionMetricLabel}>{t("fat")}</Text>
+                    </View>
                   </View>
-                  <View style={styles.macroPill}>
-                    <Text style={styles.macroPillEmoji}>🥩</Text>
-                    <Text style={styles.macroPillText}>{Math.round(item.nutrients.protein_g)}g protein</Text>
-                  </View>
-                  <View style={styles.macroPill}>
-                    <Text style={styles.macroPillEmoji}>🌾</Text>
-                    <Text style={styles.macroPillText}>{Math.round(item.nutrients.carb_g)}g karb</Text>
-                  </View>
-                  <View style={styles.macroPill}>
-                    <Text style={styles.macroPillEmoji}>🥑</Text>
-                    <Text style={styles.macroPillText}>{Math.round(item.nutrients.fat_g)}g yağ</Text>
-                  </View>
+                </View>
+              ) : null}
+
+              {!computedValuesDeferred && nutritionPresentation === "manual" ? (
+                <View style={styles.manualNutritionNotice}>
+                  <Text style={styles.manualNutritionKcal}>{Math.round(item.nutrients.kcal)} kcal</Text>
+                  <Text style={styles.manualNutritionCopy}>{t("manualCaloriesSummary")}</Text>
                 </View>
               ) : null}
 
@@ -496,10 +515,6 @@ export function ReviewScreen({
                         label={t("portionProvenance")}
                         value={item.portion_provenance?.includes("default_serving") ? `Katalog tanımı (${Math.round(grams)} g)` : item.portion_provenance ?? t("pending")}
                       />
-                      <AuditRow
-                        label={t("macrosTitle")}
-                        value={`${Math.round(item.nutrients.kcal)} kcal · ${Math.round(item.nutrients.protein_g)}g protein · ${Math.round(item.nutrients.carb_g)}g karb · ${Math.round(item.nutrients.fat_g)}g yağ`}
-                      />
                     </>
                   )}
                 </View>
@@ -601,18 +616,25 @@ const styles = StyleSheet.create({
   actionBannerTitle: { fontSize: 13, fontWeight: "800" },
   actionBannerText: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 3 },
   itemCard: { backgroundColor: colors.card, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 17, marginBottom: 16 },
-  itemTopRow: { flexDirection: "row", alignItems: "center" },
+  itemTopRow: { flexDirection: "row", alignItems: "flex-start" },
   itemIndex: { width: 35, height: 35, borderRadius: 13, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center" },
   itemIndexText: { color: colors.muted, fontSize: 11, fontWeight: "800" },
-  itemNameWrap: { flex: 1, marginLeft: 11 },
+  itemNameWrap: { flex: 1, minWidth: 0, marginLeft: 11 },
   itemQuery: { color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 },
   itemMatch: { color: colors.ink, fontSize: 16, fontWeight: "800", marginTop: 3 },
   quantityText: { color: colors.muted, fontSize: 11, marginTop: 5 },
-  statusBadgesCol: { alignItems: "flex-end", gap: 5 },
-  macroStrip: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.line },
-  macroPill: { flexDirection: "row", alignItems: "center", backgroundColor: colors.paper, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 4, gap: 4 },
-  macroPillEmoji: { fontSize: 10 },
-  macroPillText: { fontSize: 11, fontWeight: "700", color: colors.ink },
+  statusBadgesRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", gap: 5, marginTop: 10 },
+  nutritionCard: { backgroundColor: colors.paper, borderRadius: 15, padding: 13, marginTop: 14 },
+  nutritionEyebrow: { color: colors.moss, fontSize: 9, fontWeight: "800", letterSpacing: 1.2 },
+  nutritionCopy: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
+  nutritionGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  nutritionMetric: { width: "47%", borderLeftWidth: 2, borderLeftColor: colors.line, paddingLeft: 9, paddingVertical: 2 },
+  nutritionMetricEnergy: { borderLeftColor: colors.terracotta },
+  nutritionMetricValue: { color: colors.ink, fontSize: 13, fontWeight: "800" },
+  nutritionMetricLabel: { color: colors.muted, fontSize: 10, fontWeight: "700", marginTop: 2 },
+  manualNutritionNotice: { backgroundColor: colors.terracottaSoft, borderRadius: 15, padding: 13, marginTop: 14 },
+  manualNutritionKcal: { color: colors.terracotta, fontSize: 14, fontWeight: "800" },
+  manualNutritionCopy: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
   confidencePill: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5 },
   confidenceHigh: { backgroundColor: colors.mossSoft },
   confidenceMed: { backgroundColor: "#FBF1D8" },

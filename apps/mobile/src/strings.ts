@@ -142,7 +142,14 @@ export type StringKey =
   | "protein"
   | "carbs"
   | "fat"
+  | "calories"
   | "macrosTitle"
+  | "nutritionTitle"
+  | "nutritionSummary"
+  | "manualCaloriesSummary"
+  | "macrosUnavailable"
+  | "macrosPartial"
+  | "dayPortionUnavailable"
   | "meals"
   | "loggedCount"
   | "itemCount"
@@ -203,6 +210,7 @@ export type StringKey =
   | "saveBlockedCountHint"
   | "countAnswerRequired"
   | "countRecalculationPending"
+  | "nutritionRecalculationPending"
   | "countUnknownAccepted"
   | "moreItemsCount";
 
@@ -351,10 +359,17 @@ export const tr: Dictionary = {
   dayTitle: "Bugün ne yediğini gör.",
   loggedSoFar: "ŞİMDİYE KADAR",
   dayPortionRange: "Porsiyon toplamı: yaklaşık {midpoint} g ({low}–{high} g)",
-  protein: "protein",
-  carbs: "karb",
-  fat: "yağ",
-  macrosTitle: "Besin Değerleri (Makrolar)",
+  protein: "Protein",
+  carbs: "Karbonhidrat",
+  fat: "Yağ",
+  calories: "Kalori",
+  macrosTitle: "Besin değerleri",
+  nutritionTitle: "BESİN DEĞERLERİ",
+  nutritionSummary: "Katalog kaydı ve seçilen porsiyona göre",
+  manualCaloriesSummary: "Kalori kullanıcı tarafından girildi; protein, karbonhidrat ve yağ hesaplanmadı.",
+  macrosUnavailable: "Makro bilgisi için doğrulanmış katalog kaydı yok.",
+  macrosPartial: "Makrolar yalnızca doğrulanmış katalog kayıtlarından hesaplanır.",
+  dayPortionUnavailable: "Doğrulanmış porsiyon bilgisi yok.",
   meals: "ÖĞÜNLER",
   loggedCount: "{count} kayıt",
   itemCount: "{count} öğe",
@@ -415,6 +430,7 @@ export const tr: Dictionary = {
   saveBlockedCountHint: "Devam etmek için adet seç veya “Emin değilim” de.",
   countAnswerRequired: "Adet yanıtı gelmeden gram aralığı ve besin değerleri gösterilmez.",
   countRecalculationPending: "Seçtiğin adede göre gram aralığı ve besin değerleri kaydettiğinde sunucuda güncellenecek.",
+  nutritionRecalculationPending: "Değişikliğin ardından sunucu porsiyonu ve besin değerlerini yeniden hesaplayacak.",
   countUnknownAccepted: "Miktar belirsiz kaldığı için standart katalog porsiyonu kullanılacak.",
   moreItemsCount: "+{count} öğe daha",
 };
@@ -558,10 +574,17 @@ export const en: Dictionary = {
   dayTitle: "Your day, in evidence.",
   loggedSoFar: "LOGGED SO FAR",
   dayPortionRange: "Total portion: about {midpoint} g ({low}–{high} g)",
-  protein: "protein",
-  carbs: "carbs",
-  fat: "fat",
-  macrosTitle: "Nutritional Breakdown (Macros)",
+  protein: "Protein",
+  carbs: "Carbohydrate",
+  fat: "Fat",
+  calories: "Calories",
+  macrosTitle: "Nutrition facts",
+  nutritionTitle: "NUTRITION FACTS",
+  nutritionSummary: "From the catalogue record and selected portion",
+  manualCaloriesSummary: "Calories were entered by the user; protein, carbohydrate, and fat were not calculated.",
+  macrosUnavailable: "No verified catalogue record is available for macro values.",
+  macrosPartial: "Macros include verified catalogue records only.",
+  dayPortionUnavailable: "No verified portion information is available.",
   meals: "MEALS",
   loggedCount: "{count} logged",
   itemCount: "{count} item",
@@ -622,6 +645,7 @@ export const en: Dictionary = {
   saveBlockedCountHint: "Select a count or choose “I am not sure” to continue.",
   countAnswerRequired: "Portion range and nutrients stay hidden until the count is answered.",
   countRecalculationPending: "The server will update the portion range and nutrients for this count when you save.",
+  nutritionRecalculationPending: "The server will recalculate the portion and nutrition values after this change.",
   countUnknownAccepted: "Because quantity remains unknown, the standard catalogue portion will be used.",
   moreItemsCount: "+{count} more items",
 };

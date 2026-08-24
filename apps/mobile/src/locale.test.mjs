@@ -15,6 +15,11 @@ assert.equal(t("abstainOutOfCatalogueTitle", { dish: "rice pilaf with vermicelli
 assert.doesNotMatch(t("abstainOutOfCatalogueSubtitle", { dish: "rice pilaf with vermicelli" }), /rice|bread|salad/i);
 assert.equal(t("abstainGenericMealName"), "Katalog dışı öğün");
 assert.equal(t("providerUnavailable"), "Sağlayıcıya ulaşılamadı");
+assert.equal(t("carbs"), "Karbonhidrat");
+assert.equal(t("calories"), "Kalori");
+assert.equal(t("macrosPartial"), "Makrolar yalnızca doğrulanmış katalog kayıtlarından hesaplanır.");
+assert.match(t("manualCaloriesSummary"), /kullanıcı tarafından/);
+assert.match(t("nutritionRecalculationPending"), /sunucu/);
 assert.equal(t("captureMedium"), "FOTOĞRAF ORTAMI");
 assert.match(t("captureMediumScreen"), /ekranda/);
 assert.match(t("captureMediumPrinted"), /basılı/);
