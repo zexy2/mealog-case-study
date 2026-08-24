@@ -338,3 +338,16 @@ the measured numbers do not move.
 **Constraint.** The edge container must install and build cleanly with zero native compilation dependencies across macOS, Linux, and Alpine Docker.
 
 **Cost.** Compressed image payloads sent to the live vision provider have EXIF/GPS stripped but rely on upstream provider privacy commitments or client-side camera canvas blurring for uncompressed biometric masking.
+
+---
+
+## D15 — Audited Data Loop: Abstention as a Measurable Feedback Queue over Unverifiable Self-Training
+
+**Decision.** The ABSTAIN state is a first-class architectural boundary that converts catalogue gaps into an auditable telemetry feedback queue rather than treating gaps as unrecoverable errors or asking LLMs to hallucinate unverified calories. When a recognized dish falls outside the closed locale pack, the system provides two honest logging alternatives: (1) logging as an uncaloried meal note (`portion_provenance: "uncaloried_note"`, excluded from daily calorie/macro totals), and (2) logging with an explicit user-entered calorie estimate (`portion_provenance: "manual_user_input"`). New food items enter the closed catalogue only via human nutrition curation, licensed laboratory data verification (TÜRKOMP/USDA), and regression-gated locale pack releases.
+
+**Rejected.** *Self-training from raw user text corrections.* User corrections are not ground truth: they lack standard recipes, preparation methods, cooking fat amounts, and nutritional licenses. Ingesting user recipes automatically introduces data poisoning, variance, and violates D1. *Prompt-based calorie estimation on unmapped dishes* — asking an LLM to guess calories for out-of-catalogue dishes hallucinates unverifiable numbers and breaches D1.
+
+**Constraint.** D1's zero-hallucination guarantee is non-negotiable. Nutrient calculations must remain 100% deterministic and sourced from verified laboratory composition rows.
+
+**Cost.** Expanding catalogue coverage requires a curated release cycle rather than instant automated ingestion. In exchange, the system guarantees 100% auditable provenance for every calorie presented to users.
+

@@ -78,4 +78,11 @@ assert.equal(formatLocalizedUnit("serving"), "porsiyon");
 assert.equal(formatLocalizedUnit("piece"), "adet");
 assert.equal(formatLocalizedProvenance("catalogue_default_scaled"), "Katalog tanımı × adet");
 
+const abstainSource = readFileSync(new URL("../screens/Abstention.tsx", import.meta.url), "utf8");
+assert.match(abstainSource, /suggestDishButton/);
+assert.match(abstainSource, /saveAsUncaloriedNoteButton/);
+assert.match(abstainSource, /saveManualCaloriesButton/);
+assert.match(abstainSource, /abstainOutOfCatalogueTitle/);
+assert.match(abstainSource, /guaranteeCard/);
+
 console.log("mobile item clarification checks passed");

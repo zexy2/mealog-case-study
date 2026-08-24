@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { t } from "../src/strings";
 import { Candidate, MealLog } from "../src/types";
@@ -14,6 +14,9 @@ export type AbstentionScreenProps = {
   onSelectCandidateDirectly?: (candidate: Candidate, itemIndex: number) => void;
   onDescribe: () => void;
   onRetake: () => void;
+  onSaveUncaloriedNote?: (meal: MealLog, dishName: string) => void;
+  onSaveManualCalories?: (meal: MealLog, dishName: string, calories: number) => void;
+  onSuggestDish?: (dishName: string) => void;
 };
 
 export function AbstentionScreen({
@@ -23,66 +26,57 @@ export function AbstentionScreen({
   onSelectCandidateDirectly,
   onDescribe,
   onRetake,
+  onSaveUncaloriedNote,
+  onSaveManualCalories,
+  onSuggestDish,
 }: AbstentionScreenProps) {
   const isEmptyPlate = meal.items.length === 0;
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState<string>("");
-  const [customItems, setCustomItems] = useState<string[]>(meal.items.map((i) => i.query).filter(Boolean));
+  const isDegraded = Boolean(meal.degraded);
 
-  const items = meal.items;
-  const observedNames = customItems.length > 0 ? customItems : items.map((i) => i.query).filter(Boolean);
+  // Extract human-readable observed name
+  const rawDishName = meal.items.map((i) => i.query).filter(Boolean).join(", ");
+  const dishName = rawDishName ? rawDishName.charAt(0).toUpperCase() + rawDishName.slice(1) : "Yemek";
 
-  function startEditing(index: number, currentName: string) {
-    setEditingIndex(index);
-    setEditValue(currentName);
-  }
+  const [suggested, setSuggested] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualCalorieText, setManualCalorieText] = useState("");
 
-  function cancelEditing() {
-    setEditingIndex(null);
-    setEditValue("");
-  }
-
-  function applyItemEdit(index: number) {
-    const trimmed = editValue.trim();
-    if (!trimmed) return;
-    const updated = [...customItems];
-    updated[index] = trimmed;
-    setCustomItems(updated);
-    setEditingIndex(null);
-    setEditValue("");
-    if (onConfirmObserved) {
-      onConfirmObserved(updated.join(", "));
+  function handleSuggest() {
+    setSuggested(true);
+    if (onSuggestDish) {
+      onSuggestDish(dishName);
+    } else {
+      Alert.alert(
+        "Geri Bildirim Alındı",
+        `"${dishName}" katalog inceleme kuyruğuna eklendi. Dilerseniz bu öğünü kalorisiz not veya manuel kaloriyle günlüğünüze ekleyebilirsiniz.`,
+      );
     }
   }
 
-  function removeItem(index: number) {
-    const updated = customItems.filter((_, idx) => idx !== index);
-    setCustomItems(updated);
-    if (updated.length > 0 && onConfirmObserved) {
-      onConfirmObserved(updated.join(", "));
-    } else if (updated.length === 0) {
-      onDescribe();
+  function handleSaveNote() {
+    if (onSaveUncaloriedNote) {
+      onSaveUncaloriedNote(meal, dishName);
     }
   }
 
-  function chooseCandidateDirectly(candidate: Candidate, itemIdx: number) {
-    const updated = [...customItems];
-    updated[itemIdx] = candidate.name;
-    setCustomItems(updated);
-    if (onSelectCandidateDirectly) {
-      onSelectCandidateDirectly(candidate, itemIdx);
-    } else if (onConfirmObserved) {
-      onConfirmObserved(candidate.name);
+  function handleSaveManual() {
+    const clean = manualCalorieText.replace(/[^0-9]/g, "");
+    const kcal = parseInt(clean, 10);
+    if (kcal > 0 && kcal <= 5000) {
+      if (onSaveManualCalories) {
+        onSaveManualCalories(meal, dishName, kcal);
+      }
+    } else {
+      Alert.alert("Geçersiz Kalori", "Lütfen 1 ile 5000 arasında geçerli bir kalori değeri girin.");
     }
   }
-
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header
-        eyebrow={isEmptyPlate ? t("emptyPlateEyebrow") : t("abstainEyebrow")}
-        title={isEmptyPlate ? t("emptyPlateTitle") : t("abstainTitle")}
-        subtitle={isEmptyPlate ? t("emptyPlateSubtitle") : t("actionAsk")}
+        eyebrow={isEmptyPlate ? t("emptyPlateEyebrow") : t("abstainOutOfCatalogueEyebrow")}
+        title={isEmptyPlate ? t("emptyPlateTitle") : t("abstainOutOfCatalogueTitle", { dish: dishName })}
+        subtitle={isEmptyPlate ? t("emptyPlateSubtitle") : t("abstainOutOfCatalogueSubtitle", { dish: dishName })}
       />
 
       {imageUri ? (
@@ -99,138 +93,111 @@ export function AbstentionScreen({
         </View>
       ) : null}
 
-      {/* Informative Guidance Card explaining catalogue boundary */}
-      {!isEmptyPlate && observedNames.length > 0 ? (
-        <View style={styles.confirmationCard}>
-          <View style={styles.confirmHeaderRow}>
-            <Ionicons name="information-circle" size={18} color={colors.terracotta} />
-            <Text style={styles.confirmHeader}>{t("confirmModelDetectionTitle")}</Text>
-          </View>
-          <Text style={styles.confirmCopy}>
-            {t("confirmObservedPrefix")}<Text style={styles.bold}>{observedNames.join(", ")}</Text>{t("confirmObservedSuffix")}
-          </Text>
-          <Text style={styles.unmappedHelpCopy}>
-            {t("abstainUnmappedHelp")}
-          </Text>
-          <View style={styles.confirmActions}>
-            <Pressable style={styles.confirmYesButton} onPress={onDescribe}>
-              <Ionicons name="create-outline" size={18} color={colors.white} />
-              <Text style={styles.confirmYesText}>{t("confirmNoLabel")}</Text>
-            </Pressable>
-            <Pressable style={styles.confirmNoButton} onPress={onRetake}>
-              <Ionicons name="camera-outline" size={18} color={colors.ink} />
-              <Text style={styles.confirmNoText}>{t("retakePhoto")}</Text>
-            </Pressable>
-          </View>
+      {/* Honest Architecture & Data Integrity Card */}
+      <View style={styles.guaranteeCard}>
+        <View style={styles.guaranteeHeaderRow}>
+          <Ionicons name="shield-checkmark-outline" size={18} color={colors.moss} />
+          <Text style={styles.guaranteeHeader}>Denetlenmiş Besin Güvencesi (D1)</Text>
         </View>
-      ) : null}
-
-      <View style={styles.heroCard}>
-        <View style={styles.iconCircle}>
-          <Ionicons name={isEmptyPlate ? "restaurant-outline" : "help-circle-outline"} size={31} color={colors.yellow} />
-        </View>
-        <Text style={styles.heroTitle}>{isEmptyPlate ? t("emptyPlateEyebrow") : t("abstainCode")}</Text>
-        <Text style={styles.heroCopy}>
-          {isEmptyPlate
-            ? t("emptyPlateCopy")
-            : t("abstainCopy")}
-        </Text>
+        <Text style={styles.guaranteeCopy}>{t("abstainHonestGuarantee")}</Text>
       </View>
 
-      {!isEmptyPlate
-        ? items.map((item, idx) => {
-            const currentItemName = customItems[idx] ?? item.query ?? t("mealFallback");
-            const isEditing = editingIndex === idx;
+      {/* Action Suite */}
+      <View style={styles.actionsContainer}>
+        {/* 1. Primary: Suggest Dish to Catalogue Feedback Queue */}
+        {!isEmptyPlate ? (
+          <Pressable
+            style={[styles.primaryButton, suggested && styles.primaryButtonSuccess]}
+            onPress={handleSuggest}
+            accessibilityRole="button"
+            accessibilityLabel={t("suggestDishButton")}
+          >
+            <Ionicons name={suggested ? "checkmark-circle" : "bulb-outline"} size={18} color={colors.white} />
+            <Text style={styles.primaryButtonText}>
+              {suggested ? "Geri Bildirim Sırasına Eklendi" : t("suggestDishButton")}
+            </Text>
+          </Pressable>
+        ) : null}
 
-            return (
-              <View key={`${item.query}-${idx}`} style={styles.itemAbstainBlock}>
-                <View style={styles.observedCard}>
-                  <View style={styles.itemHeaderRow}>
-                    <Text style={styles.sectionLabel}>{`${t("abstainObserved")} #${idx + 1}`}</Text>
-                    <View style={styles.itemActionsRow}>
-                      <Pressable
-                        style={styles.inlineEditButton}
-                        onPress={() => (isEditing ? cancelEditing() : startEditing(idx, currentItemName))}
-                      >
-                        <Ionicons name={isEditing ? "close-outline" : "create-outline"} size={14} color={colors.terracotta} />
-                        <Text style={styles.inlineEditText}>{isEditing ? t("cancelEdit") : t("correctThisFood")}</Text>
-                      </Pressable>
-                      {items.length > 1 ? (
-                        <Pressable style={styles.inlineRemoveButton} onPress={() => removeItem(idx)}>
-                          <Ionicons name="trash-outline" size={13} color={colors.muted} />
-                        </Pressable>
-                      ) : null}
-                    </View>
-                  </View>
+        {/* 2. Secondary: Search Different Dish in Catalogue */}
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={onDescribe}
+          accessibilityRole="button"
+          accessibilityLabel={t("searchCatalogueButton")}
+        >
+          <Ionicons name="search-outline" size={18} color={colors.ink} />
+          <Text style={styles.secondaryButtonText}>{t("searchCatalogueButton")}</Text>
+        </Pressable>
 
-                  {isEditing ? (
-                    <View style={styles.inlineEditBox}>
-                      <Text style={styles.inlineEditLabel}>{t("editFoodPrompt")}</Text>
-                      <TextInput
-                        style={styles.inlineInput}
-                        value={editValue}
-                        onChangeText={setEditValue}
-                        placeholder={t("editFoodPlaceholder")}
-                        placeholderTextColor={colors.muted}
-                        autoFocus
-                      />
-                      <View style={styles.inlineEditActions}>
-                        <Pressable style={styles.inlineSaveButton} onPress={() => applyItemEdit(idx)}>
-                          <Ionicons name="checkmark" size={15} color={colors.white} />
-                          <Text style={styles.inlineSaveText}>{t("updateAndMatch")}</Text>
-                        </Pressable>
-                        <Pressable style={styles.inlineCancelButton} onPress={cancelEditing}>
-                          <Text style={styles.inlineCancelText}>{t("cancel")}</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  ) : (
-                    <>
-                      <Text style={styles.observedText}>{currentItemName}</Text>
-                      <Text style={styles.observedSubtext}>
-                        {t("abstainCopy")}
-                      </Text>
-                    </>
-                  )}
-                </View>
+        {/* 3. Option: Save as Uncaloried Meal Note */}
+        {!isEmptyPlate ? (
+          <Pressable
+            style={styles.noteButton}
+            onPress={handleSaveNote}
+            accessibilityRole="button"
+            accessibilityLabel={t("saveAsUncaloriedNoteButton")}
+          >
+            <Ionicons name="document-text-outline" size={17} color={colors.terracotta} />
+            <Text style={styles.noteButtonText}>{t("saveAsUncaloriedNoteButton")}</Text>
+          </Pressable>
+        ) : null}
 
-                <View style={styles.candidatesCard}>
-                  <Text style={styles.sectionLabel}>{t("abstainCandidates")}</Text>
-                  {item.candidates.length ? (
-                    <View style={styles.candidateList}>
-                      {item.candidates.map((candidate) => (
-                        <Pressable
-                          key={candidate.food_id}
-                          style={styles.candidateRow}
-                          onPress={() => chooseCandidateDirectly(candidate, idx)}
-                        >
-                          <View style={styles.candidateIcon}>
-                            <Ionicons name="arrow-forward-outline" size={15} color={colors.moss} />
-                          </View>
-                          <Text style={styles.candidateName}>{candidate.name}</Text>
-                          <View style={styles.candidatePickPill}>
-                            <Text style={styles.candidatePickText}>{t("chooseAndSave")}</Text>
-                          </View>
-                        </Pressable>
-                      ))}
-                    </View>
-                  ) : (
-                    <Text style={styles.noCandidates}>{t("abstainNoCandidates")}</Text>
-                  )}
+        {/* 4. Option: Enter Calories Manually */}
+        {!isEmptyPlate ? (
+          <View style={styles.manualCard}>
+            {!showManualInput ? (
+              <Pressable
+                style={styles.manualToggleRow}
+                onPress={() => setShowManualInput(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t("saveManualCaloriesButton")}
+              >
+                <Ionicons name="calculator-outline" size={17} color={colors.muted} />
+                <Text style={styles.manualToggleText}>{t("saveManualCaloriesButton")}</Text>
+                <Ionicons name="chevron-down" size={15} color={colors.muted} />
+              </Pressable>
+            ) : (
+              <View style={styles.manualInputBox}>
+                <Text style={styles.manualInputLabel}>{t("manualCaloriesPrompt")}</Text>
+                <View style={styles.manualInputRow}>
+                  <TextInput
+                    style={styles.manualTextInput}
+                    keyboardType="number-pad"
+                    value={manualCalorieText}
+                    placeholder="Örn: 350"
+                    placeholderTextColor={colors.muted}
+                    maxLength={4}
+                    onChangeText={setManualCalorieText}
+                  />
+                  <Text style={styles.manualUnitText}>kcal</Text>
+                  <Pressable
+                    style={styles.manualSaveButton}
+                    onPress={handleSaveManual}
+                    accessibilityRole="button"
+                    accessibilityLabel="Manuel Kaydet"
+                  >
+                    <Text style={styles.manualSaveButtonText}>Kaydet</Text>
+                  </Pressable>
                 </View>
               </View>
-            );
-          })
-        : null}
+            )}
+          </View>
+        ) : null}
 
-      <Pressable style={styles.primaryButton} onPress={onDescribe}>
-        <Ionicons name="create-outline" size={19} color={colors.white} />
-        <Text style={styles.primaryButtonText}>{t("describeMeal")}</Text>
-      </Pressable>
-      <Pressable style={styles.textButton} onPress={onRetake}>
-        <Ionicons name="camera-outline" size={17} color={colors.muted} />
-        <Text style={styles.textButtonText}>{t("retakePhoto")}</Text>
-      </Pressable>
+        {/* 5. Retake Photo: ONLY shown when photo was blurry, degraded, or empty */}
+        {isEmptyPlate || isDegraded ? (
+          <Pressable
+            style={styles.retakeButton}
+            onPress={onRetake}
+            accessibilityRole="button"
+            accessibilityLabel={t("retakePhoto")}
+          >
+            <Ionicons name="camera-outline" size={17} color={colors.muted} />
+            <Text style={styles.retakeButtonText}>{t("retakePhoto")}</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </ScrollView>
   );
 }
@@ -238,7 +205,6 @@ export function AbstentionScreen({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 22, paddingBottom: 34 },
-  itemAbstainBlock: { marginBottom: 8 },
   imageContainer: {
     width: "100%",
     height: 220,
@@ -292,142 +258,162 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
   },
-  confirmationCard: {
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: "#CDE5D4",
-    shadowColor: "#1F2421",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+  guaranteeCard: {
+    backgroundColor: "#F4F8F5",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: "#D3E8D7",
   },
-  confirmHeaderRow: {
+  guaranteeHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginBottom: 6,
   },
-  confirmHeader: {
+  guaranteeHeader: {
     color: colors.moss,
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-  },
-  confirmCopy: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 21,
-    marginBottom: 6,
-  },
-  bold: {
-    fontWeight: "800",
-    color: colors.terracotta,
-  },
-  unmappedHelpCopy: {
     fontSize: 13,
-    color: colors.muted,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
+  guaranteeCopy: {
+    color: colors.ink,
+    fontSize: 13,
     lineHeight: 19,
-    marginBottom: 14,
+    fontWeight: "600",
   },
-  confirmActions: {
-    gap: 9,
+  actionsContainer: {
+    gap: 12,
   },
-  confirmYesButton: {
+  primaryButton: {
+    minHeight: 52,
+    borderRadius: 16,
     backgroundColor: colors.terracotta,
-    borderRadius: 15,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 18,
   },
-  confirmYesText: {
+  primaryButtonSuccess: {
+    backgroundColor: colors.moss,
+  },
+  primaryButtonText: {
     color: colors.white,
     fontSize: 14,
     fontWeight: "800",
   },
-  confirmNoButton: {
-    backgroundColor: colors.paper,
-    borderRadius: 15,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
+  secondaryButton: {
+    minHeight: 50,
+    borderRadius: 16,
+    backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    flexDirection: "row",
+    gap: 9,
+    paddingHorizontal: 18,
     borderWidth: 1,
     borderColor: colors.line,
   },
-  confirmNoText: {
+  secondaryButtonText: {
     color: colors.ink,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  noteButton: {
+    minHeight: 48,
+    borderRadius: 15,
+    backgroundColor: "#FDF5F2",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#F7D8CE",
+  },
+  noteButtonText: {
+    color: colors.terracotta,
     fontSize: 13,
     fontWeight: "700",
   },
-  heroCard: { backgroundColor: "#FBF1D8", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#EBD8A5", marginBottom: 15 },
-  iconCircle: { width: 54, height: 54, borderRadius: 19, backgroundColor: colors.card, alignItems: "center", justifyContent: "center", marginBottom: 17 },
-  heroTitle: { color: "#8D641C", fontSize: 13, fontWeight: "800", letterSpacing: 1.1 },
-  heroCopy: { color: colors.ink, fontSize: 16, lineHeight: 23, fontWeight: "700", marginTop: 8 },
-  observedCard: { backgroundColor: colors.card, borderRadius: 19, borderWidth: 1, borderColor: colors.line, padding: 16, marginBottom: 15 },
-  itemHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  itemActionsRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  inlineEditButton: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: "#FBECE6" },
-  inlineEditText: { color: colors.terracotta, fontSize: 11, fontWeight: "800" },
-  inlineRemoveButton: { padding: 4, borderRadius: 8, backgroundColor: colors.paper },
-  inlineEditBox: { marginTop: 10 },
-  inlineEditLabel: { color: colors.ink, fontSize: 12, fontWeight: "700", marginBottom: 6 },
-  inlineInput: {
-    backgroundColor: colors.paper,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.terracotta,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.ink,
-    fontWeight: "700",
-    marginBottom: 10,
-  },
-  inlineEditActions: { flexDirection: "row", gap: 8 },
-  inlineSaveButton: {
-    flex: 1,
-    backgroundColor: colors.terracotta,
-    borderRadius: 10,
-    paddingVertical: 9,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  inlineSaveText: { color: colors.white, fontSize: 12, fontWeight: "800" },
-  inlineCancelButton: {
-    backgroundColor: colors.paper,
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
+  manualCard: {
+    borderRadius: 15,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
+    padding: 12,
   },
-  inlineCancelText: { color: colors.muted, fontSize: 12, fontWeight: "700" },
-  sectionLabel: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.3 },
-  observedText: { color: colors.ink, fontSize: 18, fontWeight: "800", marginTop: 7 },
-  observedSubtext: { color: colors.muted, fontSize: 12, lineHeight: 18, fontWeight: "600", marginTop: 6 },
-  candidatesCard: { backgroundColor: colors.card, borderRadius: 19, borderWidth: 1, borderColor: colors.line, padding: 16, marginBottom: 15 },
-  candidateList: { gap: 10, marginTop: 13 },
-  candidateRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 4 },
-  candidateIcon: { width: 27, height: 27, borderRadius: 10, backgroundColor: "#E6F0E8", alignItems: "center", justifyContent: "center" },
-  candidateName: { flex: 1, color: colors.ink, fontSize: 13, fontWeight: "700" },
-  candidatePickPill: { backgroundColor: "#E6F0E8", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 },
-  candidatePickText: { color: colors.moss, fontSize: 10, fontWeight: "800" },
-  noCandidates: { color: colors.muted, fontSize: 13, marginTop: 12 },
-  primaryButton: { minHeight: 54, borderRadius: 18, backgroundColor: colors.terracotta, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 10, paddingHorizontal: 18, marginTop: 10 },
-  primaryButtonText: { color: colors.white, fontSize: 14, fontWeight: "800" },
-  textButton: { alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 7, paddingVertical: 17 },
-  textButtonText: { color: colors.muted, fontSize: 12, fontWeight: "700" },
+  manualToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
+  manualToggleText: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: "700",
+    marginLeft: 8,
+  },
+  manualInputBox: {
+    paddingTop: 4,
+  },
+  manualInputLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  manualInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  manualTextInput: {
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.terracotta,
+    backgroundColor: colors.paper,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    fontWeight: "800",
+    color: colors.ink,
+  },
+  manualUnitText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  manualSaveButton: {
+    height: 42,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: colors.terracotta,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  manualSaveButtonText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  retakeButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    paddingVertical: 14,
+  },
+  retakeButtonText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: "700",
+  },
 });

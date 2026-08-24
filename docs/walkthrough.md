@@ -88,25 +88,24 @@ state, the result, and the expanded **“Nasıl bulundu?”** panel.
 **On-screen proof:** loading copy, one result with its portion band, the open
 audit panel, and the action transition. Do not show raw JSON.
 
-### 2:20–2:50 — A catalogue miss, live
+### 2:20–2:50 — Live out-of-catalogue abstention and the Audited Data Loop
 
-**Picture:** Submit one out-of-catalogue image to the running Node path and stop
-on the abstention screen.
+**Picture:** Mobile capture of an out-of-catalogue food (e.g. `karnıyarık` or `baked beans`).
 
 **Say:**
 
-> This food is outside the catalogue. The system says **“GÜVENLİ EŞLEŞME YOK”**
-> and **“Katalogda yeterli kanıt yok. Yakın bir tahmin seçmek yerine senden
-> yardım istiyoruz.”** It shows the observation but assigns no food ID, grams, or
-> calories. The next action is explicit: type the food or retake the photo. No
-> record is created.
+> ABSTAIN is not an error screen; it is an Audited Data Loop. Here, the vision model
+> correctly perceives the dish, but because there is no verified laboratory row in
+> the current locale pack, Mealog refuses to hallucinate estimated calories.
 >
-> This is not an empty result. It is deliberate `ABSTAIN`: the boundary is
-> visible, the user has a next step, and a nearest neighbour is not truth.
+> Instead of guessing, the app acknowledges the observation, queues the gap for
+> human nutrition curation and licensed pack release, and offers honest next steps:
+> suggest to catalogue, search another dish, save as an uncaloried note, or enter
+> calories manually with explicit user provenance.
 
-**On-screen proof:** `ABSTAIN · TAHMİN YOK`, the observed text, no accepted food
-ID, and the type-or-retake next action. Keep this segment; do not replace it with
-another success case.
+**On-screen proof:** The out-of-catalogue screen with recognized dish name, zero
+hallucinated calories, the Audited Data Loop action suite, and uncaloried note logging. Keep this
+segment; do not replace it with another success case.
 
 ### 2:50–4:00 — One architecture, and why the route is server-owned
 
