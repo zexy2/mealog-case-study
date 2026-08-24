@@ -303,11 +303,17 @@ describe('POST /v1/meals', () => {
     const body1 = res1.body as { items: Array<{ food_id: string }> };
     expect(body1.items[0]?.food_id).toBe('tr.kuru_fasulye');
 
-    // 2. Delete user data
-    const delRes = await request(app.getHttpServer()).delete(`/v1/users/${userId}/data`);
+    // 2. Delete user data without auth header -> 403 Forbidden
+    const unauthDel = await request(app.getHttpServer()).delete(`/v1/users/${userId}/data`);
+    expect(unauthDel.status).toBe(403);
+
+    // 3. Delete user data with matching X-User-Id header -> 204 No Content
+    const delRes = await request(app.getHttpServer())
+      .delete(`/v1/users/${userId}/data`)
+      .set('x-user-id', userId);
     expect(delRes.status).toBe(204);
 
-    // 3. Subsequent meal with same key but different payload returns the new calculation
+    // 4. Subsequent meal with same key but different payload returns the new calculation
     const res2 = await request(app.getHttpServer())
       .post('/v1/meals')
       .set('x-user-id', userId)
@@ -320,5 +326,50 @@ describe('POST /v1/meals', () => {
     expect(res2.status).toBe(200);
     const body2 = res2.body as { items: Array<{ food_id: string }> };
     expect(body2.items[0]?.food_id).toBe('tr.simit');
+  });
+
+  it('rejects an empty idempotency key with 422', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .send({
+        idempotency_key: '   ',
+        sample_id: 'tr_0001',
+        locale: 'tr',
+        config: 'V3',
+      });
+
+    expect(response.status).toBe(422);
+    const body = response.body as { detail?: string };
+    expect(body.detail).toBe('invalid JSON request');
+  });
+
+  it('returns 409 Conflict when the same idempotency key is reused with a different payload', async () => {
+    const key = 'conflict-test-key';
+    const userId = 'conflict-user';
+
+    const res1 = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .set('x-user-id', userId)
+      .send({
+        idempotency_key: key,
+        sample_id: 'tr_0001',
+        locale: 'tr',
+        config: 'V3',
+      });
+    expect(res1.status).toBe(200);
+
+    // Second request with same key but different sample_id -> 409 Conflict
+    const res2 = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .set('x-user-id', userId)
+      .send({
+        idempotency_key: key,
+        sample_id: 'tr_0002',
+        locale: 'tr',
+        config: 'V3',
+      });
+    expect(res2.status).toBe(409);
+    const body2 = res2.body as { detail?: string };
+    expect(body2.detail).toBe('idempotency key reused with different request payload');
   });
 });

@@ -55,7 +55,12 @@ function parseFields(body: unknown, multipart: boolean): MealRequest {
   const config = values.config === undefined ? 'V3' : values.config;
   const locale = values.locale === undefined ? 'en_US' : values.locale;
 
-  if (typeof idempotencyKey !== 'string' || typeof config !== 'string' || typeof locale !== 'string') {
+  if (
+    typeof idempotencyKey !== 'string' ||
+    idempotencyKey.trim() === '' ||
+    typeof config !== 'string' ||
+    typeof locale !== 'string'
+  ) {
     invalid(
       HttpStatus.UNPROCESSABLE_ENTITY,
       multipart ? 'invalid meal form fields' : 'invalid JSON request',
@@ -189,11 +194,20 @@ export class MealsController {
   /** GDPR Article 17: Right to be Forgotten data deletion */
   @Delete('users/:id/data')
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteUserData(@Param('id') id: string): void {
+  deleteUserData(
+    @Param('id') id: string,
+    @Headers('x-user-id') authUserId: string | undefined,
+  ): void {
     if (!id || id.trim() === '') {
       invalid(HttpStatus.BAD_REQUEST, 'invalid user id');
     }
     const cleanId = id.trim();
+    if (!authUserId || authUserId.trim() !== cleanId) {
+      invalid(
+        HttpStatus.FORBIDDEN,
+        'forbidden: X-User-Id header does not match requested user id',
+      );
+    }
     this.meals.purgeUserData(cleanId);
     defaultRateLimiter.reset(cleanId);
   }
