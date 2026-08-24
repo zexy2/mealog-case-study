@@ -25,6 +25,7 @@ import type { CorrectionRequest, ItemCorrection } from '../pipeline/correction';
 
 import { MealsService, type MealRequest } from './meals.service';
 import { defaultRateLimiter } from './rate-limiter';
+import { Settings, settings } from '../config';
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
@@ -61,11 +62,11 @@ function parseSampleId(value: unknown): string | null {
   return parsed;
 }
 
-function parseFields(body: unknown, multipart: boolean): MealRequest {
+function parseFields(body: unknown, multipart: boolean, defaultLocale = settings.default_locale): MealRequest {
   const values = isRecord(body) ? body : {};
   const idempotencyKey = values.idempotency_key;
   const config = values.config === undefined ? 'V3' : values.config;
-  const locale = values.locale === undefined ? 'en_US' : values.locale;
+  const locale = values.locale === undefined ? defaultLocale : values.locale;
 
   if (
     typeof idempotencyKey !== 'string' ||
@@ -173,7 +174,10 @@ function parseCorrectionRequest(body: unknown): CorrectionRequest {
 
 @Controller('v1')
 export class MealsController {
-  constructor(@Inject(MealsService) private readonly meals: MealsService) {}
+  constructor(
+    @Inject(MealsService) private readonly meals: MealsService,
+    @Inject(Settings) private readonly runtimeSettings: Settings = settings,
+  ) {}
 
   @Post('meals/correct')
   @HttpCode(HttpStatus.OK)
@@ -191,7 +195,7 @@ export class MealsController {
     @Headers('x-user-id') userId: string | undefined,
   ): Promise<unknown> {
     const multipart = (contentType ?? '').toLowerCase().startsWith('multipart/form-data');
-    const request = parseFields(body, multipart);
+    const request = parseFields(body, multipart, this.runtimeSettings.default_locale);
 
     const isPendingOrCompleted = this.meals.hasPendingOrCompleted(userId, request.idempotency_key);
     if (!isPendingOrCompleted) {

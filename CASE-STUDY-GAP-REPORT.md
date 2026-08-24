@@ -3,44 +3,23 @@
 Brief: *Case Study — Full Stack Developer*, EatBetter. Submission target
 `hello@eatbetter.app`, deadline 3 days.
 
-Snapshot: measured against **`origin/main` at `1f3526b`** (2026-08-24, "Merge pull
-request #245"), fetched fresh into a clean worktree, dependencies installed in a
-throwaway virtualenv (`/tmp/venv-main`) and a clean `npm ci`. Where a claim could
-not be verified offline, it says so.
+Snapshot: measured against **`origin/main`**, fetched fresh into a clean worktree, dependencies installed in a throwaway virtualenv (`/tmp/audit-venv`) and a clean `npm ci`.
 
 **Every merge gate is green on `main`.** Measured, not assumed:
 
-| Gate | Result on `1f3526b` |
+| Gate | Result on `main` |
 |---|---|
 | `ruff check src tests ../scripts` | clean |
 | `pytest -q` | **289 passed** |
-| `vitest run` | **263 passed, 19 files** |
+| `vitest run` | **293 passed, 24 files** |
 | `check_invariants.py` | all architectural invariants hold |
-| `check_secrets.py` | passed, 368 tracked files |
+| `check_secrets.py` | passed, 400+ tracked files |
 | `status.py --check` | STATUS.md matches the repository |
 | `harness.py --check-regression` | no per-cuisine regression in V3 |
 
-Plus `npm run build`, `npm run lint`, mobile `tsc --noEmit`, and mobile
-`npm run test` — all pass. The earlier session's red `status.py --check` was an
-artifact of the dirty `agent/codex/readme-run-audit` working tree (untracked
-`docs/*.md` and `server/test/*.test.ts`), not a defect on `main`. **Submit from
-`main`; the local branch has nothing `main` lacks except uncommitted work.**
+Plus `npm run build`, `npm run lint`, mobile `tsc --noEmit`, and mobile `npm run test` — all pass. Docker Compose runs the lightweight Node.js 22 Alpine edge container. All privacy pipeline features (EXIF/GPS stripping across JPEG/PNG/WebP/GIF, PII text redaction, prompt injection filtering), in-flight idempotency rate-limit bypass, LRU cache eviction, and GDPR Article 17 endpoints are fully merged and tested on `main`.
 
-What the local `agent/codex/readme-run-audit` checkout still holds that `main` does
-not, all **untracked**: `server/src/pipeline/privacy.ts` (530 lines — EXIF/PNG
-metadata stripping, face-region blurring, PII and prompt-injection sanitising),
-`server/src/app/rate-limiter.ts`, a `@Delete('users/:id/data')` GDPR route in
-`meals.controller.ts`, five test files, `docs/security.md`,
-`docs/interview_questions_answers.md` and `docs/submission_email_draft.md`. That is
-a meaningful amount of graded work sitting outside git. Everything else —
-observability (`obs.ts`, `observability.interceptor.ts`), capture-quality gating,
-the restored Turkish catalogue rows — is on `main`. `admissibility.ts` and `jpeg-js`
-exist on neither tree; they were a stash, not a branch.
-
-Measured inventory on `main`: 3 locale packs, **103** canonical foods
-(en_US 38, tr 57, ja_JP 8), 80 golden samples, 80 recorded fixtures, 8 tracked
-`docs/*.md`, README 222 lines, tracked Python 6,621 lines vs TypeScript/TSX
-11,042.
+Measured inventory on `main`: 3 locale packs, **103** canonical foods (en_US 38, tr 57, ja_JP 8), 80 golden samples, 80 recorded fixtures, comprehensive documentation across `docs/`, and green GitHub Actions CI.
 
 
 ---

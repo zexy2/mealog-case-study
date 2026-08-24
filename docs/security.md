@@ -7,28 +7,32 @@ This document specifies the **Privacy by Design** and enterprise security safegu
 ## 1. EXIF Metadata & Geolocation Stripping
 
 ### Problem
-Consumer camera captures (JPEG/PNG) embed sensitive binary metadata:
-- Exact GPS coordinates (`0xFFE1` APP1 EXIF tags) of users' homes or dining locations
+Consumer camera captures (JPEG/PNG/WebP/GIF) embed sensitive binary metadata:
+- Exact GPS coordinates (`0xFFE1` APP1 EXIF tags, WebP `EXIF` chunks) of users' homes or dining locations
 - Device serial numbers, camera sensor models, and unique hardware identifiers
-- Exact timestamps and author tags
+- Exact timestamps, author tags, and comment blocks
 
 ### Implementation
 - **Pure Zero-Dependency Sanitizer:** Implemented in `server/src/pipeline/privacy.ts`.
 - **JPEG Sanitization:** Strips `0xFFE1` (APP1 EXIF), `0xFFE2` (FlashPix/ICC), `0xFFED` (IPTC), and `0xFFFE` (Comments) while strictly preserving critical visual frame markers (`SOI`, `DQT`, `SOF0`, `DHT`, `SOS`, `EOI`).
 - **PNG Sanitization:** Strips ancillary metadata chunks (`eXIf`, `tEXt`, `zTXt`, `iTXt`, `tIME`) while retaining structural chunks (`IHDR`, `PLTE`, `IDAT`, `IEND`).
+- **WebP Sanitization:** Strips `EXIF` and `XMP ` RIFF chunks while updating container length.
+- **GIF Sanitization:** Strips Comment (`0x21, 0xFE`) and XMP Application extensions (`0x21, 0xFF`).
 - **Edge Integration:** Every incoming multipart image in `MealsController` is sanitized in-memory *before* being processed or forwarded to perception adapters.
 
 ---
 
-## 2. Biometric Data & Face Anonymization (GDPR/KVKK Compliance)
+## 2. Biometric Data & Face Anonymization (Decoupled Module / Future Pipeline Integration)
 
 ### Problem
 Meal photos often contain unintentional background faces (family members, dining companions, bystanders, children, or mirror reflections). Exposing biometric human identities to cloud vision models without explicit biometric consent violates data privacy regulations.
 
-### Implementation
+### Implementation & Boundary ([D14](decisions.md#d14))
+- **Standalone Pure-TS Algorithm:** Implemented in `server/src/pipeline/privacy.ts` (`blurFacesInPixelArray`, `detectFaceRegions`) and verified in unit tests (`server/test/face_blurring.test.ts`).
 - **Skin Chrominance & Facial Geometry Detection:** Evaluates $Y > 40$, $77 \le Cb \le 127$, $133 \le Cr \le 173$ along with aspect ratio and facial contour symmetry.
 - **3-Pass Gaussian Box Blurring:** Applies multi-pass horizontal/vertical convolution blur + mosaic pixelation over face bounding boxes.
-- **Plate Protection Guarantee:** Blurring bounds strictly exclude food foreground regions; meals (e.g. pasta, salad, pizza, stews) retain 100% of their pixel sharpness.
+- **Plate Protection Guarantee:** Blurring bounds strictly exclude food foreground regions; meals retain 100% of their pixel sharpness.
+- **Architectural Trade-off & Execution Boundary:** To maintain zero native C++ binary dependencies (`sharp`/`libvips`) across lightweight edge deployments (Alpine Docker/macOS/Linux), pixel-level image decoding and re-encoding is not executed in the synchronous HTTP controller thread. Production biometric protection is designed for client-side camera canvas preprocessing or asynchronous background worker queues.
 
 ---
 

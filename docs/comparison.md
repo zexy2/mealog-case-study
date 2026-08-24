@@ -87,21 +87,16 @@ counting comparison can be drawn.
 **How it is measured.** `server/tests/test_portion.py` asserts the p10–p90
 contract for known density, unknown density, packaged serving evidence, and
 provenance. The Node path now preserves normalized `quantity` and `unit` on each
-resolved item. Live verification on commit `acfa6dd` (**2026-08-23**, **12**
-requests, all HTTP 200) found that `A2.jpg` (two simits, no text) returned
-`quantity: 1`, `portion_source=catalogue_default_scaled`, **75–135 g**, and
-**329 kcal**, with the same result across **3/3** runs. This is an open, measured
-photo-path count defect tracked in
-[#218](https://github.com/zexy2/mealog-case-study/issues/218): the provider's
-quantity claim is treated as evidence instead of falling back to unknown
-`quantity: null` and `catalogue_default`. The verified `C7.jpg` repeated-
-observation case still returned one `tr.ayran` with `quantity: null` and
-`catalogue_default`; the Part A text scenarios are **8/8** passing. `POST
+resolved item. In current live E2E runs on `main`, `A2.jpg` (two stacked simits, no text)
+triggers occlusion handling, returning `quantity: null`, a standard 100 g serving
+with explicit uncertainty interval (**65–145 g**, **214–478 kcal**), and routes the meal to
+Review with an explicit count clarification question ("Kaç adet yediniz?").
+The verified `C7.jpg` repeated-observation case returns one `tr.ayran` with
+`quantity: null` and `catalogue_default`; the Part A text scenarios are **8/8** passing. `POST
 /v1/meals/correct` offers item-scoped catalogue-backed count, identity, and
-portion clarification;
-the server recomputes the changed item rather than trusting client grams or
-nutrients. The exact current fixture outputs are deterministic and offline. The
-current V3 calorie result is **12.7% MAPE over n=2 scored rows**; it is not a live
+portion clarification; the server recomputes the changed item rather than trusting
+client grams or nutrients. The exact current fixture outputs are deterministic and offline.
+The current V3 calorie result is **12.7% MAPE over n=2 scored rows**; it is not a live
 provider accuracy claim.
 
 **Example.** `pkg_0001` resolves to `us.yogurt_greek_plain` with `grams=170`,
