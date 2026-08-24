@@ -49,6 +49,18 @@ function optionalString(value: unknown, field: string): string | null {
   return value;
 }
 
+function parseSampleId(value: unknown): string | null {
+  const parsed = optionalString(value, 'sample_id');
+  if (parsed === null) return null;
+  if (!/^[a-zA-Z0-9_-]+$/.test(parsed)) {
+    invalid(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'invalid sample_id; must contain only alphanumeric characters, underscores, and hyphens',
+    );
+  }
+  return parsed;
+}
+
 function parseFields(body: unknown, multipart: boolean): MealRequest {
   const values = isRecord(body) ? body : {};
   const idempotencyKey = values.idempotency_key;
@@ -69,7 +81,7 @@ function parseFields(body: unknown, multipart: boolean): MealRequest {
 
   return {
     idempotency_key: idempotencyKey,
-    sample_id: optionalString(values.sample_id, 'sample_id'),
+    sample_id: parseSampleId(values.sample_id),
     locale,
     text: optionalString(values.text, 'text'),
     config,
