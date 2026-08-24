@@ -95,8 +95,9 @@ export class FixtureVision {
     if (!key) {
       throw new Error('fixture replay needs image bytes or a sample_id');
     }
-
-
+    if (!/^[a-zA-Z0-9_-]+$/.test(key)) {
+      throw new Error(`invalid fixture key '${key}'`);
+    }
 
     const path = join(this.dir, `${key}.json`);
     if (!existsSync(path)) {

@@ -372,4 +372,23 @@ describe('POST /v1/meals', () => {
     const body2 = res2.body as { detail?: string };
     expect(body2.detail).toBe('idempotency key reused with different request payload');
   });
+
+  it('rejects path-traversal or malformed sample_id with 422', async () => {
+    const maliciousSampleIds = ['../../package', '../reports/scorecard', '/etc/hosts', 'tr_0001; rm -rf'];
+
+    for (const sampleId of maliciousSampleIds) {
+      const response = await request(app.getHttpServer())
+        .post('/v1/meals')
+        .send({
+          idempotency_key: `traversal-${Math.random()}`,
+          sample_id: sampleId,
+          locale: 'tr',
+          config: 'V3',
+        });
+
+      expect(response.status).toBe(422);
+      const body = response.body as { detail?: string };
+      expect(body.detail).toMatch(/invalid sample_id/);
+    }
+  });
 });
