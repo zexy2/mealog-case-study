@@ -345,8 +345,8 @@ describe('POST /v1/meals', () => {
   });
 
   it('returns 409 Conflict when the same idempotency key is reused with a different payload', async () => {
-    const key = 'conflict-test-key';
-    const userId = 'conflict-user';
+    const key = `conflict-test-key-${Date.now()}`;
+    const userId = `conflict-user-${Date.now()}`;
 
     const res1 = await request(app.getHttpServer())
       .post('/v1/meals')
@@ -402,14 +402,14 @@ describe('POST /v1/meals', () => {
 
     const response = await request(app.getHttpServer())
       .post('/v1/meals')
-      .field('idempotency_key', 'unrecorded-img-key')
+      .field('idempotency_key', `unrecorded-img-key-${Date.now()}`)
       .field('locale', 'tr')
       .field('config', 'V3')
       .attach('image', unrecordedPng, { filename: 'test.png', contentType: 'image/png' });
 
     expect(response.status).toBe(422);
     const body = response.body as { detail?: string };
-    expect(body.detail).toMatch(/fixture replay has no recorded response for this image/);
+    expect(body.detail).toMatch(/fixture replay has no recorded response/);
   });
 
   it('rejects in-flight race with conflicting payloads with 409 Conflict', async () => {
@@ -474,5 +474,99 @@ describe('POST /v1/meals', () => {
 
     const secondResult = await mealsService.logMeal(requestB, inputB, userId);
     expect(secondResult.items[0]?.food_id).toBe('tr.simit');
+  });
+
+  it('allows idempotent replay even after the rate limit quota is exhausted', async () => {
+    const userId = `rate-limit-replay-user-${Date.now()}`;
+    const key = `completed-key-${Date.now()}`;
+
+    // 1. Send the first request (consumes 1 rate token, caches result)
+    const firstRes = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .set('x-user-id', userId)
+      .send({
+        idempotency_key: key,
+        sample_id: 'tr_0001',
+        locale: 'tr',
+        config: 'V3',
+      });
+    expect(firstRes.status).toBe(200);
+
+    // 2. Burn through all remaining rate limit tokens (30 total limit)
+    for (let i = 0; i < 30; i++) {
+      await request(app.getHttpServer())
+        .post('/v1/meals')
+        .set('x-user-id', userId)
+        .send({
+          idempotency_key: `burn-key-${i}-${Date.now()}`,
+          sample_id: 'tr_0001',
+          locale: 'tr',
+          config: 'V3',
+        });
+    }
+
+    // 3. Verify that a fresh request now gets 429 Too Many Requests
+    const freshRes = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .set('x-user-id', userId)
+      .send({
+        idempotency_key: `fresh-blocked-key-${Date.now()}`,
+        sample_id: 'tr_0001',
+        locale: 'tr',
+        config: 'V3',
+      });
+    expect(freshRes.status).toBe(429);
+
+    // 4. Replaying the previously completed key must succeed with 200 (bypassing rate limiter)
+    const replayRes = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .set('x-user-id', userId)
+      .send({
+        idempotency_key: key,
+        sample_id: 'tr_0001',
+        locale: 'tr',
+        config: 'V3',
+      });
+    expect(replayRes.status).toBe(200);
+    const replayBody = replayRes.body as { items: Array<{ food_id: string }> };
+    expect(replayBody.items[0]?.food_id).toBe('tr.kuru_fasulye');
+  });
+
+  it('rejects oversized idempotency keys with 422', async () => {
+    const hugeKey = 'a'.repeat(300);
+    const res = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .send({
+        idempotency_key: hugeKey,
+        sample_id: 'tr_0001',
+        locale: 'tr',
+        config: 'V3',
+      });
+    expect(res.status).toBe(422);
+  });
+
+  it('returns 422 for unrecorded sample_id like tr_999999 instead of 500', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .send({
+        idempotency_key: `unrecorded-sample-${Date.now()}`,
+        sample_id: 'tr_999999',
+        locale: 'tr',
+        config: 'V3',
+      });
+    expect(res.status).toBe(422);
+    const body = res.body as { detail?: string };
+    expect(body.detail).toMatch(/fixture replay has no recorded response/);
+  });
+
+  it('rejects truncated 3-byte JPEG with 422 in fixture mode', async () => {
+    const truncatedJpeg = Buffer.from([0xff, 0xd8, 0xff]);
+    const res = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .field('idempotency_key', `truncated-${Date.now()}`)
+      .field('locale', 'tr')
+      .field('config', 'V3')
+      .attach('image', truncatedJpeg, { filename: 'tiny.jpg', contentType: 'image/jpeg' });
+    expect(res.status).toBe(422);
   });
 });
