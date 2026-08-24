@@ -23,10 +23,25 @@ function error(status: HttpStatus, detail: string): never {
   throw new HttpException({ detail }, status);
 }
 
+interface CachedEntry {
+  readonly result: MealLog;
+  readonly fingerprint: string;
+}
+
+function fingerprintRequest(request: MealRequest, input: VisionInput): string {
+  return [
+    request.locale,
+    request.config,
+    request.sample_id ?? '',
+    request.text ?? '',
+    input.contentHash,
+  ].join('\u0001');
+}
+
 /** Edge provider that owns request-level idempotency, not pipeline state. */
 @Injectable()
 export class MealsService {
-  private readonly completed = new Map<string, MealLog>();
+  private readonly completed = new Map<string, CachedEntry>();
   private readonly inFlight = new Map<string, Promise<MealLog>>();
 
   constructor(
@@ -49,12 +64,19 @@ export class MealsService {
 
     const normalizedUserId = userId?.trim() || DEMO_USER_ID;
     const cacheKey = `${normalizedUserId}\u0000${request.idempotency_key}`;
+    const currentFingerprint = fingerprintRequest(request, input);
     const cached = this.completed.get(cacheKey);
     if (cached) {
+      if (cached.fingerprint !== currentFingerprint) {
+        error(
+          HttpStatus.CONFLICT,
+          'idempotency key reused with different request payload',
+        );
+      }
       // Replays are logged. A duplicate that silently returns the first answer
       // looks like a fresh success in metrics unless it is named.
       event('idempotent_replay', { config: request.config, source: 'completed' });
-      return cached;
+      return cached.result;
     }
 
     const pending = this.inFlight.get(cacheKey);
@@ -131,7 +153,10 @@ export class MealsService {
           input_mode: this.inputModeOf(input),
         },
       );
-      this.completed.set(cacheKey, result);
+      this.completed.set(cacheKey, {
+        result,
+        fingerprint: fingerprintRequest(request, input),
+      });
       return result;
     } catch (caught) {
       if (caught instanceof Error && /no locale pack at|unknown locale/i.test(caught.message)) {
