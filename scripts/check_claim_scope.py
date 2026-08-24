@@ -81,8 +81,8 @@ def declared_scope(body: str) -> list[str]:
     block = SCOPE_BLOCK.search(body or "")
     if not block:
         return []
-    return [p.strip().rstrip("/") for p in PATHS.findall(block.group(1))
-            if "/" in p or p.endswith((".py", ".md", ".toml", ".yaml", ".yml", ".jsonl"))]
+    return [p.strip().rstrip("/") for p in PATHS.findall(block.group(1)) if p.strip()]
+
 
 
 def main() -> int:
