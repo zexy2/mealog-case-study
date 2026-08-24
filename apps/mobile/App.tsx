@@ -376,6 +376,8 @@ export default function App() {
 
   const totalCalories = useMemo(() => dayMeals.reduce((sum, item) => sum + item.totals.kcal, 0), [dayMeals]);
   const totalProtein = useMemo(() => dayMeals.reduce((sum, item) => sum + item.totals.protein_g, 0), [dayMeals]);
+  const totalCarbs = useMemo(() => dayMeals.reduce((sum, item) => sum + (item.totals.carb_g ?? 0), 0), [dayMeals]);
+  const totalFat = useMemo(() => dayMeals.reduce((sum, item) => sum + (item.totals.fat_g ?? 0), 0), [dayMeals]);
 
   if (busy) {
     return <AppShell><AnalysisState step={analysisStep} /></AppShell>;
@@ -453,7 +455,20 @@ export default function App() {
           }}
         />
       ) : null}
-      {screen === "day" ? <DayScreen meals={dayMeals} totalCalories={totalCalories} totalProtein={totalProtein} highlightedMealKey={highlightedMealKey} onCapture={() => setScreen("capture")} onOpenMeal={openSavedMeal} onRemoveMeal={requestRemoveMeal} onUndoMeal={undoAutoAcceptedMeal} /> : null}
+      {screen === "day" ? (
+        <DayScreen
+          meals={dayMeals}
+          totalCalories={totalCalories}
+          totalProtein={totalProtein}
+          totalCarbs={totalCarbs}
+          totalFat={totalFat}
+          highlightedMealKey={highlightedMealKey}
+          onCapture={() => setScreen("capture")}
+          onOpenMeal={openSavedMeal}
+          onRemoveMeal={requestRemoveMeal}
+          onUndoMeal={undoAutoAcceptedMeal}
+        />
+      ) : null}
       <BottomNav screen={screen} canReview={Boolean(meal && screen === "review")} onChange={setScreen} />
     </AppShell>
   );
