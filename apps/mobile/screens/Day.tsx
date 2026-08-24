@@ -3,7 +3,7 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { MealLog } from "../src/types";
-import { t } from "../src/strings";
+import { formatLocalizedUnit, t } from "../src/strings";
 import { Header } from "../components/Header";
 import { actionLabel, formatDate, formatTime } from "../components/meal";
 import { colors } from "../components/theme";
@@ -38,16 +38,19 @@ function itemName(item: MealLog["items"][number]) {
   if (item.quantity === null || item.quantity === undefined) {
     return t("itemUnknownQuantity", { name });
   }
+  const localizedUnit = formatLocalizedUnit(item.unit);
   return t("itemWithQuantity", {
     quantity: item.quantity,
-    unit: item.unit ? ` ${item.unit}` : "",
+    unit: localizedUnit ? ` ${localizedUnit}` : "",
     name,
   });
 }
 
 export function mealTitle(meal: MealLog) {
   const names = meal.items.map(itemName).filter(Boolean);
-  return names.length > 0 ? names.join(" · ") : t("mealFallback");
+  if (names.length === 0) return t("mealFallback");
+  if (names.length <= 2) return names.join(" · ");
+  return `${names.slice(0, 2).join(" · ")} (${t("moreItemsCount", { count: names.length - 2 })})`;
 }
 
 export function DayScreen({ meals, totalCalories, totalProtein, highlightedMealKey, onCapture, onOpenMeal, onRemoveMeal, onUndoMeal }: DayScreenProps) {
@@ -101,7 +104,7 @@ export function DayScreen({ meals, totalCalories, totalProtein, highlightedMealK
                     </Pressable>
                   ) : null}
                 </View>
-                <Text style={styles.mealKcal}>{Math.round(item.totals.kcal)} kcal</Text>
+                <Text style={styles.mealKcal}>≈ {Math.round(item.totals.kcal)} kcal</Text>
                 <Ionicons name="chevron-forward" size={17} color={colors.muted} />
               </Pressable>
               <Pressable
@@ -109,6 +112,7 @@ export function DayScreen({ meals, totalCalories, totalProtein, highlightedMealK
                 onPress={() => onRemoveMeal(item)}
                 accessibilityRole="button"
                 accessibilityLabel={t("removeMealAccessibility")}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="trash-outline" size={17} color={colors.muted} />
               </Pressable>

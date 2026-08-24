@@ -161,7 +161,17 @@ export type StringKey =
   | "rateLimitExceeded"
   | "unsupportedMediaType"
   | "payloadTooLarge"
-  | "abstainUnmappedHelp";
+  | "abstainUnmappedHelp"
+  | "matchConfidenceHigh"
+  | "matchConfidenceMed"
+  | "portionStatusVerify"
+  | "portionStatusConfirmed"
+  | "portionQuestionTitle"
+  | "portionChoiceClose"
+  | "portionChoiceLess"
+  | "portionChoiceMore"
+  | "confirmPortionRequired"
+  | "moreItemsCount";
 
 type Dictionary = Record<StringKey, string>;
 type Values = Record<string, number | string>;
@@ -331,6 +341,16 @@ export const tr: Dictionary = {
   unsupportedMediaType: "Desteklenmeyen veya bozuk görsel formatı. Lütfen net bir fotoğraf çekin.",
   payloadTooLarge: "Görsel boyutu çok büyük (10 MB üstü).",
   abstainUnmappedHelp: "Bu yemek resmi katalogda bulunamadı. Lütfen listeden bir alternatif seçin veya farklı bir yemek yazın.",
+  matchConfidenceHigh: "Yemek eşleşmesi: Yüksek güven",
+  matchConfidenceMed: "Yemek eşleşmesi: Doğrulama önerilir",
+  portionStatusVerify: "Porsiyon: Doğrulama gerekli",
+  portionStatusConfirmed: "Porsiyon: Onaylandı",
+  portionQuestionTitle: "Bu porsiyon sana yakın mı?",
+  portionChoiceClose: "Uygun (Yakın)",
+  portionChoiceLess: "Daha az",
+  portionChoiceMore: "Daha çok",
+  confirmPortionRequired: "Devam etmek için porsiyonu doğrula",
+  moreItemsCount: "+{count} öğe daha",
 };
 
 export const en: Dictionary = {
@@ -495,6 +515,16 @@ export const en: Dictionary = {
   unsupportedMediaType: "Unsupported or corrupt image format. Please capture a clear photo.",
   payloadTooLarge: "Image file is too large (over 10 MB).",
   abstainUnmappedHelp: "This food is not in the canonical catalogue. Please choose an alternative or describe the meal.",
+  matchConfidenceHigh: "Food match: High confidence",
+  matchConfidenceMed: "Food match: Review recommended",
+  portionStatusVerify: "Portion: Confirmation required",
+  portionStatusConfirmed: "Portion: Confirmed",
+  portionQuestionTitle: "Does this portion look right to you?",
+  portionChoiceClose: "Looks right",
+  portionChoiceLess: "Less",
+  portionChoiceMore: "More",
+  confirmPortionRequired: "Confirm portion to continue",
+  moreItemsCount: "+{count} more items",
 };
 
 const dictionaries: Record<Locale, Dictionary> = { tr, en };
@@ -502,6 +532,46 @@ export const DEFAULT_LOCALE: Locale = "tr";
 
 export function t(key: StringKey, values: Values = {}, locale: Locale = DEFAULT_LOCALE): string {
   return dictionaries[locale][key].replace(/\{(\w+)\}/g, (placeholder, name: string) => String(values[name] ?? placeholder));
+}
+
+export function formatLocalizedUnit(unit?: string | null, locale: Locale = DEFAULT_LOCALE): string {
+  if (!unit) return "";
+  const clean = unit.toLowerCase().trim();
+  if (locale === "tr") {
+    if (clean === "whole" || clean === "piece" || clean === "adet") return "adet";
+    if (clean === "serving" || clean === "portion" || clean === "porsiyon") return "porsiyon";
+    if (clean === "several") return "adet";
+    if (clean === "glass" || clean === "bardak") return "bardak";
+    if (clean === "bowl" || clean === "kase") return "kase";
+    if (clean === "plate" || clean === "tabak") return "tabak";
+    if (clean === "slice" || clean === "dilim") return "dilim";
+    if (clean === "g" || clean === "gram") return "g";
+    return unit;
+  }
+  if (clean === "adet") return "piece";
+  if (clean === "porsiyon") return "portion";
+  if (clean === "bardak") return "glass";
+  if (clean === "kase") return "bowl";
+  if (clean === "tabak") return "plate";
+  if (clean === "dilim") return "slice";
+  return unit;
+}
+
+export function formatLocalizedProvenance(source?: string | null, locale: Locale = DEFAULT_LOCALE): string {
+  if (!source) return locale === "tr" ? "Standart katalog porsiyonu" : "Catalogue portion";
+  const clean = source.toLowerCase().trim();
+  if (locale === "tr") {
+    if (clean.includes("catalogue_default_scaled")) return "Katalog tanımı × adet";
+    if (clean.includes("catalogue_default")) return "Standart katalog porsiyonu";
+    if (clean.includes("user_stated")) return "Kullanıcı beyanı";
+    if (clean.includes("visual_estimate")) return "Görsel porsiyon tahmini";
+    return source.replace(/_/g, " ");
+  }
+  if (clean.includes("catalogue_default_scaled")) return "Catalogue default × quantity";
+  if (clean.includes("catalogue_default")) return "Standard catalogue portion";
+  if (clean.includes("user_stated")) return "User stated portion";
+  if (clean.includes("visual_estimate")) return "Visual estimate";
+  return source.replace(/_/g, " ");
 }
 
 type QuestionItem = {

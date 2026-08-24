@@ -58,6 +58,7 @@ assert.match(reviewSource, /quantityUnit/);
 assert.match(reviewSource, /setQuantityEdits/);
 assert.match(reviewSource, /accessibilityLabel=\{option === null/);
 assert.match(reviewSource, /hasUnansweredCountClarification/);
+assert.match(reviewSource, /needsPortionConfirmation/);
 assert.match(apiSource, /\/v1\/meals\/correct/);
 assert.doesNotMatch(apiSource, /corrections\s*\}[\s\S]*nutrients/);
 
@@ -66,5 +67,11 @@ assert.deepEqual(inferImageMimeAndName("file:///var/mobile/photo.HEIC", null), {
 assert.deepEqual(inferImageMimeAndName("file:///var/mobile/photo.png", "image/png"), { mimeType: "image/png", fileName: "meal.png" });
 assert.deepEqual(inferImageMimeAndName("file:///var/mobile/photo.webp", null), { mimeType: "image/webp", fileName: "meal.webp" });
 assert.deepEqual(inferImageMimeAndName("file:///var/mobile/photo.jpg", null), { mimeType: "image/jpeg", fileName: "meal.jpg" });
+
+const { formatLocalizedUnit, formatLocalizedProvenance } = await import("./strings.ts");
+assert.equal(formatLocalizedUnit("whole"), "adet");
+assert.equal(formatLocalizedUnit("serving"), "porsiyon");
+assert.equal(formatLocalizedUnit("piece"), "adet");
+assert.equal(formatLocalizedProvenance("catalogue_default_scaled"), "Katalog tanımı × adet");
 
 console.log("mobile item clarification checks passed");

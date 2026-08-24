@@ -1,10 +1,10 @@
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Candidate, CaptureMedium, ItemClarification, MealLog } from "../src/types";
-import { StringKey, t } from "../src/strings";
+import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -27,7 +27,8 @@ function quantityLabel(item: MealLog["items"][number], quantity = item.quantity,
   if (quantity === null || quantity === undefined) {
     return t("quantityUnknown");
   }
-  return t("quantityValue", { quantity: String(quantity), unit: unit ? ` ${unit}` : "" });
+  const localizedUnit = formatLocalizedUnit(unit);
+  return t("quantityValue", { quantity: String(quantity), unit: localizedUnit ? ` ${localizedUnit}` : "" });
 }
 
 function selectedName(item: MealLog["items"][number], selected: string) {
@@ -47,12 +48,12 @@ function clarificationPrompt(
   selected: string,
 ) {
   if (clarification.kind === "count") {
-    return t("clarifyCount", { unit: clarification.unit ?? item.unit ?? "", food: selectedName(item, selected) });
+    return t("clarifyCount", { unit: formatLocalizedUnit(clarification.unit ?? item.unit ?? ""), food: selectedName(item, selected) });
   }
   if (clarification.kind === "identity") {
     return t("clarifyIdentity", { food: selectedName(item, selected) });
   }
-  return t("clarifyPortion", { low: Math.round(item.grams_p10), high: Math.round(item.grams_p90) });
+  return t("portionQuestionTitle");
 }
 
 export type ReviewScreenProps = {
@@ -71,7 +72,6 @@ export type ReviewScreenProps = {
   saving?: boolean;
   onBack: () => void;
 };
-
 
 export function ReviewScreen({
   meal,
@@ -92,10 +92,19 @@ export function ReviewScreen({
   const displayAction = meal.degraded ? "review" : meal.action;
   const tone = actionTone(displayAction);
   const flaggedMedium = meal.items.find((item) => (item.capture_medium ?? "real_plate") !== "real_plate")?.capture_medium ?? null;
+
+  const [portionConfirmed, setPortionConfirmed] = useState<Record<number, boolean>>({});
+
   const hasUnansweredCountClarification = meal.items.some((item, index) => {
     const clarification = item.clarification ?? null;
     const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
     return clarification?.kind === "count" && !hasQuantityEdit && item.quantity === null;
+  });
+
+  const needsPortionConfirmation = meal.action === "review" && meal.items.some((item, index) => {
+    const hasRange = item.grams_p90 > item.grams_p10;
+    const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
+    return hasRange && !hasPortionEdit && !portionConfirmed[index];
   });
 
   function handleSave() {
@@ -103,7 +112,16 @@ export function ReviewScreen({
       Alert.alert(t("oneQuestion"), t("clarifyCountRequired"));
       return;
     }
+    if (needsPortionConfirmation) {
+      Alert.alert(t("portion"), t("confirmPortionRequired"));
+      return;
+    }
     onSave();
+  }
+
+  function confirmPortionChoice(index: number, grams: number) {
+    setPortionEdits((current) => ({ ...current, [index]: grams }));
+    setPortionConfirmed((current) => ({ ...current, [index]: true }));
   }
 
   return (
@@ -121,7 +139,6 @@ export function ReviewScreen({
       ) : null}
 
       {meal.degraded ? (
-
         <View style={styles.degradedBanner}>
           <Ionicons name="warning-outline" size={19} color="#8D641C" />
           <View style={styles.degradedCopy}>
@@ -158,6 +175,8 @@ export function ReviewScreen({
         const quantityUnit = clarification?.kind === "count" ? clarification.unit ?? item.unit : item.unit;
         const hasPortionBand = grams > 0 && item.grams_p90 >= item.grams_p10 && item.grams_p90 > 0;
         const hasRange = item.grams_p90 > item.grams_p10;
+        const isPortionDone = Object.prototype.hasOwnProperty.call(portionEdits, index) || Boolean(portionConfirmed[index]);
+
         return (
           <View key={`${item.query}-${index}`} style={styles.itemCard}>
             <View style={styles.itemTopRow}>
@@ -167,38 +186,77 @@ export function ReviewScreen({
                 <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? t("needsMatch") : selectedName(item, selected)}</Text>
                 <Text style={styles.quantityText}>{quantityLabel(item, quantity, quantityUnit)}</Text>
               </View>
-              <View style={styles.confidencePill}><Text style={styles.confidenceText}>{Math.round(item.confidence * 100)}%</Text></View>
-            </View>
-
-            {clarification ? (
-              <View style={styles.questionCard}>
-                <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
-                <Text style={styles.questionText}>{clarificationPrompt(item, clarification, selected)}</Text>
-                {clarification.kind === "count" ? (
-                  <View style={styles.countChoices}>
-                    {clarification.options.map((option) => {
-                      const isSelected = quantity === option;
-                      return (
-                        <Pressable
-                          key={option === null ? "unknown" : option}
-                          accessibilityRole="button"
-                          accessibilityLabel={option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: clarification.unit ?? "" })}
-                          style={[styles.countChoice, isSelected && styles.countChoiceSelected]}
-                          onPress={() => setQuantityEdits((current) => ({ ...current, [index]: option }))}
-                        >
-                          <Text style={[styles.countChoiceText, isSelected && styles.countChoiceTextSelected]}>
-                            {option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: clarification.unit ?? "" })}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
+              <View style={styles.statusBadgesCol}>
+                <View style={[styles.confidencePill, item.confidence >= 0.85 ? styles.confidenceHigh : styles.confidenceMed]}>
+                  <Text style={styles.confidenceText}>{item.confidence >= 0.85 ? t("matchConfidenceHigh") : t("matchConfidenceMed")} (%{Math.round(item.confidence * 100)})</Text>
+                </View>
+                {hasRange ? (
+                  <View style={[styles.portionStatusPill, isPortionDone ? styles.portionDone : styles.portionPending]}>
+                    <Text style={styles.portionStatusText}>{isPortionDone ? t("portionStatusConfirmed") : t("portionStatusVerify")}</Text>
                   </View>
                 ) : null}
               </View>
-            ) : meal.action === "ask" && index === 0 ? (
+            </View>
+
+            {clarification?.kind === "count" ? (
               <View style={styles.questionCard}>
                 <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
-                <Text style={styles.questionText}>{t("questionPick")}</Text>
+                <Text style={styles.questionText}>{clarificationPrompt(item, clarification, selected)}</Text>
+                <View style={styles.countChoices}>
+                  {clarification.options.map((option) => {
+                    const isSelected = quantity === option;
+                    return (
+                      <Pressable
+                        key={option === null ? "unknown" : option}
+                        accessibilityRole="button"
+                        accessibilityLabel={option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: formatLocalizedUnit(clarification.unit ?? "") })}
+                        style={[styles.countChoice, isSelected && styles.countChoiceSelected]}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        onPress={() => setQuantityEdits((current) => ({ ...current, [index]: option }))}
+                      >
+                        <Text style={[styles.countChoiceText, isSelected && styles.countChoiceTextSelected]}>
+                          {option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: formatLocalizedUnit(clarification.unit ?? "") })}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
+
+            {hasRange && meal.action === "review" ? (
+              <View style={styles.portionQuestionCard}>
+                <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
+                <Text style={styles.questionText}>{t("portionQuestionTitle")}</Text>
+                <View style={styles.portionQuickChoices}>
+                  <Pressable
+                    style={[styles.portionQuickChoice, grams === Math.round(item.grams_p10) && styles.portionQuickChoiceSelected]}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={() => confirmPortionChoice(index, Math.round(item.grams_p10))}
+                  >
+                    <Text style={[styles.portionQuickChoiceText, grams === Math.round(item.grams_p10) && styles.portionQuickChoiceTextSelected]}>
+                      {t("portionChoiceLess")} ({Math.round(item.grams_p10)} g)
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.portionQuickChoice, grams === Math.round(item.grams) && styles.portionQuickChoiceSelected]}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={() => confirmPortionChoice(index, Math.round(item.grams))}
+                  >
+                    <Text style={[styles.portionQuickChoiceText, grams === Math.round(item.grams) && styles.portionQuickChoiceTextSelected]}>
+                      {t("portionChoiceClose")} ({Math.round(item.grams)} g)
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.portionQuickChoice, grams === Math.round(item.grams_p90) && styles.portionQuickChoiceSelected]}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={() => confirmPortionChoice(index, Math.round(item.grams_p90))}
+                  >
+                    <Text style={[styles.portionQuickChoiceText, grams === Math.round(item.grams_p90) && styles.portionQuickChoiceTextSelected]}>
+                      {t("portionChoiceMore")} ({Math.round(item.grams_p90)} g)
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
             ) : null}
 
@@ -215,7 +273,10 @@ export function ReviewScreen({
                   minimumTrackTintColor={colors.terracotta}
                   maximumTrackTintColor={colors.line}
                   thumbTintColor={colors.terracotta}
-                  onValueChange={(value) => setPortionEdits((current) => ({ ...current, [index]: value }))}
+                  onValueChange={(value) => {
+                    setPortionEdits((current) => ({ ...current, [index]: value }));
+                    setPortionConfirmed((current) => ({ ...current, [index]: true }));
+                  }}
                   accessibilityLabel={t("portionFor", { query: item.query })}
                 />
                 <View style={styles.rangeLabels}>
@@ -225,22 +286,22 @@ export function ReviewScreen({
               </>
             ) : <Text style={styles.mutedNote}>{t("portionPending")}</Text>}
 
-            {clarification?.kind === "portion" ? (
-              <Text style={styles.clarificationHint}>{clarificationPrompt(item, clarification, selected)}</Text>
+            {item.candidates.length > 1 ? (
+              <>
+                <Text style={[styles.sectionLabel, { marginTop: 22 }]}>{t("alternates")}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+                  {item.candidates.map((candidate) => {
+                    const isSelected = selected === candidate.food_id;
+                    return (
+                      <Pressable key={candidate.food_id} onPress={() => onChooseCandidate(index, candidate)} style={[styles.chip, isSelected && styles.chipSelected]}>
+                        <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{candidate.name}</Text>
+                        <Text style={[styles.chipScore, isSelected && styles.chipTextSelected]}>{Math.round(candidate.score * 100)}%</Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </>
             ) : null}
-
-            <Text style={[styles.sectionLabel, { marginTop: 22 }]}>{t("alternates")}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-              {item.candidates.map((candidate) => {
-                const isSelected = selected === candidate.food_id;
-                return (
-                  <Pressable key={candidate.food_id} onPress={() => onChooseCandidate(index, candidate)} style={[styles.chip, isSelected && styles.chipSelected]}>
-                    <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{candidate.name}</Text>
-                    <Text style={[styles.chipScore, isSelected && styles.chipTextSelected]}>{Math.round(candidate.score * 100)}%</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
 
             <Pressable style={styles.whyRow} onPress={() => setExpandedItem(expandedItem === index ? null : index)}>
               <View style={styles.whyIcon}><Ionicons name="finger-print-outline" size={17} color={colors.moss} /></View>
@@ -267,11 +328,11 @@ export function ReviewScreen({
                 <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
                 <AuditRow
                   label={t("portionSource")}
-                  value={item.portion_source === "catalogue_default" ? "Resmi Porsiyon Standartı" : item.portion_source ?? t("catalogueProvenance")}
+                  value={formatLocalizedProvenance(item.portion_source)}
                 />
                 <AuditRow
                   label={t("portionProvenance")}
-                  value={item.portion_provenance?.includes("default_serving") ? `Katalog Tanımı (${Math.round(grams)}g)` : item.portion_provenance ?? t("pending")}
+                  value={item.portion_provenance?.includes("default_serving") ? `Katalog tanımı (${Math.round(grams)} g)` : item.portion_provenance ?? t("pending")}
                 />
               </View>
             ) : null}
@@ -280,8 +341,24 @@ export function ReviewScreen({
         );
       })}
 
-      <Pressable style={[styles.primaryButton, (saving || hasUnansweredCountClarification) && styles.primaryButtonDisabled]} onPress={handleSave} disabled={saving}>
-        <Text style={styles.primaryButtonText}>{saving ? t("saving") : hasUnansweredCountClarification ? t("clarifyCountRequired") : isSaved ? t("saveCorrection") : meal.action === "ask" ? t("saveQuestion") : t("saveToday")}</Text>
+      <Pressable
+        style={[styles.primaryButton, (saving || hasUnansweredCountClarification || needsPortionConfirmation) && styles.primaryButtonDisabled]}
+        onPress={handleSave}
+        disabled={saving}
+      >
+        <Text style={styles.primaryButtonText}>
+          {saving
+            ? t("saving")
+            : hasUnansweredCountClarification
+            ? t("clarifyCountRequired")
+            : needsPortionConfirmation
+            ? t("confirmPortionRequired")
+            : isSaved
+            ? t("saveCorrection")
+            : meal.action === "ask"
+            ? t("saveQuestion")
+            : t("saveToday")}
+        </Text>
         <Ionicons name="arrow-forward" size={19} color={colors.white} />
       </Pressable>
       <Pressable style={styles.textButton} onPress={onBack}><Text style={styles.textButtonLabel}>{t("captureAnother")}</Text></Pressable>
@@ -343,13 +420,26 @@ const styles = StyleSheet.create({
   itemQuery: { color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 },
   itemMatch: { color: colors.ink, fontSize: 16, fontWeight: "800", marginTop: 3 },
   quantityText: { color: colors.muted, fontSize: 11, marginTop: 5 },
-  confidencePill: { backgroundColor: colors.mossSoft, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6 },
-  confidenceText: { color: colors.moss, fontSize: 11, fontWeight: "800" },
+  statusBadgesCol: { alignItems: "flex-end", gap: 5 },
+  confidencePill: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5 },
+  confidenceHigh: { backgroundColor: colors.mossSoft },
+  confidenceMed: { backgroundColor: "#FBF1D8" },
+  confidenceText: { color: colors.moss, fontSize: 10, fontWeight: "800" },
+  portionStatusPill: { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 4 },
+  portionDone: { backgroundColor: colors.mossSoft },
+  portionPending: { backgroundColor: "#FBF1D8" },
+  portionStatusText: { fontSize: 10, fontWeight: "700", color: colors.ink },
   questionCard: { backgroundColor: "#FBF1D8", borderRadius: 15, padding: 13, marginTop: 17 },
+  portionQuestionCard: { backgroundColor: "#F4F7F4", borderRadius: 15, padding: 13, marginTop: 15, borderWidth: 1, borderColor: colors.line },
+  portionQuickChoices: { flexDirection: "row", gap: 8, marginTop: 10 },
+  portionQuickChoice: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, paddingHorizontal: 6 },
+  portionQuickChoiceSelected: { backgroundColor: colors.moss, borderColor: colors.moss },
+  portionQuickChoiceText: { color: colors.ink, fontSize: 11, fontWeight: "700", textAlign: "center" },
+  portionQuickChoiceTextSelected: { color: colors.white },
   questionLabel: { color: "#8D641C", fontSize: 9, fontWeight: "800", letterSpacing: 1.3 },
   questionText: { color: colors.ink, fontSize: 15, lineHeight: 21, fontWeight: "700", marginTop: 5 },
   countChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
-  countChoice: { borderWidth: 1, borderColor: "#D9C58E", borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, backgroundColor: colors.card },
+  countChoice: { minHeight: 44, borderWidth: 1, borderColor: "#D9C58E", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.card, justifyContent: "center" },
   countChoiceSelected: { backgroundColor: colors.terracotta, borderColor: colors.terracotta },
   countChoiceText: { color: colors.ink, fontSize: 11, fontWeight: "700" },
   countChoiceTextSelected: { color: colors.white },
@@ -361,12 +451,12 @@ const styles = StyleSheet.create({
   mutedNote: { color: colors.muted, fontSize: 12, marginTop: 13 },
   clarificationHint: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 9 },
   chipsRow: { gap: 8, paddingTop: 11, paddingBottom: 2 },
-  chip: { borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8, minWidth: 100 },
+  chip: { minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8, minWidth: 100, justifyContent: "center" },
   chipSelected: { backgroundColor: colors.terracotta, borderColor: colors.terracotta },
   chipText: { color: colors.ink, fontSize: 11, fontWeight: "700" },
   chipTextSelected: { color: colors.white },
   chipScore: { color: colors.muted, fontSize: 10, marginTop: 3 },
-  whyRow: { flexDirection: "row", alignItems: "center", marginTop: 20, paddingTop: 15, borderTopWidth: 1, borderTopColor: colors.line },
+  whyRow: { minHeight: 44, flexDirection: "row", alignItems: "center", marginTop: 20, paddingTop: 15, borderTopWidth: 1, borderTopColor: colors.line },
   whyIcon: { width: 32, height: 32, borderRadius: 12, backgroundColor: colors.mossSoft, alignItems: "center", justifyContent: "center" },
   whyCopy: { flex: 1, marginLeft: 10 },
   whyTitle: { color: colors.ink, fontSize: 13, fontWeight: "800" },
@@ -375,6 +465,6 @@ const styles = StyleSheet.create({
   primaryButton: { minHeight: 54, borderRadius: 18, backgroundColor: colors.terracotta, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 10, paddingHorizontal: 18, marginTop: 8 },
   primaryButtonDisabled: { opacity: 0.55 },
   primaryButtonText: { color: colors.white, fontSize: 14, fontWeight: "800" },
-  textButton: { alignItems: "center", paddingVertical: 16 },
+  textButton: { minHeight: 44, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
   textButtonLabel: { color: colors.muted, fontSize: 12, fontWeight: "700" },
 });
