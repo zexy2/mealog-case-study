@@ -109,15 +109,22 @@ export function ReviewScreen({
     const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
     return hasRange && !hasPortionEdit && !portionConfirmed[index];
   });
+  const hasUnresolvedItems = meal.items.some((item, index) => (selectedCandidates[index] ?? item.food_id) === "ABSTAIN");
 
-  const isSaveDisabled = Boolean(saving || hasUnansweredCountClarification || needsPortionConfirmation);
-  const footerHint = hasUnansweredCountClarification
-    ? t("saveBlockedCountHint")
-    : needsPortionConfirmation
-      ? t("confirmPortionRequired")
-      : null;
+  const isSaveDisabled = Boolean(saving || hasUnresolvedItems || hasUnansweredCountClarification || needsPortionConfirmation);
+  const footerHint = hasUnresolvedItems
+    ? t("resolveUnknownItem")
+    : hasUnansweredCountClarification
+      ? t("saveBlockedCountHint")
+      : needsPortionConfirmation
+        ? t("confirmPortionRequired")
+        : null;
 
   function handleSave() {
+    if (hasUnresolvedItems) {
+      Alert.alert(t("needsMatch"), t("resolveUnknownItem"));
+      return;
+    }
     if (hasUnansweredCountClarification) {
       Alert.alert(t("oneQuestion"), t("clarifyCountRequired"));
       return;
@@ -202,6 +209,7 @@ export function ReviewScreen({
           const displayedQuantity = isCountAnswerPending
             ? t("quantityPending")
             : quantityLabel(item, quantity, quantityUnit);
+          const showCandidateChoices = item.candidates.length > 1 || (selected === "ABSTAIN" && item.candidates.length > 0);
 
           return (
             <View key={`${item.query}-${index}`} style={styles.itemCard}>
@@ -463,7 +471,7 @@ export function ReviewScreen({
                 </>
               )}
 
-              {item.candidates.length > 1 ? (
+              {showCandidateChoices ? (
                 <>
                   <Text style={[styles.sectionLabel, { marginTop: 22 }]}>{t("alternates")}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>

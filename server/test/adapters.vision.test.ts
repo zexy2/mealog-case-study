@@ -36,6 +36,7 @@ import {
   PROMPT_VERSION,
   REQUEST_INTERVAL_SECONDS,
   SECONDARY_MODEL,
+  SYSTEM_PROMPT,
   VisionProviderError,
   type Transport,
   type TransportResponse,
@@ -82,6 +83,14 @@ const OBSERVATION = {
   medium: 'real_plate',
   confidence: 0.9,
 };
+
+describe('live prompt contract', () => {
+  it('requires a separate observation for each distinct visible dish', () => {
+    expect(PROMPT_VERSION).toBe('p5');
+    expect(SYSTEM_PROMPT).toContain('Return one `items[]` object for each distinct primary prepared dish or edible side dish.');
+    expect(SYSTEM_PROMPT).toContain('Never combine multiple visible foods into one `surface_form`');
+  });
+});
 
 // Signature-only bytes are enough for the adapter boundary tests; no image is
 // written to the repository or sent to a live provider.
@@ -253,7 +262,7 @@ describe('committed fixtures replay unchanged', () => {
       expect(raw._synthetic, name).toBe(false);
       expect(raw.provider, name).toBe('gemini');
       expect(typeof raw.model_id, name).toBe('string');
-      // Committed fixtures remain p3 by design; p4 applies only to new live
+      // Committed fixtures remain p3 by design; p5 applies only to new live
       // responses because this change must not re-record the golden set.
       expect(raw.prompt_version, name).toBe('p3');
     }

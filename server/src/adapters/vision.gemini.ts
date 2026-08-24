@@ -25,7 +25,7 @@ import { VisionInput, type VisionResult } from '../pipeline/ports';
 import type { CaptureMedium, CountOrigin, PerceivedItem } from '../domain/models';
 import { makePerceivedItem } from '../domain/models';
 
-export const PROMPT_VERSION = 'p4';
+export const PROMPT_VERSION = 'p5';
 export const DEFAULT_MODEL = 'gemini-flash-lite-latest';
 export const SECONDARY_MODEL = 'gemini-2.5-flash-lite';
 export const MODEL_ENV_VAR = 'GEMINI_MODEL';
@@ -62,6 +62,7 @@ Rules:
   distinctly visible. Overlapping, stacked, cropped, or occluded instances must
   return \`count: null\`; never guess. Two stacked simit rings are an occluded
   arrangement: return \`count: null\` even if two rings appear recognisable.
+- Return one \`items[]\` object for each distinct primary prepared dish or edible side dish. Never combine multiple visible foods into one \`surface_form\`: do not return comma-separated or conjunction-linked food lists. A plate with meatballs, rice, bread, and salad has four item objects.
 - Never count liquid volume, pixels, or a serving container as multiple food instances. Do not report non-food objects (cutlery, wallet, receipt, table), inedible garnish, decorative leaves, lemon wedges, herbs/seasoning, or unidentifiable background as separate food items. Return only the primary prepared food dishes and distinct edible side dishes. Do not add ABSTAIN or other placeholder items.
 
 

@@ -142,13 +142,14 @@ function AppContent() {
       setQuantityEdits({});
       setExpandedItem(result.items.length > 0 ? 0 : null);
       setBusy(false);
+      const hasOnlyAbstainedItems = result.items.length > 0 && result.items.every((item) => item.food_id === "ABSTAIN");
       if (result.action === "auto_accept" && !result.degraded) {
         upsertMeal(result);
         setReviewingSavedMealKey(result.idempotency_key);
         setHighlightedMealKey(result.idempotency_key);
         setBanner(t("mealAdded"));
         setScreen("day");
-      } else if (result.action === "ask" && (result.items.length === 0 || result.items.some((item) => item.food_id === "ABSTAIN"))) {
+      } else if (result.action === "ask" && (result.items.length === 0 || hasOnlyAbstainedItems)) {
         setScreen("abstain");
       } else {
 
@@ -233,6 +234,11 @@ function AppContent() {
 
   async function saveReview() {
     if (!meal) return;
+    const hasUnresolvedItems = meal.items.some((item, index) => (selectedCandidates[index] ?? item.food_id) === "ABSTAIN");
+    if (hasUnresolvedItems) {
+      setBanner(t("resolveUnknownItem"));
+      return;
+    }
     const hasUnansweredCountClarification = meal.items.some((item, index) => {
       const clarification = item.clarification ?? null;
       const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);

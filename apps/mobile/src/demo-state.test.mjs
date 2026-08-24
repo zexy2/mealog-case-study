@@ -65,9 +65,15 @@ assert.match(
 );
 assert.match(
   appSource,
-  /result\.action === "ask" && \(result\.items\.length === 0 \|\| result\.items\.some\(\(item\) => item\.food_id === "ABSTAIN"\)\)/,
-  "abstention routing must use the server item sentinel or empty plate",
+  /const hasOnlyAbstainedItems = result\.items\.length > 0 && result\.items\.every\(\(item\) => item\.food_id === "ABSTAIN"\)/,
+  "only a meal with no resolved item may enter the full abstention state",
 );
+assert.match(
+  appSource,
+  /result\.action === "ask" && \(result\.items\.length === 0 \|\| hasOnlyAbstainedItems\)/,
+  "a partial result must stay in Review rather than discard resolved items",
+);
+assert.doesNotMatch(appSource, /result\.items\.some\(\(item\) => item\.food_id === "ABSTAIN"\)/);
 
 assert.match(appSource, /setHighlightedMealKey\(result\.idempotency_key\)/, "auto-accept must highlight the returned record");
 assert.match(appSource, /setScreen\("capture"\)/, "abstention and provider failures must return to Add");

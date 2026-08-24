@@ -208,6 +208,7 @@ export type StringKey =
   | "portionChoiceMore"
   | "confirmPortionRequired"
   | "saveBlockedCountHint"
+  | "resolveUnknownItem"
   | "countAnswerRequired"
   | "countRecalculationPending"
   | "nutritionRecalculationPending"
@@ -428,6 +429,7 @@ export const tr: Dictionary = {
   portionChoiceMore: "Daha çok",
   confirmPortionRequired: "Devam etmek için porsiyonu doğrula",
   saveBlockedCountHint: "Devam etmek için adet seç veya “Emin değilim” de.",
+  resolveUnknownItem: "Devam etmek için eşleşmeyen öğünü katalogdan seç veya yeni fotoğraf çek.",
   countAnswerRequired: "Adet yanıtı gelmeden gram aralığı ve besin değerleri gösterilmez.",
   countRecalculationPending: "Seçtiğin adede göre gram aralığı ve besin değerleri kaydettiğinde sunucuda güncellenecek.",
   nutritionRecalculationPending: "Değişikliğin ardından sunucu porsiyonu ve besin değerlerini yeniden hesaplayacak.",
@@ -643,6 +645,7 @@ export const en: Dictionary = {
   portionChoiceMore: "More",
   confirmPortionRequired: "Confirm portion to continue",
   saveBlockedCountHint: "Select a count or choose “I am not sure” to continue.",
+  resolveUnknownItem: "Choose a catalogue match for the unresolved item or capture a new photo to continue.",
   countAnswerRequired: "Portion range and nutrients stay hidden until the count is answered.",
   countRecalculationPending: "The server will update the portion range and nutrients for this count when you save.",
   nutritionRecalculationPending: "The server will recalculate the portion and nutrition values after this change.",
