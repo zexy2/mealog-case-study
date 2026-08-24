@@ -97,14 +97,16 @@ export function AbstentionScreen({
         </View>
       ) : null}
 
-      {/* Honest Architecture & Data Integrity Card */}
-      <View style={styles.guaranteeCard}>
-        <View style={styles.guaranteeHeaderRow}>
-          <Ionicons name="shield-checkmark-outline" size={18} color={colors.moss} />
-          <Text style={styles.guaranteeHeader}>Denetlenmiş Besin Güvencesi (D1)</Text>
+      {/* Honest Architecture & Data Integrity Card (Shown only when food was detected but is out-of-catalogue) */}
+      {!isEmptyPlate ? (
+        <View style={styles.guaranteeCard}>
+          <View style={styles.guaranteeHeaderRow}>
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.moss} />
+            <Text style={styles.guaranteeHeader}>Denetlenmiş Besin Güvencesi (D1)</Text>
+          </View>
+          <Text style={styles.guaranteeCopy}>{t("abstainHonestGuarantee")}</Text>
         </View>
-        <Text style={styles.guaranteeCopy}>{t("abstainHonestGuarantee")}</Text>
-      </View>
+      ) : null}
 
       {/* Action Suite */}
       <View style={styles.actionsContainer}>
