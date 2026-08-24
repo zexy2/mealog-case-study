@@ -1,6 +1,6 @@
 # Timed walkthrough script
 
-Issue: #72  
+Issue: #72
 Branch: `agent/codex2/walkthrough-script`
 
 ## State

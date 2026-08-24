@@ -1,9 +1,9 @@
 # Session Log: Contract, Persistence, and Behavior Fixes
 
-**Date:** 2026-08-24 13:22  
-**Agent:** antigravity  
-**Topic:** contract-and-behavior-fixes  
-**Issue:** #261  
+**Date:** 2026-08-24 13:22
+**Agent:** antigravity
+**Topic:** contract-and-behavior-fixes
+**Issue:** #261
 
 ## Accomplished
 1. **Day Meals Persistence:** Implemented `@mealog/day-meals` AsyncStorage persistence in `apps/mobile/App.tsx` so cold reloads preserve logged meals in real mode.

@@ -1,7 +1,7 @@
 # Retrieval fix-forward after 53-food catalogue growth
 
-Claim: #98  
-Branch: `agent/codex3/retrieval-53-catalogue`  
+Claim: #98
+Branch: `agent/codex3/retrieval-53-catalogue`
 Base: `ef7f670` (`origin/main`)
 
 ## Change

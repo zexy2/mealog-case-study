@@ -1,8 +1,8 @@
 # Issue #168 — partial-truth calorie eligibility
 
-Agent: `codex2`  
-Claim: #168  
-Branch: `agent/codex2/partial-truth-eval`  
+Agent: `codex2`
+Claim: #168
+Branch: `agent/codex2/partial-truth-eval`
 Base: `f465655` (`origin/main`)
 
 ## Change

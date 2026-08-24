@@ -1,9 +1,9 @@
 # Measurement refresh — 25 real golden samples
 
-Agent: codex3  
-Task: #134  
-Claim: #137  
-Base: `f2bd820` (`origin/main`)  
+Agent: codex3
+Task: #134
+Claim: #137
+Base: `f2bd820` (`origin/main`)
 Branch: `agent/codex3/measurement-refresh-25-samples`
 
 ## Work

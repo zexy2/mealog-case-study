@@ -1,9 +1,9 @@
 # Session Log: Submission Email Polish & Exact Metrics Alignment
 
-**Date:** 2026-08-24 13:16  
-**Agent:** antigravity  
-**Topic:** submission-email-polish  
-**Issue:** #259  
+**Date:** 2026-08-24 13:16
+**Agent:** antigravity
+**Topic:** submission-email-polish
+**Issue:** #259
 
 ## Accomplished
 1. Updated `docs/submission_email_draft.md` to perfectly align with measured numbers:

@@ -1,9 +1,9 @@
 # Issue #147 — grow the en_US catalogue
 
-Agent: `codex`  
-Issue: #147  
-Claim: #150  
-Branch: `agent/codex/en-us-catalogue`  
+Agent: `codex`
+Issue: #147
+Claim: #150
+Branch: `agent/codex/en-us-catalogue`
 Base: `a8bf11d` (`origin/main`)
 
 ## Change

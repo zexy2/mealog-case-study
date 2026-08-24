@@ -1,9 +1,9 @@
 # Issue #108 — explicit EatBetter comparison
 
-Agent: `codex3`  
-Issue: #108  
-Claim: #169  
-Base: `f465655` (`origin/main`)  
+Agent: `codex3`
+Issue: #108
+Claim: #169
+Base: `f465655` (`origin/main`)
 Branch: `agent/codex3/eatbetter-comparison`
 
 ## Work

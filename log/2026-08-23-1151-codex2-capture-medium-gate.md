@@ -1,8 +1,8 @@
 # Capture-medium safety gate
 
-Agent: codex2  
-Issue: #239 claim for the capture-medium work  
-Base: `origin/main` at `6b05422dfdc4e29d0d77e833637f2c9f5fd7235f`  
+Agent: codex2
+Issue: #239 claim for the capture-medium work
+Base: `origin/main` at `6b05422dfdc4e29d0d77e833637f2c9f5fd7235f`
 Branch: `agent/codex2/capture-medium-gate`
 
 ## Changes

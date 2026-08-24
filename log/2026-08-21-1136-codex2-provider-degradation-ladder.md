@@ -1,7 +1,7 @@
 # Provider degradation ladder
 
-Issue: #58  
-Claim: #62  
+Issue: #58
+Claim: #62
 Branch: `agent/codex2/provider-degradation-ladder`
 
 ## State
