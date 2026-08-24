@@ -312,6 +312,59 @@ export function ReviewScreen({
                       </Text>
                     </Pressable>
                   </View>
+
+                  <View style={styles.customCountRow}>
+                    <Text style={styles.customCountLabel}>Porsiyon / Adet:</Text>
+                    <View style={styles.stepperWrap}>
+                      <Pressable
+                        style={styles.stepperButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Porsiyon azalt"
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        onPress={() => {
+                          const currentVal = typeof quantity === "number" && quantity > 0 ? quantity : 1;
+                          const nextVal = Math.max(1, currentVal - 1);
+                          setQuantityEdits((current) => ({ ...current, [index]: nextVal }));
+                          setPortionConfirmed((current) => ({ ...current, [index]: true }));
+                        }}
+                      >
+                        <Ionicons name="remove" size={16} color={colors.ink} />
+                      </Pressable>
+                      <TextInput
+                        style={styles.stepperInput}
+                        keyboardType="number-pad"
+                        value={typeof quantity === "number" && quantity > 0 ? String(quantity) : "1"}
+                        placeholder="1"
+                        placeholderTextColor={colors.muted}
+                        maxLength={2}
+                        onChangeText={(txt) => {
+                          const clean = txt.replace(/[^0-9]/g, "");
+                          const num = parseInt(clean, 10);
+                          if (num > 0 && num <= 99) {
+                            setQuantityEdits((current) => ({ ...current, [index]: num }));
+                            setPortionConfirmed((current) => ({ ...current, [index]: true }));
+                          } else if (clean === "") {
+                            setQuantityEdits((current) => ({ ...current, [index]: null }));
+                          }
+                        }}
+                      />
+                      <Text style={styles.stepperUnit}>{formatLocalizedUnit(quantityUnit ?? "porsiyon")}</Text>
+                      <Pressable
+                        style={styles.stepperButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Porsiyon artır"
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        onPress={() => {
+                          const currentVal = typeof quantity === "number" && quantity > 0 ? quantity : 1;
+                          const nextVal = Math.min(99, currentVal + 1);
+                          setQuantityEdits((current) => ({ ...current, [index]: nextVal }));
+                          setPortionConfirmed((current) => ({ ...current, [index]: true }));
+                        }}
+                      >
+                        <Ionicons name="add" size={16} color={colors.ink} />
+                      </Pressable>
+                    </View>
+                  </View>
                 </View>
               ) : null}
 
