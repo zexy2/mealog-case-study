@@ -171,6 +171,8 @@ export async function run(
   const perceived = perception.observations;
   const degraded = perception.degraded;
 
+
+
   if (!config.grounded) {
     return ungroundedLog(perceived, degraded, idempotencyKey, locale, config);
   }

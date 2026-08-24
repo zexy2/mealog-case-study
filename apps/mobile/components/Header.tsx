@@ -19,8 +19,9 @@ export function Header({ eyebrow, title, subtitle }: { eyebrow: string; title: s
 }
 
 const styles = StyleSheet.create({
-  header: { paddingTop: 14, paddingBottom: 22 },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 18 },
+  header: { paddingTop: 26, paddingBottom: 20 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
+
   brand: { color: colors.ink, fontSize: 19, fontWeight: "800", letterSpacing: -0.8 },
   brandDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.terracotta },
   eyebrow: { color: colors.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.6 },

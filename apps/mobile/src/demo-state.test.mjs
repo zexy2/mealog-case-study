@@ -60,9 +60,10 @@ assert.match(
 );
 assert.match(
   appSource,
-  /result\.action === "ask" && result\.items\.some\(\(item\) => item\.food_id === "ABSTAIN"\)/,
-  "abstention routing must use the server item sentinel",
+  /result\.action === "ask" && \(result\.items\.length === 0 \|\| result\.items\.some\(\(item\) => item\.food_id === "ABSTAIN"\)\)/,
+  "abstention routing must use the server item sentinel or empty plate",
 );
+
 assert.match(appSource, /setHighlightedMealKey\(result\.idempotency_key\)/, "auto-accept must highlight the returned record");
 assert.match(appSource, /setScreen\("capture"\)/, "abstention and provider failures must return to Add");
 assert.match(

@@ -16,7 +16,7 @@ import { DayScreen } from "./screens/Day";
 import { ReviewScreen } from "./screens/Review";
 import { correctMeal, isDemoMode, MealApiError, submitMeal } from "./src/api";
 import { buildMealCorrections, removeSavedMeal } from "./src/corrections";
-import { initialDayMeals } from "./src/demoData";
+import { buildDemoMeal, initialDayMeals } from "./src/demoData";
 import { demoInput, demoScenarioFor } from "./src/demoScenarios";
 import { t } from "./src/strings";
 import { Candidate, DemoScenario, MealLog, PendingCapture } from "./src/types";
@@ -37,6 +37,9 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingCapture | null>(null);
   const [meal, setMeal] = useState<MealLog | null>(null);
+
+
+
   const [dayMeals, setDayMeals] = useState<MealLog[]>(initialDayMeals);
   const [banner, setBanner] = useState<string | null>(null);
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
@@ -45,7 +48,9 @@ export default function App() {
   const [quantityEdits, setQuantityEdits] = useState<Record<number, number | null>>({});
   const [reviewingSavedMealKey, setReviewingSavedMealKey] = useState<string | null>(null);
   const [highlightedMealKey, setHighlightedMealKey] = useState<string | null>(null);
+  const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
 
   useEffect(() => {
     AsyncStorage.getItem(PENDING_KEY)
@@ -87,6 +92,11 @@ export default function App() {
   }
 
   async function submit(source: Omit<PendingCapture, "idempotencyKey">, retryKey?: string, demoRetry = false) {
+    if (source.photo?.uri) {
+      setCapturedImageUri(source.photo.uri);
+    } else if (source.text) {
+      setCapturedImageUri(null);
+    }
     const capture: PendingCapture = { ...source, idempotencyKey: retryKey ?? newIdempotencyKey() };
     setReviewingSavedMealKey(null);
     setMeal(null);
@@ -94,6 +104,7 @@ export default function App() {
     setError(null);
     setAnalysisStep(0);
     setBusy(true);
+
     await persistPending(capture);
     try {
       if (isDemoMode && demoScenarioFor(capture.text) === "empty") {
@@ -119,9 +130,10 @@ export default function App() {
         setHighlightedMealKey(result.idempotency_key);
         setBanner(t("mealAdded"));
         setScreen("day");
-      } else if (result.action === "ask" && result.items.some((item) => item.food_id === "ABSTAIN")) {
+      } else if (result.action === "ask" && (result.items.length === 0 || result.items.some((item) => item.food_id === "ABSTAIN"))) {
         setScreen("abstain");
       } else {
+
         setScreen("review");
       }
     } catch (caught) {
@@ -278,13 +290,24 @@ export default function App() {
         />
       ) : null}
       {screen === "abstain" && meal ? (
-        <AbstentionScreen meal={meal} onDescribe={leaveAbstention} onRetake={leaveAbstention} />
+        <AbstentionScreen
+          meal={meal}
+          imageUri={capturedImageUri}
+          onConfirmObserved={(name) => {
+            void submit({ text: name });
+          }}
+          onDescribe={leaveAbstention}
+          onRetake={leaveAbstention}
+        />
       ) : null}
+
       {screen === "review" && meal ? (
         <ReviewScreen
           meal={meal}
+          imageUri={capturedImageUri}
           expandedItem={expandedItem}
           setExpandedItem={setExpandedItem}
+
           portionEdits={portionEdits}
           setPortionEdits={setPortionEdits}
           quantityEdits={quantityEdits}

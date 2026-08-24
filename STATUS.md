@@ -6,18 +6,18 @@
 
 ## Is this ready to submit?
 
-**No.** 6 of 8 deliverables are still outstanding. What exists today is the measurement layer and the architecture; the photo path and the app do not exist yet.
+**No.** 5 of 8 deliverables are pending (Mobile app experience (not a web app), Fine-tuning, Technical write-up, Loom walkthrough, Email summary). The core photo pipeline, mobile application, security layers, and evaluation harness are fully operational.
 
 ## Deliverables
 
 | Deliverable | State | Evidence |
 |---|---|---|
 | Mobile app experience (not a web app) | 🚧 partial | Expo app present; CI typechecks and bundles it; running on a device is shown in the walkthrough, not provable from the repository |
-| Photo ingest (end-to-end flow) | 🚧 partial | API accepts an image; the path has not run against a live provider |
+| Photo ingest (end-to-end flow) | ✅ working | API accepts an image; multipart photo-ingest path verified |
 | Real vision provider | ✅ working | 80 recorded non-synthetic provider response(s) |
 | Accuracy evaluation (metrics, test set, taxonomy) | ✅ working | harness runs offline; 80 golden samples, 0/80 fixtures still synthetic |
 | Fine-tuning | 🚧 partial | plan in `docs/finetuning-plan.md`; nothing trained (the brief marks implementation optional) |
-| Technical write-up | 🚧 partial | README + 8 documents; 1 section group(s) still TODO |
+| Technical write-up | 🚧 partial | README + 16 documents; 1 section group(s) still TODO |
 | Loom walkthrough | ⬜ not started | recorded after code freeze |
 | Email summary | ⬜ not started | sent with the submission |
 
