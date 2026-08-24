@@ -27,7 +27,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
    - **Closed-Set Resolution (D1):** The model perceives food descriptions, but never produces a calorie number directly. All nutrition is computed deterministically from verified regional composition data (TÜRKOMP / USDA) across 103 canonical foods.
    - **Portion Uncertainty Intervals:** Returns explicit `grams_p10`–`grams_p90` bounds alongside provenance data rather than a hidden point estimate.
    - **Confidence Routing:** Routes items to `auto_accept`, `review`, or `ask` (abstention) with localized Turkish/English clarification questions.
-   - **Security & Privacy (D13):** Edge/Server-side EXIF/GPS scrubbing, PII redaction, rate limiting, and prompt-injection defense.
+   - **Security & Privacy (D13, D14):** Edge/Server-side EXIF/GPS scrubbing, PII text redaction, rate limiting, and prompt-injection defense.
 
 2. **Mobile App (React Native / Expo):**
    - Implements Capture, Review, Day, and Abstention screens.
