@@ -35,7 +35,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
    - Verified on iOS Simulator, Expo Go, and Android bundle exports.
 
 3. **Testing & CI Quality Gates:**
-   - **288 Node.js / Vitest tests** covering edge controllers, adapters, rate limiter, and privacy pipeline.
+   - **292 Node.js / Vitest tests** covering edge controllers, adapters, rate limiter, and privacy pipeline.
    - **289 Python parity tests** for reference normalization, retrieval, and nutrition arithmetic.
    - **80 recorded golden-set fixtures** with regression gate in GitHub Actions CI (`make check`).
 

@@ -46,6 +46,7 @@ function fingerprintRequest(request: MealRequest, input: VisionInput): string {
 /** Edge provider that owns request-level idempotency, not pipeline state. */
 @Injectable()
 export class MealsService {
+  private static readonly MAX_CACHE_SIZE = 5000;
   private readonly completed = new Map<string, CachedEntry>();
   private readonly inFlight = new Map<string, InFlightEntry>();
   private readonly userPurgeGenerations = new Map<string, number>();
@@ -54,6 +55,12 @@ export class MealsService {
     @Inject(VISION_PORT) private readonly vision: VisionPort,
     @Inject(Settings) private readonly runtimeSettings: Settings = settings,
   ) {}
+
+  hasCompleted(userId: string | undefined, idempotencyKey: string): boolean {
+    const normalizedUserId = userId?.trim() || DEMO_USER_ID;
+    const cacheKey = `${normalizedUserId}\u0000${idempotencyKey}`;
+    return this.completed.has(cacheKey);
+  }
 
   async logMeal(
     request: MealRequest,
@@ -172,6 +179,12 @@ export class MealsService {
       );
       const currentGen = this.userPurgeGenerations.get(normalizedUserId) ?? 0;
       if (generation === currentGen) {
+        if (this.completed.size >= MealsService.MAX_CACHE_SIZE) {
+          const oldestEntry = this.completed.keys().next().value;
+          if (oldestEntry) {
+            this.completed.delete(oldestEntry);
+          }
+        }
         this.completed.set(cacheKey, {
           result,
           fingerprint: fingerprintRequest(request, input),
@@ -185,7 +198,7 @@ export class MealsService {
       if (caught instanceof Error && /no recorded response for/i.test(caught.message)) {
         error(
           HttpStatus.UNPROCESSABLE_ENTITY,
-          'fixture replay has no recorded response for this image; for live photo perception configure VISION_PROVIDER=gemini',
+          `fixture replay has no recorded response for '${request.sample_id ?? input.contentHash}'; for live photo perception configure VISION_PROVIDER=gemini`,
         );
       }
       throw caught;

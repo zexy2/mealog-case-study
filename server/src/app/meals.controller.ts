@@ -70,6 +70,7 @@ function parseFields(body: unknown, multipart: boolean): MealRequest {
   if (
     typeof idempotencyKey !== 'string' ||
     idempotencyKey.trim() === '' ||
+    idempotencyKey.length > 256 ||
     typeof config !== 'string' ||
     typeof locale !== 'string'
   ) {
@@ -189,16 +190,21 @@ export class MealsController {
     @Headers('content-type') contentType: string | undefined,
     @Headers('x-user-id') userId: string | undefined,
   ): Promise<unknown> {
-    const rateKey = userId && userId.trim() ? userId.trim() : 'demo-user';
-    const rate = defaultRateLimiter.check(rateKey);
-    if (!rate.allowed) {
-      invalid(
-        HttpStatus.TOO_MANY_REQUESTS,
-        'rate limit exceeded; please wait before logging another meal',
-      );
-    }
     const multipart = (contentType ?? '').toLowerCase().startsWith('multipart/form-data');
     const request = parseFields(body, multipart);
+
+    const isCompleted = this.meals.hasCompleted(userId, request.idempotency_key);
+    if (!isCompleted) {
+      const rateKey = userId && userId.trim() ? userId.trim() : 'demo-user';
+      const rate = defaultRateLimiter.check(rateKey);
+      if (!rate.allowed) {
+        invalid(
+          HttpStatus.TOO_MANY_REQUESTS,
+          'rate limit exceeded; please wait before logging another meal',
+        );
+      }
+    }
+
     const input = inputFor(request, image, multipart);
     return this.meals.logMeal(request, input, userId);
   }
