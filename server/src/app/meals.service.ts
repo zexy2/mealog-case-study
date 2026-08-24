@@ -48,6 +48,7 @@ function fingerprintRequest(request: MealRequest, input: VisionInput): string {
 export class MealsService {
   private readonly completed = new Map<string, CachedEntry>();
   private readonly inFlight = new Map<string, InFlightEntry>();
+  private readonly userPurgeGenerations = new Map<string, number>();
 
   constructor(
     @Inject(VISION_PORT) private readonly vision: VisionPort,
@@ -110,7 +111,8 @@ export class MealsService {
       );
     }
 
-    const result = this.runOnce(cacheKey, request, input, config);
+    const generation = this.userPurgeGenerations.get(normalizedUserId) ?? 0;
+    const result = this.runOnce(cacheKey, request, input, config, normalizedUserId, generation);
     this.inFlight.set(cacheKey, { promise: result, fingerprint: currentFingerprint });
     return result;
   }
@@ -131,6 +133,8 @@ export class MealsService {
    */
   purgeUserData(userId: string): void {
     const normalizedUserId = userId?.trim() || DEMO_USER_ID;
+    const nextGen = (this.userPurgeGenerations.get(normalizedUserId) ?? 0) + 1;
+    this.userPurgeGenerations.set(normalizedUserId, nextGen);
     const prefix = `${normalizedUserId}\u0000`;
     for (const key of this.completed.keys()) {
       if (key.startsWith(prefix)) {
@@ -149,6 +153,8 @@ export class MealsService {
     request: MealRequest,
     input: VisionInput,
     config: Config,
+    normalizedUserId: string,
+    generation: number,
   ): Promise<MealLog> {
     try {
       // The identity of what produced the answer travels with the timing:
@@ -164,10 +170,13 @@ export class MealsService {
           input_mode: this.inputModeOf(input),
         },
       );
-      this.completed.set(cacheKey, {
-        result,
-        fingerprint: fingerprintRequest(request, input),
-      });
+      const currentGen = this.userPurgeGenerations.get(normalizedUserId) ?? 0;
+      if (generation === currentGen) {
+        this.completed.set(cacheKey, {
+          result,
+          fingerprint: fingerprintRequest(request, input),
+        });
+      }
       return result;
     } catch (caught) {
       if (caught instanceof Error && /no locale pack at|unknown locale/i.test(caught.message)) {
