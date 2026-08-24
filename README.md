@@ -2,9 +2,12 @@
 
 mealog is a mobile-first meal logging case study: the model sees food, but never produces a calorie number.
 
-<!-- PENDING: recorded walkthrough link, demo gif -->
-<!-- PENDING: scorecard refresh — issue #218 changes the vision schema and re-records the golden fixtures, so every figure under Results will move -->
-<!-- TODO(when available): Expo QR + deployed API URL -->
+* **Walkthrough Video Guide:** [docs/walkthrough.md](docs/walkthrough.md)
+* **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D13)
+* **EatBetter Comparison:** [CASE-STUDY-GAP-REPORT.md](CASE-STUDY-GAP-REPORT.md) & [docs/comparison.md](docs/comparison.md)
+* **Interview Answers:** [docs/interview_questions_answers.md](docs/interview_questions_answers.md)
+* **Email Submission Draft:** [docs/submission_email_draft.md](docs/submission_email_draft.md)
+
 
 ## Run it
 
@@ -232,4 +235,11 @@ Detailed, evidence-backed answers to the four core case study questions are docu
 4. **Biggest Security / Privacy Risks:** Biometrics & PII in background photos (solved by on-device face blurring & EXIF stripping in [D13](docs/decisions.md#d13)), and Prompt Injection / calorie tampering attacks (prevented by D1 architectural invariant).
 
 
-<!-- PENDING: one concrete model error, how it was caught, and the human override -->
+### Concrete Model Error and Human Override
+
+* **Model Error:** When shown `A2.jpg` (two stacked simits on a plate), Gemini vision returned `count: 1` rather than `null` for occluded instances, and for text input `"haşlanmış makarna"`, it stripped the cooking method into a separate attribute and returned `surface_form: "makarna"`. Without human constraint, the pipeline would have matched dry uncooked pasta nutrition (`tr.makarna_kuru`), undercounting portion mass and severely miscalculating calories.
+* **How it was caught:** Caught by the golden set fixture regression check and offline evaluation harness (`eval/harness.py`).
+* **Human Override:** 
+  1. Enforced strict prompt instructions requiring `count: null` on occluded/stacked food instances to force explicit uncertainty intervals (`grams_p10`–`grams_p90`).
+  2. Appended negative aliases in `locale_packs/tr/aliases.jsonl` for cooked dishes (`"haşlanmış makarna"`, `"haşlanmış bulgur"`) to force `ABSTAIN` / user review instead of silently accepting dry raw ingredient nutrition.
+
