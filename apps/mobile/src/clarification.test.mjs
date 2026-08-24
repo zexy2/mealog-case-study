@@ -85,4 +85,11 @@ assert.match(abstainSource, /saveManualCaloriesButton/);
 assert.match(abstainSource, /abstainOutOfCatalogueTitle/);
 assert.match(abstainSource, /guaranteeCard/);
 
+const daySource = readFileSync(new URL("../screens/Day.tsx", import.meta.url), "utf8");
+assert.match(daySource, /macroCol/);
+assert.match(daySource, /totalCarbs/);
+assert.match(daySource, /totalFat/);
+assert.match(reviewSource, /macroStrip/);
+assert.match(reviewSource, /macroPill/);
+
 console.log("mobile item clarification checks passed");

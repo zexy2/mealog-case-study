@@ -128,6 +128,9 @@ export type StringKey =
   | "loggedSoFar"
   | "dayPortionRange"
   | "protein"
+  | "carbs"
+  | "fat"
+  | "macrosTitle"
   | "meals"
   | "loggedCount"
   | "itemCount"
@@ -321,6 +324,9 @@ export const tr: Dictionary = {
   loggedSoFar: "ŞİMDİYE KADAR",
   dayPortionRange: "Porsiyon toplamı: yaklaşık {midpoint} g ({low}–{high} g)",
   protein: "protein",
+  carbs: "karb",
+  fat: "yağ",
+  macrosTitle: "Besin Değerleri (Makrolar)",
   meals: "ÖĞÜNLER",
   loggedCount: "{count} kayıt",
   itemCount: "{count} öğe",
@@ -509,6 +515,9 @@ export const en: Dictionary = {
   loggedSoFar: "LOGGED SO FAR",
   dayPortionRange: "Total portion: about {midpoint} g ({low}–{high} g)",
   protein: "protein",
+  carbs: "carbs",
+  fat: "fat",
+  macrosTitle: "Nutritional Breakdown (Macros)",
   meals: "MEALS",
   loggedCount: "{count} logged",
   itemCount: "{count} item",

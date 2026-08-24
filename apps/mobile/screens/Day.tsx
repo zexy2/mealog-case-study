@@ -12,6 +12,8 @@ export type DayScreenProps = {
   meals: MealLog[];
   totalCalories: number;
   totalProtein: number;
+  totalCarbs?: number;
+  totalFat?: number;
   highlightedMealKey: string | null;
   onCapture: () => void;
   onOpenMeal: (meal: MealLog) => void;
@@ -53,8 +55,11 @@ export function mealTitle(meal: MealLog) {
   return `${names.slice(0, 2).join(" · ")} (${t("moreItemsCount", { count: names.length - 2 })})`;
 }
 
-export function DayScreen({ meals, totalCalories, totalProtein, highlightedMealKey, onCapture, onOpenMeal, onRemoveMeal, onUndoMeal }: DayScreenProps) {
+export function DayScreen({ meals, totalCalories, totalProtein, totalCarbs, totalFat, highlightedMealKey, onCapture, onOpenMeal, onRemoveMeal, onUndoMeal }: DayScreenProps) {
   const portions = portionTotals(meals);
+  const carbs = totalCarbs ?? meals.reduce((sum, m) => sum + (m.totals.carb_g ?? 0), 0);
+  const fat = totalFat ?? meals.reduce((sum, m) => sum + (m.totals.fat_g ?? 0), 0);
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header eyebrow={t("dayEyebrow")} title={t("dayTitle")} subtitle={formatDate()} />
@@ -73,9 +78,19 @@ export function DayScreen({ meals, totalCalories, totalProtein, highlightedMealK
               <Text style={styles.totalNumber}><Text style={styles.totalApprox}>≈ </Text>{Math.round(totalCalories)}<Text style={styles.totalUnit}> kcal</Text></Text>
               <Text style={styles.totalRange}>{t("dayPortionRange", { midpoint: Math.round(portions.midpoint), low: Math.round(portions.p10), high: Math.round(portions.p90) })}</Text>
             </View>
-            <View style={styles.totalSide}>
-              <Text style={styles.totalSideNumber}>≈ {Math.round(totalProtein)} g</Text>
-              <Text style={styles.totalSideLabel}>{t("protein")}</Text>
+            <View style={styles.macroCol}>
+              <View style={styles.macroItem}>
+                <Text style={styles.macroVal}>≈ {Math.round(totalProtein)}g</Text>
+                <Text style={styles.macroLbl}>{t("protein")}</Text>
+              </View>
+              <View style={styles.macroItem}>
+                <Text style={styles.macroVal}>≈ {Math.round(carbs)}g</Text>
+                <Text style={styles.macroLbl}>{t("carbs")}</Text>
+              </View>
+              <View style={styles.macroItem}>
+                <Text style={styles.macroVal}>≈ {Math.round(fat)}g</Text>
+                <Text style={styles.macroLbl}>{t("fat")}</Text>
+              </View>
             </View>
           </View>
 
@@ -154,9 +169,10 @@ const styles = StyleSheet.create({
   totalApprox: { color: "#AAB5A7", fontSize: 22, letterSpacing: -0.5 },
   totalUnit: { color: "#AAB5A7", fontSize: 17, letterSpacing: 0, fontWeight: "600" },
   totalRange: { color: "#E7C57C", fontSize: 11, lineHeight: 16, marginTop: 6 },
-  totalSide: { alignItems: "flex-end", paddingBottom: 5 },
-  totalSideNumber: { color: "#E7C57C", fontSize: 18, fontWeight: "800" },
-  totalSideLabel: { color: "#AAB5A7", fontSize: 11, marginTop: 2 },
+  macroCol: { alignItems: "flex-end", gap: 3 },
+  macroItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  macroVal: { color: "#E7C57C", fontSize: 13, fontWeight: "800" },
+  macroLbl: { color: "#AAB5A7", fontSize: 10, fontWeight: "700" },
   listHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 27, marginBottom: 10 },
   sectionLabel: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
   listCount: { color: colors.muted, fontSize: 11 },

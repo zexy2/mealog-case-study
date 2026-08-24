@@ -203,6 +203,27 @@ export function ReviewScreen({
                 </View>
               </View>
 
+              {item.nutrients && (item.nutrients.kcal > 0 || item.nutrients.protein_g > 0) ? (
+                <View style={styles.macroStrip}>
+                  <View style={styles.macroPill}>
+                    <Text style={styles.macroPillEmoji}>⚡</Text>
+                    <Text style={styles.macroPillText}>{Math.round(item.nutrients.kcal)} kcal</Text>
+                  </View>
+                  <View style={styles.macroPill}>
+                    <Text style={styles.macroPillEmoji}>🥩</Text>
+                    <Text style={styles.macroPillText}>{Math.round(item.nutrients.protein_g)}g protein</Text>
+                  </View>
+                  <View style={styles.macroPill}>
+                    <Text style={styles.macroPillEmoji}>🌾</Text>
+                    <Text style={styles.macroPillText}>{Math.round(item.nutrients.carb_g)}g karb</Text>
+                  </View>
+                  <View style={styles.macroPill}>
+                    <Text style={styles.macroPillEmoji}>🥑</Text>
+                    <Text style={styles.macroPillText}>{Math.round(item.nutrients.fat_g)}g yağ</Text>
+                  </View>
+                </View>
+              ) : null}
+
               {clarification?.kind === "count" ? (
                 <View style={styles.questionCard}>
                   <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
@@ -442,6 +463,10 @@ export function ReviewScreen({
                     label={t("portionProvenance")}
                     value={item.portion_provenance?.includes("default_serving") ? `Katalog tanımı (${Math.round(grams)} g)` : item.portion_provenance ?? t("pending")}
                   />
+                  <AuditRow
+                    label={t("macrosTitle")}
+                    value={`${Math.round(item.nutrients.kcal)} kcal · ${Math.round(item.nutrients.protein_g)}g protein · ${Math.round(item.nutrients.carb_g)}g karb · ${Math.round(item.nutrients.fat_g)}g yağ`}
+                  />
                 </View>
               ) : null}
 
@@ -552,6 +577,10 @@ const styles = StyleSheet.create({
   itemMatch: { color: colors.ink, fontSize: 16, fontWeight: "800", marginTop: 3 },
   quantityText: { color: colors.muted, fontSize: 11, marginTop: 5 },
   statusBadgesCol: { alignItems: "flex-end", gap: 5 },
+  macroStrip: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.line },
+  macroPill: { flexDirection: "row", alignItems: "center", backgroundColor: colors.paper, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 4, gap: 4 },
+  macroPillEmoji: { fontSize: 10 },
+  macroPillText: { fontSize: 11, fontWeight: "700", color: colors.ink },
   confidencePill: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5 },
   confidenceHigh: { backgroundColor: colors.mossSoft },
   confidenceMed: { backgroundColor: "#FBF1D8" },
