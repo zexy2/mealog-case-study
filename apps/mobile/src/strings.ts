@@ -119,6 +119,7 @@ export type StringKey =
   | "exactGrams"
   | "quantity"
   | "quantityUnknown"
+  | "quantityPending"
   | "quantityValue"
   | "itemWithQuantity"
   | "itemUnknownQuantity"
@@ -192,6 +193,10 @@ export type StringKey =
   | "portionChoiceLess"
   | "portionChoiceMore"
   | "confirmPortionRequired"
+  | "saveBlockedCountHint"
+  | "countAnswerRequired"
+  | "countRecalculationPending"
+  | "countUnknownAccepted"
   | "moreItemsCount";
 
 type Dictionary = Record<StringKey, string>;
@@ -308,17 +313,18 @@ export const tr: Dictionary = {
   alternates: "DEĞERLENDİRİLEN ALTERNATİFLER",
   whyResult: "Nasıl bulundu?",
   traceDecision: "Besin Şeffaflığı ve Doğrulama Kararı",
-  matchedFoodId: "Eşleşen Yemek / Besin",
+  matchedFoodId: "Katalog eşleşmesi",
 
 
   sourceDatabase: "Kaynak Veritabanı",
   catalogueProvenance: "Resmi Veri Tabanı",
   portionSource: "Porsiyon Kaynağı",
-  portionProvenance: "Porsiyon Kanıtı",
-  confidence: "Model Güven Oranı",
-  exactGrams: "Hesaplanan Net Ağırlık",
-  quantity: "Tespit Edilen Miktar",
-  quantityUnknown: "1 Porsiyon (Standart)",
+  portionProvenance: "Porsiyon dayanağı",
+  confidence: "Yemek eşleşmesi güveni",
+  exactGrams: "Kayda esas ağırlık",
+  quantity: "Adet / miktar",
+  quantityUnknown: "Miktar belirsiz · standart porsiyon",
+  quantityPending: "Adet yanıtı bekleniyor",
   quantityValue: "{quantity}{unit}",
   itemWithQuantity: "{quantity}{unit} {name}",
   itemUnknownQuantity: "{name}",
@@ -392,6 +398,10 @@ export const tr: Dictionary = {
   portionChoiceLess: "Daha az",
   portionChoiceMore: "Daha çok",
   confirmPortionRequired: "Devam etmek için porsiyonu doğrula",
+  saveBlockedCountHint: "Devam etmek için adet seç veya “Emin değilim” de.",
+  countAnswerRequired: "Adet yanıtı gelmeden gram aralığı ve besin değerleri gösterilmez.",
+  countRecalculationPending: "Seçtiğin adede göre gram aralığı ve besin değerleri kaydettiğinde sunucuda güncellenecek.",
+  countUnknownAccepted: "Miktar belirsiz kaldığı için standart katalog porsiyonu kullanılacak.",
   moreItemsCount: "+{count} öğe daha",
 };
 
@@ -514,6 +524,7 @@ export const en: Dictionary = {
   exactGrams: "Exact grams used",
   quantity: "QUANTITY",
   quantityUnknown: "Quantity unknown · review",
+  quantityPending: "Waiting for count answer",
   quantityValue: "Quantity: {quantity}{unit}",
   itemWithQuantity: "{quantity}{unit} {name}",
   itemUnknownQuantity: "{name} · quantity unknown",
@@ -587,6 +598,10 @@ export const en: Dictionary = {
   portionChoiceLess: "Less",
   portionChoiceMore: "More",
   confirmPortionRequired: "Confirm portion to continue",
+  saveBlockedCountHint: "Select a count or choose “I am not sure” to continue.",
+  countAnswerRequired: "Portion range and nutrients stay hidden until the count is answered.",
+  countRecalculationPending: "The server will update the portion range and nutrients for this count when you save.",
+  countUnknownAccepted: "Because quantity remains unknown, the standard catalogue portion will be used.",
   moreItemsCount: "+{count} more items",
 };
 

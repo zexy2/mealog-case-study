@@ -42,6 +42,13 @@ const corrections = buildMealCorrections(meal, {}, {}, { 0: 2 });
 assert.deepEqual(corrections, [{ item_index: 0, quantity: 2, unit: "adet" }]);
 assert.equal("nutrients" in corrections[0], false, "mobile must never send client nutrients");
 
+const { countAnswerPending, computedValuesNeedServerRefresh } = await import("./reviewState.ts");
+assert.equal(countAnswerPending(meal.items[0], false), true, "an unanswered count must remain pending");
+assert.equal(computedValuesNeedServerRefresh(meal.items[0], false, null), true, "pending count hides stale computed values");
+assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, 2), true, "numeric count waits for server recalculation");
+assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, null), false, "explicit uncertainty may retain the default band");
+assert.equal(computedValuesNeedServerRefresh(meal.items[1], false, 1), false, "non-count items keep their server-provided band");
+
 const knownQuantityMeal = { ...meal, items: [{ ...meal.items[0], quantity: 1 }, meal.items[1]] };
 const changed = buildMealCorrections(knownQuantityMeal, { 0: 120 }, { 0: "tr.simit" }, { 0: null });
 assert.deepEqual(changed, [{ item_index: 0, quantity: null, unit: "adet", grams: 120 }]);
@@ -52,6 +59,7 @@ assert.equal(saved[0].totals.kcal, 500);
 assert.equal(removeSavedMeal([meal], meal.idempotency_key).length, 0, "removal must delete local Day record");
 
 const reviewSource = readFileSync(new URL("../screens/Review.tsx", import.meta.url), "utf8");
+const appSource = readFileSync(new URL("../App.tsx", import.meta.url), "utf8");
 const apiSource = readFileSync(new URL("./api.ts", import.meta.url), "utf8");
 assert.match(reviewSource, /clarification\.kind === "count"/);
 assert.match(reviewSource, /quantityUnit/);
@@ -63,6 +71,10 @@ assert.match(reviewSource, /isSaveDisabled/);
 assert.match(reviewSource, /stickyFooter/);
 assert.match(reviewSource, /stepperInput/);
 assert.match(reviewSource, /Math\.max\(1/);
+assert.match(reviewSource, /computedValuesNeedServerRefresh/);
+assert.match(reviewSource, /deferredValuesCard/);
+assert.match(reviewSource, /footerHint/);
+assert.match(appSource, /SafeAreaProvider/);
 assert.match(apiSource, /\/v1\/meals\/correct/);
 assert.doesNotMatch(apiSource, /corrections\s*\}[\s\S]*nutrients/);
 
