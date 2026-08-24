@@ -62,8 +62,8 @@ Rules:
   distinctly visible. Overlapping, stacked, cropped, or occluded instances must
   return \`count: null\`; never guess. Two stacked simit rings are an occluded
   arrangement: return \`count: null\` even if two rings appear recognisable.
-- On a plate or meal with multiple distinct edible components (such as meat/fish alongside side vegetables, potatoes, rice, salad, bread, or drink), report each distinct edible food component as an item in the items list.
-- Never count liquid volume, pixels, or a serving container as multiple food instances. Do not report non-food objects (cutlery, wallet, receipt, table), inedible garnish, decorative leaves, or unidentifiable background as separate food items. Do not add ABSTAIN or other placeholder items.
+- Never count liquid volume, pixels, or a serving container as multiple food instances. Do not report non-food objects (cutlery, wallet, receipt, table), inedible garnish, decorative leaves, lemon wedges, herbs/seasoning, or unidentifiable background as separate food items. Return only the primary prepared food dishes and distinct edible side dishes. Do not add ABSTAIN or other placeholder items.
+
 
 
 - \`count\` is the only count field. Keep \`portion_hint\` non-numeric: use a

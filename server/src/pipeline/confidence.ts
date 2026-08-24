@@ -64,6 +64,10 @@ export function captureMediumQuestion(item: MealLog['items'][number]): string | 
     : CAPTURE_MEDIUM_QUESTIONS[item.capture_medium] ?? CAPTURE_MEDIUM_QUESTIONS.unclear;
 }
 
+function isTrLocale(locale: string): boolean {
+  return (locale || '').toLowerCase().startsWith('tr');
+}
+
 /** Route a meal log in place, preserving identity confidence and question text. */
 export function route(log: MealLog): MealLog {
   if (log.degraded) {
@@ -73,7 +77,9 @@ export function route(log: MealLog): MealLog {
 
   if (log.items.length === 0) {
     log.action = 'ask';
-    log.question = 'I could not read this meal. What did you eat?';
+    log.question = isTrLocale(log.locale)
+      ? 'Bu öğünü okuyamadım. Ne yediniz?'
+      : 'I could not read this meal. What did you eat?';
     return log;
   }
 
@@ -87,7 +93,9 @@ export function route(log: MealLog): MealLog {
   const unknown = log.items.find(isAbstained);
   if (unknown !== undefined) {
     log.action = 'ask';
-    log.question = `I could not match '${unknown.query}'. Which of these is closest?`;
+    log.question = isTrLocale(log.locale)
+      ? `'${unknown.query}' için güvenli bir eşleşme bulunamadı. Hangisi en yakın?`
+      : `I could not match '${unknown.query}'. Which of these is closest?`;
     return log;
   }
 
@@ -108,9 +116,12 @@ export function route(log: MealLog): MealLog {
       candidate.confidence < current.confidence ? candidate : current,
     );
     log.action = 'ask';
-    log.question = `Is '${item.query}' ${item.candidates[0]?.name ?? 'correct'}?`;
+    log.question = isTrLocale(log.locale)
+      ? `'${item.query}' aslında ${item.candidates[0]?.name ?? 'bu yemek'} mi?`
+      : `Is '${item.query}' ${item.candidates[0]?.name ?? 'correct'}?`;
   } else {
     log.action = 'review';
   }
   return log;
 }
+

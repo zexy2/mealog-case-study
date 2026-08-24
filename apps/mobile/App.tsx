@@ -40,7 +40,8 @@ export default function App() {
 
 
 
-  const [dayMeals, setDayMeals] = useState<MealLog[]>(initialDayMeals);
+  const [dayMeals, setDayMeals] = useState<MealLog[]>(isDemoMode ? initialDayMeals : []);
+
   const [banner, setBanner] = useState<string | null>(null);
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
   const [portionEdits, setPortionEdits] = useState<Record<number, number>>({});
@@ -249,6 +250,28 @@ export default function App() {
     setBanner(t("mealUndone"));
   }
 
+  function handleSelectCandidateFromAbstain(candidate: Candidate, itemIndex: number) {
+    if (!meal) return;
+    const updatedItems = [...meal.items];
+    if (updatedItems[itemIndex]) {
+      updatedItems[itemIndex] = {
+        ...updatedItems[itemIndex],
+        food_id: candidate.food_id,
+        confidence: candidate.score,
+        candidates: updatedItems[itemIndex].candidates.length > 0 ? updatedItems[itemIndex].candidates : [candidate],
+      };
+    }
+    const updatedMeal: MealLog = {
+      ...meal,
+      items: updatedItems,
+      action: "review",
+    };
+    setMeal(updatedMeal);
+    setSelectedCandidates((curr) => ({ ...curr, [itemIndex]: candidate.food_id }));
+    setScreen("review");
+    setBanner(t("mealAdded"));
+  }
+
   function leaveAbstention() {
     setMeal(null);
     setText("");
@@ -296,10 +319,12 @@ export default function App() {
           onConfirmObserved={(name) => {
             void submit({ text: name });
           }}
+          onSelectCandidateDirectly={handleSelectCandidateFromAbstain}
           onDescribe={leaveAbstention}
           onRetake={leaveAbstention}
         />
       ) : null}
+
 
       {screen === "review" && meal ? (
         <ReviewScreen

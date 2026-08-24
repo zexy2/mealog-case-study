@@ -14,7 +14,8 @@
 {"food_id": "tr.salatalik", "alias": ["salatalik", "salatalık", "hiyar", "hıyar", "cengelköy salatalik"]}
 {"food_id": "tr.yogurt_tam_yagli", "alias": ["yogurt", "yoğurt", "tam yagli yogurt", "kase yogurt", "ev yogurdu"]}
 {"food_id": "tr.sucuk", "alias": ["sucuk", "kangal sucuk", "dana sucuk", "kizarmis sucuk", "ızgara sucuk"]}
-{"food_id": "tr.yumurta_tavuk", "alias": ["yumurta", "haslanmis yumurta", "haşlanmış yumurta", "lop yumurta"], "negative_alias": ["sucuklu yumurta", "sucuk yumurta"], "note": "Regional near-neighbour: sucuklu yumurta includes sucuk and is not a plain egg."}
+{"food_id": "tr.yumurta_tavuk", "alias": ["yumurta", "haslanmis yumurta", "haşlanmış yumurta", "lop yumurta"], "negative_alias": ["sucuklu yumurta", "sucuk yumurta", "haşlanmış makarna", "haslanmis makarna", "pişmiş makarna", "pismis makarna", "haşlanmış bulgur", "haslanmis bulgur", "haşlanmış mantı", "haslanmis manti"], "note": "Regional near-neighbour: sucuklu yumurta includes sucuk and is not a plain egg. Cooked grains and pasta must not match boiled egg."}
+
 {"food_id": "tr.makarna_kuru", "alias": [], "negative_alias": ["haşlanmış makarna", "haslanmis makarna", "pişmiş makarna", "pismis makarna"], "note": "Cooked pasta has no sourced counterpart in this pack; keep the cooked query abstained rather than using dry nutrition."}
 {"food_id": "tr.bulgur_kuru", "alias": [], "negative_alias": ["haşlanmış bulgur", "haslanmis bulgur"], "note": "Cooked bulgur has no sourced counterpart in this pack; keep the cooked query abstained rather than using dry nutrition."}
 {"food_id": "tr.ezogelin_kuru", "alias": [], "negative_alias": ["ezogelin çorbası", "ezogelin corbasi"], "note": "Prepared ezogelin soup has no sourced counterpart in this pack; keep the cooked query abstained rather than using dry nutrition."}

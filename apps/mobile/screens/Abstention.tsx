@@ -11,11 +11,19 @@ export type AbstentionScreenProps = {
   meal: MealLog;
   imageUri?: string | null;
   onConfirmObserved?: (foodName: string) => void;
+  onSelectCandidateDirectly?: (candidate: Candidate, itemIndex: number) => void;
   onDescribe: () => void;
   onRetake: () => void;
 };
 
-export function AbstentionScreen({ meal, imageUri, onConfirmObserved, onDescribe, onRetake }: AbstentionScreenProps) {
+export function AbstentionScreen({
+  meal,
+  imageUri,
+  onConfirmObserved,
+  onSelectCandidateDirectly,
+  onDescribe,
+  onRetake,
+}: AbstentionScreenProps) {
   const isEmptyPlate = meal.items.length === 0;
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -61,10 +69,13 @@ export function AbstentionScreen({ meal, imageUri, onConfirmObserved, onDescribe
     const updated = [...customItems];
     updated[itemIdx] = candidate.name;
     setCustomItems(updated);
-    if (onConfirmObserved) {
-      onConfirmObserved(updated.join(", "));
+    if (onSelectCandidateDirectly) {
+      onSelectCandidateDirectly(candidate, itemIdx);
+    } else if (onConfirmObserved) {
+      onConfirmObserved(candidate.name);
     }
   }
+
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
