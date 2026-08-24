@@ -59,6 +59,8 @@ assert.match(reviewSource, /setQuantityEdits/);
 assert.match(reviewSource, /accessibilityLabel=\{option === null/);
 assert.match(reviewSource, /hasUnansweredCountClarification/);
 assert.match(reviewSource, /needsPortionConfirmation/);
+assert.match(reviewSource, /isSaveDisabled/);
+assert.match(reviewSource, /stickyFooter/);
 assert.match(apiSource, /\/v1\/meals\/correct/);
 assert.doesNotMatch(apiSource, /corrections\s*\}[\s\S]*nutrients/);
 
