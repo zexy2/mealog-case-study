@@ -11,7 +11,7 @@ Date: 2026-08-23
 
 No repository README, source, data, evaluator, baseline, or mobile file was
 changed. All project commands ran in a fresh clone with a clean temporary HOME
-and no inherited project environment variables. `GEMINI_API_KEY=ABSENT` was
+and no inherited project environment variables. `GEMINI_API_KEY=<REDACTED>` was
 verified before project commands. Default provider remained fixture.
 
 The first isolated `git clone` preflight failed because this private repository
@@ -30,7 +30,7 @@ RESULT: rc=0
 HEAD=6b05422dfdc4e29d0d77e833637f2c9f5fd7235f
 SHALLOW=false
 COMMITS=390
-GEMINI_API_KEY=ABSENT
+GEMINI_API_KEY=<REDACTED>
 ```
 
 A reviewer therefore needs private-repository GitHub credentials before README
