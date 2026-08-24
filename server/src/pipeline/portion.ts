@@ -143,6 +143,12 @@ function leadingCount(value: string): { count: number; unit: string } | undefine
   return { count, unit: match[2] };
 }
 
+function isPieceServingUnit(unit: string | null | undefined): boolean {
+  if (!unit) return false;
+  const n = normalizeServingUnit(unit);
+  return n === 'adet' || n === 'piece' || n === 'tane' || n === 'dilim' || n === 'slice';
+}
+
 function cataloguePerUnitGrams(
   food: CanonicalFood,
   requestedUnit: PortionUnit,
@@ -150,7 +156,10 @@ function cataloguePerUnitGrams(
   if (!requestedUnit) return undefined;
   const serving = leadingCount(food.default_serving_name);
   if (serving === undefined) return undefined;
-  if (normalizeServingUnit(serving.unit) !== normalizeServingUnit(requestedUnit)) {
+  if (
+    normalizeServingUnit(serving.unit) !== normalizeServingUnit(requestedUnit) &&
+    !(isPieceServingUnit(serving.unit) && isPieceServingUnit(requestedUnit))
+  ) {
     return undefined;
   }
   return food.default_serving_g / serving.count;
@@ -231,10 +240,19 @@ export function estimate(
   let provenance = `catalogue.default_serving_g=${formatNumber(food.default_serving_g)}`;
 
   if (countOrigin === 'vision' && quantity !== null && quantity !== undefined) {
-    grams = food.default_serving_g * quantity;
-    spread = CATALOGUE_DEFAULT_SCALED_SPREAD;
-    source = 'vision_count';
-    provenance = `count=${formatNumber(quantity)}; count_origin=vision; fallback=catalogue.default_serving_g=${formatNumber(food.default_serving_g)}; unit=unknown`;
+    const serving = food.default_serving_name ? leadingCount(food.default_serving_name) : undefined;
+    if (serving && isPieceServingUnit(serving.unit)) {
+      const perPieceGrams = food.default_serving_g / serving.count;
+      grams = perPieceGrams * quantity;
+      spread = spreadForUnit(quantity);
+      source = 'explicit_unit';
+      provenance = `count=${formatNumber(quantity)}; count_origin=vision; per_piece_g=${formatNumber(perPieceGrams)}; source=catalogue_serving`;
+    } else {
+      grams = food.default_serving_g * quantity;
+      spread = CATALOGUE_DEFAULT_SCALED_SPREAD;
+      source = 'vision_count';
+      provenance = `count=${formatNumber(quantity)}; count_origin=vision; fallback=catalogue.default_serving_g=${formatNumber(food.default_serving_g)}; unit=unknown`;
+    }
   } else {
     const perUnitGrams = cataloguePerUnitGrams(food, unit);
     if (perUnitGrams !== undefined) {

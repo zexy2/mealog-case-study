@@ -1,12 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import { buildDemoMeal } from "./demoData";
 import { demoScenarioFor } from "./demoScenarios";
 import { inferImageMimeAndName } from "./mime";
 import { t } from "./strings";
 import { MealCorrection, MealLog, PendingCapture } from "./types";
 
-const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
-const demoMode = process.env.EXPO_PUBLIC_DEMO_MODE !== "false" || !apiUrl;
+const defaultLocalApiUrl = Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
+const apiUrl = (process.env.EXPO_PUBLIC_API_URL || defaultLocalApiUrl).replace(/\/$/, "");
+const demoMode = process.env.EXPO_PUBLIC_DEMO_MODE === "true";
 const fixtureSampleId = process.env.EXPO_PUBLIC_FIXTURE_SAMPLE_ID;
 
 export const isDemoMode = demoMode;

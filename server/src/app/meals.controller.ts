@@ -22,6 +22,7 @@ import { VisionInput } from '../pipeline/ports';
 import { sanitizeImageBuffer, sanitizePromptInput } from '../pipeline/privacy';
 import type { MealLog } from '../domain/models';
 import type { CorrectionRequest, ItemCorrection } from '../pipeline/correction';
+import { recordTelemetryEvent, type TelemetryEventType, type TelemetryItemDelta } from '../pipeline/telemetry';
 
 import { MealsService, type MealRequest } from './meals.service';
 import { defaultRateLimiter } from './rate-limiter';
@@ -179,10 +180,87 @@ export class MealsController {
     @Inject(Settings) private readonly runtimeSettings: Settings = settings,
   ) {}
 
+  @Post('telemetry/events')
+  @HttpCode(HttpStatus.ACCEPTED)
+  logTelemetry(
+    @Body() body: unknown,
+    @Headers('x-user-id') userId: string | undefined,
+  ): { status: string; event_id?: string } {
+    const rateKey = userId && userId.trim() ? userId.trim() : 'telemetry-anonymous';
+    const rate = defaultRateLimiter.check(rateKey);
+    if (!rate.allowed) {
+      invalid(
+        HttpStatus.TOO_MANY_REQUESTS,
+        'telemetry rate limit exceeded; please wait before sending events',
+      );
+    }
+    if (!isRecord(body)) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'invalid telemetry payload');
+    }
+    const rawItems = Array.isArray(body.items) ? body.items : [];
+    if (rawItems.length > 50) {
+      invalid(HttpStatus.PAYLOAD_TOO_LARGE, 'telemetry event items exceed limit of 50');
+    }
+    const items: TelemetryItemDelta[] = rawItems
+      .filter((it): it is Record<string, unknown> => isRecord(it))
+      .map((it) => ({
+        original_query: typeof it.original_query === 'string' ? it.original_query : undefined,
+        predicted_food_id: typeof it.predicted_food_id === 'string' ? it.predicted_food_id : undefined,
+        selected_food_id: typeof it.selected_food_id === 'string' ? it.selected_food_id : undefined,
+        predicted_grams: typeof it.predicted_grams === 'number' ? it.predicted_grams : undefined,
+        selected_grams: typeof it.selected_grams === 'number' ? it.selected_grams : undefined,
+        predicted_quantity: typeof it.predicted_quantity === 'number' ? it.predicted_quantity : undefined,
+        selected_quantity: typeof it.selected_quantity === 'number' ? it.selected_quantity : undefined,
+        confidence: typeof it.confidence === 'number' ? it.confidence : undefined,
+        delta_reason: typeof it.delta_reason === 'string' ? it.delta_reason : undefined,
+      }));
+
+    const eventType = typeof body.event_type === 'string'
+      ? (body.event_type as TelemetryEventType)
+      : 'CONFIRMED_AS_IS';
+    const inputMode = body.input_mode === 'text' || body.input_mode === 'sample_id'
+      ? body.input_mode
+      : 'image';
+    const localeStr = typeof body.locale === 'string' ? body.locale : 'tr';
+    const idempotencyKeyStr = typeof body.idempotency_key === 'string' ? body.idempotency_key : 'unknown';
+
+    const event = recordTelemetryEvent({
+      locale: localeStr,
+      idempotency_key: idempotencyKeyStr,
+      event_type: eventType,
+      input_mode: inputMode,
+      items,
+      total_kcal_before: typeof body.total_kcal_before === 'number' ? body.total_kcal_before : undefined,
+      total_kcal_after: typeof body.total_kcal_after === 'number' ? body.total_kcal_after : undefined,
+    });
+    return { status: 'recorded', event_id: event.event_id };
+  }
+
   @Post('meals/correct')
   @HttpCode(HttpStatus.OK)
   correct(@Body() body: unknown): MealLog {
-    return this.meals.correctMeal(parseCorrectionRequest(body));
+    const parsed = parseCorrectionRequest(body);
+    const corrected = this.meals.correctMeal(parsed);
+
+    // Record high-loss correction telemetry for continuous learning
+    recordTelemetryEvent({
+      locale: corrected.locale ?? 'tr',
+      idempotency_key: corrected.idempotency_key,
+      event_type: 'CANDIDATE_SWAPPED',
+      input_mode: 'image',
+      items: parsed.corrections.map((c, idx) => ({
+        original_query: parsed.meal.items[idx]?.query,
+        predicted_food_id: parsed.meal.items[idx]?.food_id,
+        selected_food_id: c.food_id,
+        predicted_grams: parsed.meal.items[idx]?.grams,
+        selected_grams: c.grams ?? parsed.meal.items[idx]?.grams,
+        delta_reason: 'user_correction_api',
+      })),
+      total_kcal_before: parsed.meal.totals?.kcal,
+      total_kcal_after: corrected.totals?.kcal,
+    });
+
+    return corrected;
   }
 
   @Post('meals')

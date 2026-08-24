@@ -8,6 +8,7 @@ export type StringKey =
   | "cameraPermission"
   | "allowCamera"
   | "liveCamera"
+  | "frameHint"
   | "takePlatePhoto"
   | "choosePhoto"
   | "tellMe"
@@ -68,6 +69,7 @@ export type StringKey =
   | "suggestDishPrototypeCopy"
   | "searchCatalogueButton"
   | "saveAsUncaloriedNoteButton"
+  | "saveAnywayLabel"
   | "saveManualCaloriesButton"
   | "manualCaloriesPrompt"
   | "manualCaloriesPlaceholder"
@@ -282,12 +284,13 @@ export const tr: Dictionary = {
   abstainOutOfCatalogueSubtitle: "Fotoğraftaki öğün için güvenli bir katalog eşleşmesi oluşmadı. Resmi laboratuvar besin verisi olmadan kalori eklemedik.",
   abstainGenericMealName: "Katalog dışı öğün",
   abstainHonestGuarantee: "Mealog yalnızca resmi laboratuvar (TÜRKOMP) verisiyle çalışır; katalog dışı yemeklere tahmini/sahte kalori atamaz.",
-  suggestDishButton: "Yemeği Kataloğa Öner (Konsept)",
-  suggestDishSuccess: "Öneri kaydedildi (prototip)",
+  suggestDishButton: "Yemeği Kataloğa Öner",
+  suggestDishSuccess: "Öneri kaydedildi",
   suggestDishPrototypeTitle: "Öneri kaydedildi (prototip)",
   suggestDishPrototypeCopy: "“{dish}” önerisi bu cihazda işaretlendi. Üretim sürümünde kullanıcı onayıyla anonimleştirilmiş katalog geri bildirim akışına iletilir.",
   searchCatalogueButton: "Katalogda Başka Yemek Ara",
   saveAsUncaloriedNoteButton: "Cihaza Kalorisiz Not Olarak Kaydet",
+  saveAnywayLabel: "BU ÖĞÜNÜ YİNE DE KAYDET",
   saveManualCaloriesButton: "Cihaza Manuel Kalori Gir",
   manualCaloriesPrompt: "Bu cihaz için manuel kalori girin (Yerel Kullanıcı Girişi olarak saklanır):",
   manualCaloriesPlaceholder: "Örn. 350",
@@ -303,13 +306,13 @@ export const tr: Dictionary = {
   abstainCode: "GÜVENLİ EŞLEŞME YOK · TAHMİN YAPILMADI",
   abstainNoCandidates: "Bu öğün için aday bulunamadı.",
   emptyPlateEyebrow: "YEMEK BULUNAMADI",
-  emptyPlateTitle: "Tabakta Yemek Görünmüyor.",
-  emptyPlateSubtitle: "Boş tabak veya yiyecek dışı görüntü",
-  emptyPlateCopy: "Bu fotoğrafta yenilebilir bir yemek tespit edilemedi (boş tabak veya yiyecek dışı görüntü). Lütfen ne yediğini kendin yaz veya yeni bir fotoğraf çek.",
-  emptyPlateOverrideButton: "Tabakta Yemek Vardı, Kendim Yazayım",
-  emptyPlateOverridePrompt: "Fotoğrafta ne yediğini yaz (katalogda aranacak):",
-  emptyPlateOverridePlaceholder: "Örn: Hamburger, patates kızartması...",
-  emptyPlateOverrideSubmit: "Ara ve Eşleştir",
+  emptyPlateTitle: "Yemek veya İçecek Tespit Edilemedi.",
+  emptyPlateSubtitle: "Yiyecek dışı metin, boş tabak veya net olmayan girdi",
+  emptyPlateCopy: "Gönderilen girdi veya fotoğrafta yenilebilir bir yemek/içecek tespit edilemedi (boş tabak, yemek dışı metin veya belirsiz görüntü). Lütfen ne yediğinizi yazın veya yeni bir fotoğraf çekin.",
+  emptyPlateOverrideButton: "Yemek Adını Kendim Yazayım",
+  emptyPlateOverridePrompt: "Ne yediğinizi yazın (katalogda aranacak):",
+  emptyPlateOverridePlaceholder: "Örn: Kuru fasulye, simit, mercimek çorbası...",
+  emptyPlateOverrideSubmit: "Katalogda Ara ve Eşleştir",
   uploadedPhotoBadge: "Yüklenen Fotoğraf",
   mealPhotoBadge: "Öğün Fotoğrafı",
   privacyBadgeSafe: "EXIF & Konum Temizlendi",
@@ -394,6 +397,7 @@ export const tr: Dictionary = {
   analysisStepMatching: "Katalogda eşleşme aranıyor",
   analysisStepPortion: "Porsiyon tahmin ediliyor",
   analysisFootnote: "Besin değerlerini model hesaplamaz.",
+  frameHint: "Tabağı çerçeveye sığdır",
   degradedTitle: "Yanıt zayıf kanıtla geldi",
   degradedCopy: "Sağlayıcı geri dönüşü kullanıldı. Kaydetmeden önce sonucu kontrol et.",
   navCapture: "Ekle",
@@ -503,12 +507,13 @@ export const en: Dictionary = {
   abstainOutOfCatalogueSubtitle: "No safe catalogue match was found for the meal in this photo. We did not add calories without verified laboratory data.",
   abstainGenericMealName: "Out-of-catalogue meal",
   abstainHonestGuarantee: "Mealog strictly relies on verified laboratory data (TÜRKOMP/USDA); no hallucinated calories are ever assigned.",
-  suggestDishButton: "Suggest Dish to Catalogue (Concept)",
-  suggestDishSuccess: "Suggestion noted (prototype)",
+  suggestDishButton: "Suggest Dish to Catalogue",
+  suggestDishSuccess: "Suggestion saved",
   suggestDishPrototypeTitle: "Suggestion noted (prototype)",
   suggestDishPrototypeCopy: "“{dish}” is marked on this device. In production, it would be sent to an anonymized catalogue feedback flow with user consent.",
   searchCatalogueButton: "Search Different Food in Catalogue",
   saveAsUncaloriedNoteButton: "Save Local Note to Device (No Calories)",
+  saveAnywayLabel: "SAVE THIS MEAL ANYWAY",
   saveManualCaloriesButton: "Enter Manual Calories on Device",
   manualCaloriesPrompt: "Enter manual calories for this device (saved as Local User Entry):",
   manualCaloriesPlaceholder: "e.g. 350",
@@ -524,13 +529,13 @@ export const en: Dictionary = {
   abstainCode: "ABSTAIN · NO GUESS",
   abstainNoCandidates: "No candidates were found for this meal.",
   emptyPlateEyebrow: "NO FOOD DETECTED",
-  emptyPlateTitle: "No Food Visible on Plate.",
-  emptyPlateSubtitle: "Empty plate or non-food image",
-  emptyPlateCopy: "No edible food could be detected in this photo (empty plate or non-food image). Please type what you ate or take a new photo.",
-  emptyPlateOverrideButton: "Food Was on Plate, I Will Type It",
+  emptyPlateTitle: "No Food or Drink Detected.",
+  emptyPlateSubtitle: "Non-food text, empty plate, or unclear input",
+  emptyPlateCopy: "No edible food or drink could be detected in this input (empty plate, non-food text, or unclear image). Please type what you ate or take a new photo.",
+  emptyPlateOverrideButton: "Type Food Name Myself",
   emptyPlateOverridePrompt: "Type what you ate (will be searched in catalogue):",
-  emptyPlateOverridePlaceholder: "e.g. Hamburger, french fries...",
-  emptyPlateOverrideSubmit: "Search and Match",
+  emptyPlateOverridePlaceholder: "e.g. Rice, soup, bagel, eggs...",
+  emptyPlateOverrideSubmit: "Search and Match in Catalogue",
   uploadedPhotoBadge: "Uploaded Photo",
   mealPhotoBadge: "Meal Photo",
   privacyBadgeSafe: "EXIF & Location Stripped",
@@ -612,6 +617,7 @@ export const en: Dictionary = {
   analysisStepMatching: "Matching to the catalogue",
   analysisStepPortion: "Estimating portion",
   analysisFootnote: "No nutrient numbers come from the model.",
+  frameHint: "Fit the plate inside the frame",
   degradedTitle: "Response arrived with weak evidence",
   degradedCopy: "A provider fallback was used. Review this result before saving it.",
   navCapture: "Capture",

@@ -372,3 +372,17 @@ the measured numbers do not move.
 **Cost.** The boundary between prototype UX and production infrastructure is explicitly documented rather than left ambiguous.
 
 
+
+---
+
+## D17 — Portion uncertainty gate is shipped and active
+
+**Decision.** The portion-uncertainty gate (`portionConfidence`) is explicitly enabled in the TypeScript pipeline (`effectiveConfidence`). A meal whose portion cannot be resolved to a confident narrow interval (e.g. unknown density, stacked items) is gated from `AUTO_ACCEPT` and routed to `review` or `ask`.
+
+**Supersedes.** D11, which deliberately parked the gate.
+
+**Rejected.** Reverting the codebase to match D11 and hiding portion uncertainty from the confidence routing. The gate is a core safety mechanism that prevents silent massive calorie errors caused by visual miscounts or density assumptions.
+
+**Constraint.** Auto-accepting a meal with a 200+ kcal uncertainty interval violates the product's trust boundary. The UI must ask the user for confirmation when the visual evidence is insufficient to count or size the food.
+
+**Cost.** The measured `AUTO_ACCEPT` rate on the offline golden set drops (to 0 on the 80 samples), increasing user friction by requiring a tap in the Review screen. This is an explicit trade-off: safety and explicit confirmation over frictionless but potentially wrong logging.

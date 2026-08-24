@@ -382,6 +382,7 @@ describe('POST /v1/meals', () => {
     for (const sampleId of maliciousSampleIds) {
       const response = await request(app.getHttpServer())
         .post('/v1/meals')
+        .set('x-user-id', `traversal-user-${sampleId}`)
         .send({
           idempotency_key: `traversal-${Math.random()}`,
           sample_id: sampleId,
@@ -538,6 +539,7 @@ describe('POST /v1/meals', () => {
     const hugeKey = 'a'.repeat(300);
     const res = await request(app.getHttpServer())
       .post('/v1/meals')
+      .set('x-user-id', `oversized-user-${Date.now()}`)
       .send({
         idempotency_key: hugeKey,
         sample_id: 'tr_0001',

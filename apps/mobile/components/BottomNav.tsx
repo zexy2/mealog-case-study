@@ -7,11 +7,11 @@ import { t } from "../src/strings";
 
 export type Screen = "capture" | "review" | "abstain" | "day";
 
-export function BottomNav({ screen, canReview, onChange }: { screen: Screen; canReview: boolean; onChange: (screen: Screen) => void }) {
+export function BottomNav({ screen, canReview, onChange }: { screen: Screen; canReview?: boolean; onChange: (screen: Screen) => void }) {
   return (
-    <View style={styles.nav}>
+    <View style={styles.nav} accessibilityRole="tablist">
       <NavItem icon="camera-outline" label={t("navCapture")} active={screen === "capture"} onPress={() => onChange("capture")} />
-      <NavItem icon="checkmark-circle-outline" label={t("navReview")} active={screen === "review"} disabled={!canReview} onPress={() => onChange("review")} />
+      <NavItem icon="checkmark-circle-outline" label={t("navReview")} active={screen === "review"} onPress={() => onChange("review")} />
       <NavItem icon="calendar-outline" label={t("navDay")} active={screen === "day"} onPress={() => onChange("day")} />
     </View>
   );
@@ -19,18 +19,28 @@ export function BottomNav({ screen, canReview, onChange }: { screen: Screen; can
 
 function NavItem({ icon, label, active, disabled, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; active: boolean; disabled?: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} style={styles.navItem}>
-      <Ionicons name={icon} size={21} color={disabled ? colors.line : active ? colors.terracotta : colors.muted} />
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [styles.navItem, pressed && !disabled && styles.navItemPressed]}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active, disabled: Boolean(disabled) }}
+    >
+      <Ionicons name={icon} size={22} color={disabled ? colors.disabled : active ? colors.terracotta : colors.mutedStrong} />
       <Text style={[styles.navLabel, active && styles.navLabelActive, disabled && styles.navLabelDisabled]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  nav: { flexDirection: "row", justifyContent: "space-around", borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.card, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 28 : 12 },
-  navItem: { alignItems: "center", gap: 4, minWidth: 78 },
+  // The app shell already applies the bottom safe-area inset, so this only adds the visual gap.
+  nav: { flexDirection: "row", justifyContent: "space-around", borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.card, paddingTop: 8, paddingBottom: Platform.OS === "ios" ? 6 : 10 },
+  // 48pt tall keeps every tab above the 44pt minimum touch target.
+  navItem: { alignItems: "center", justifyContent: "center", gap: 4, minWidth: 78, minHeight: 48, paddingHorizontal: 8 },
+  navItemPressed: { opacity: 0.7 },
 
-  navLabel: { color: colors.muted, fontSize: 10, fontWeight: "700" },
+  navLabel: { color: colors.mutedStrong, fontSize: 11, fontWeight: "700" },
   navLabelActive: { color: colors.terracotta },
-  navLabelDisabled: { color: colors.line },
+  navLabelDisabled: { color: colors.disabled },
 });

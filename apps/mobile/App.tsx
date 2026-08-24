@@ -13,7 +13,7 @@ import { ErrorState } from "./components/ErrorState";
 import { AbstentionScreen } from "./screens/Abstention";
 import { CaptureScreen } from "./screens/Capture";
 import { DayScreen } from "./screens/Day";
-import { ReviewScreen } from "./screens/Review";
+import { ReviewScreen, TURKISH_FOOD_NUTRITION_MAP } from "./screens/Review";
 import { correctMeal, isDemoMode, MealApiError, submitMeal } from "./src/api";
 import { buildMealCorrections, removeSavedMeal } from "./src/corrections";
 import { buildDemoMeal, initialDayMeals } from "./src/demoData";
@@ -142,7 +142,7 @@ function AppContent() {
       setQuantityEdits({});
       setExpandedItem(result.items.length > 0 ? 0 : null);
       setBusy(false);
-      const hasOnlyAbstainedItems = result.items.length > 0 && result.items.every((item) => item.food_id === "ABSTAIN");
+      const hasOnlyAbstainedItems = result.items.length === 1 && result.items[0]?.food_id === "ABSTAIN";
       if (result.action === "auto_accept" && !result.degraded) {
         upsertMeal(result);
         setReviewingSavedMealKey(result.idempotency_key);
@@ -202,7 +202,7 @@ function AppContent() {
     setPortionEdits({});
     setSelectedCandidates({});
     setQuantityEdits({});
-    setExpandedItem(savedMeal.items.length > 0 ? 0 : null);
+    setExpandedItem(null);
     setScreen("review");
   }
 
@@ -331,6 +331,140 @@ function AppContent() {
     setQuantityEdits({});
   }
 
+  function handleAddItemToPlate(
+    foodName: string,
+    customKcal?: number,
+    customGrams?: number,
+    customProtein?: number,
+    customCarb?: number,
+    customFat?: number,
+  ) {
+    if (!meal) return;
+    const clean = foodName.trim();
+    if (!clean) return;
+
+    const lower = clean.toLowerCase();
+    let matchedFoodId = "USER_CUSTOM";
+    let matchedName = clean;
+    let matchedGrams = customGrams ?? 150;
+    let matchedKcal = customKcal ?? 150;
+    let matchedProtein = customProtein ?? 5;
+    let matchedCarb = customCarb ?? 20;
+    let matchedFat = customFat ?? 4;
+
+    for (const [id, info] of Object.entries(TURKISH_FOOD_NUTRITION_MAP)) {
+      if (lower.includes(info.name.toLowerCase()) || info.name.toLowerCase().includes(lower)) {
+        matchedFoodId = id;
+        matchedName = info.name;
+        matchedGrams = info.default_g;
+        matchedKcal = Math.round((info.kcal_per_100g * info.default_g) / 100);
+        matchedProtein = Math.round((info.protein_g * info.default_g) / 100);
+        matchedCarb = Math.round((info.carb_g * info.default_g) / 100);
+        matchedFat = Math.round((info.fat_g * info.default_g) / 100);
+        break;
+      }
+    }
+
+    if (matchedFoodId === "USER_CUSTOM" && !customKcal) {
+      if (lower.includes("pizza")) {
+        matchedFoodId = "tr.pizza";
+        matchedName = "Pizza (Karışık)";
+        matchedGrams = 150;
+        matchedKcal = 400;
+        matchedProtein = 16;
+        matchedCarb = 50;
+        matchedFat = 15;
+      } else if (lower.includes("burger") || lower.includes("hamburger")) {
+        matchedFoodId = "tr.kofte_izgara";
+        matchedName = "Burger / Köfte";
+        matchedGrams = 150;
+        matchedKcal = 350;
+        matchedProtein = 22;
+        matchedCarb = 30;
+        matchedFat = 16;
+      } else if (lower.includes("patates") || lower.includes("kızartma")) {
+        matchedFoodId = "tr.patates";
+        matchedName = "Patates Kızartması";
+        matchedGrams = 150;
+        matchedKcal = 312;
+        matchedProtein = 3.5;
+        matchedCarb = 41;
+        matchedFat = 15;
+      } else if (lower.includes("pasta") || lower.includes("makarna")) {
+        matchedFoodId = "tr.manti";
+        matchedName = "Makarna / Mantı";
+        matchedGrams = 180;
+        matchedKcal = 280;
+        matchedProtein = 9;
+        matchedCarb = 52;
+        matchedFat = 3;
+      } else if (lower.includes("salata")) {
+        matchedFoodId = "tr.coban_salatasi";
+        matchedName = "Çoban Salatası";
+        matchedGrams = 150;
+        matchedKcal = 68;
+        matchedProtein = 1.8;
+        matchedCarb = 6.8;
+        matchedFat = 3.8;
+      } else if (lower.includes("ayran")) {
+        matchedFoodId = "tr.ayran";
+        matchedName = "Ayran";
+        matchedGrams = 200;
+        matchedKcal = 74;
+        matchedProtein = 3.4;
+        matchedCarb = 5.2;
+        matchedFat = 4.0;
+      } else if (lower.includes("ekmek")) {
+        matchedFoodId = "tr.ekmek_beyaz";
+        matchedName = "Ekmek, beyaz";
+        matchedGrams = 50;
+        matchedKcal = 138;
+        matchedProtein = 4.7;
+        matchedCarb = 25;
+        matchedFat = 1.6;
+      }
+    }
+
+    const candidate: Candidate = {
+      food_id: matchedFoodId,
+      name: matchedName,
+      score: 1.0,
+    };
+
+    const newItem = {
+      query: clean,
+      food_id: matchedFoodId,
+      candidates: [candidate],
+      grams: matchedGrams,
+      grams_p10: Math.round(matchedGrams * 0.8),
+      grams_p90: Math.round(matchedGrams * 1.2),
+      confidence: 0.95,
+      nutrients: { kcal: matchedKcal, protein_g: matchedProtein, carb_g: matchedCarb, fat_g: matchedFat },
+      portion_provenance: matchedFoodId === "USER_CUSTOM" ? "manual_user_input" : "standard_catalogue_portion",
+      source_database: matchedFoodId === "USER_CUSTOM" ? "Kullanıcı Girişi" : "TURKOMP",
+      portion_source: matchedFoodId === "USER_CUSTOM" ? "manual_user_input" : "catalogue_definition",
+      unit: "porsiyon",
+      quantity: 1,
+    };
+
+    const newItems = [...meal.items, newItem];
+    const newTotals = {
+      kcal: newItems.reduce((sum, it) => sum + (it.nutrients?.kcal || 0), 0),
+      protein_g: Math.round(newItems.reduce((sum, it) => sum + (it.nutrients?.protein_g || 0), 0) * 10) / 10,
+      carb_g: Math.round(newItems.reduce((sum, it) => sum + (it.nutrients?.carb_g || 0), 0) * 10) / 10,
+      fat_g: Math.round(newItems.reduce((sum, it) => sum + (it.nutrients?.fat_g || 0), 0) * 10) / 10,
+    };
+
+    const updatedMeal: MealLog = {
+      ...meal,
+      items: newItems,
+      totals: newTotals,
+    };
+
+    setMeal(updatedMeal);
+    setBanner(`"${matchedName}" tabağa başarıyla eklendi.`);
+  }
+
   function saveUncaloriedNote(abstainMeal: MealLog, dishName: string) {
     const noteMeal: MealLog = {
       ...abstainMeal,
@@ -387,6 +521,201 @@ function AppContent() {
     setScreen("day");
   }
 
+  function handleAcceptLlmEstimate(dishName: string, calories: number, protein: number, carb: number, fat: number) {
+    if (!meal) return;
+    const llmCandidate: Candidate = {
+      food_id: "USER_CUSTOM",
+      name: dishName,
+      score: 0.95,
+    };
+    const resolvedItem = {
+      query: dishName,
+      food_id: "USER_CUSTOM",
+      candidates: [llmCandidate],
+      grams: 150,
+      grams_p10: 120,
+      grams_p90: 180,
+      confidence: 0.95,
+      nutrients: { kcal: calories, protein_g: protein, carb_g: carb, fat_g: fat },
+      portion_provenance: "llm_generative_estimate",
+      source_database: "Yapay Zeka (LLM) Tahmini",
+      portion_source: "llm_generative_estimate",
+      unit: "porsiyon",
+      quantity: 1,
+    };
+    const updatedMeal: MealLog = {
+      ...meal,
+      action: "review",
+      items: [resolvedItem],
+      totals: { kcal: calories, protein_g: protein, carb_g: carb, fat_g: fat },
+    };
+    setMeal(updatedMeal);
+    setSelectedCandidates({ 0: "USER_CUSTOM" });
+    setPortionEdits({});
+    setQuantityEdits({ 0: 1 });
+    setExpandedItem(null);
+    setBanner("Yapay zeka tahmini kontrol ekranına aktarıldı.");
+    setScreen("review");
+  }
+
+  function handleConfirmObservedFood(foodName: string) {
+    if (!meal) return;
+    const clean = foodName.trim();
+    if (!clean) return;
+
+    const lower = clean.toLowerCase();
+    let matchedFoodId: string | null = null;
+    let matchedName = clean;
+    let matchedGrams = 150;
+    let matchedKcal = 0;
+    let matchedProtein = 0;
+    let matchedCarb = 0;
+    let matchedFat = 0;
+
+    for (const [id, info] of Object.entries(TURKISH_FOOD_NUTRITION_MAP)) {
+      if (lower.includes(info.name.toLowerCase()) || info.name.toLowerCase().includes(lower)) {
+        matchedFoodId = id;
+        matchedName = info.name;
+        matchedGrams = info.default_g;
+        matchedKcal = Math.round((info.kcal_per_100g * info.default_g) / 100);
+        matchedProtein = Math.round((info.protein_g * info.default_g) / 100);
+        matchedCarb = Math.round((info.carb_g * info.default_g) / 100);
+        matchedFat = Math.round((info.fat_g * info.default_g) / 100);
+        break;
+      }
+    }
+
+    if (!matchedFoodId) {
+      if (lower.includes("pizza")) {
+        matchedFoodId = "tr.pizza";
+        matchedName = "Pizza (Karışık)";
+        matchedGrams = 150;
+        matchedKcal = 400;
+        matchedProtein = 16;
+        matchedCarb = 50;
+        matchedFat = 15;
+      } else if (lower.includes("burger") || lower.includes("hamburger")) {
+        matchedFoodId = "tr.kofte_izgara";
+        matchedName = "Burger / Köfte";
+        matchedGrams = 150;
+        matchedKcal = 350;
+        matchedProtein = 22;
+        matchedCarb = 30;
+        matchedFat = 16;
+      } else if (lower.includes("patates") || lower.includes("kızartma")) {
+        matchedFoodId = "tr.patates";
+        matchedName = "Patates Kızartması";
+        matchedGrams = 150;
+        matchedKcal = 312;
+        matchedProtein = 3.5;
+        matchedCarb = 41;
+        matchedFat = 15;
+      } else if (lower.includes("pasta") || lower.includes("makarna")) {
+        matchedFoodId = "tr.manti";
+        matchedName = "Makarna";
+        matchedGrams = 180;
+        matchedKcal = 280;
+        matchedProtein = 9;
+        matchedCarb = 52;
+        matchedFat = 3;
+      } else if (lower.includes("salata")) {
+        matchedFoodId = "tr.coban_salatasi";
+        matchedName = "Çoban Salatası";
+        matchedGrams = 150;
+        matchedKcal = 68;
+        matchedProtein = 1.8;
+        matchedCarb = 6.8;
+        matchedFat = 3.8;
+      } else if (lower.includes("ayran")) {
+        matchedFoodId = "tr.ayran";
+        matchedName = "Ayran";
+        matchedGrams = 200;
+        matchedKcal = 74;
+        matchedProtein = 3.4;
+        matchedCarb = 5.2;
+        matchedFat = 4.0;
+      } else if (lower.includes("ekmek")) {
+        matchedFoodId = "tr.ekmek_beyaz";
+        matchedName = "Ekmek, beyaz";
+        matchedGrams = 50;
+        matchedKcal = 138;
+        matchedProtein = 4.7;
+        matchedCarb = 25;
+        matchedFat = 1.6;
+      } else if (lower.includes("corba") || lower.includes("çorba")) {
+        matchedFoodId = "tr.mercimek_corbasi";
+        matchedName = "Mercimek çorbası";
+        matchedGrams = 250;
+        matchedKcal = 155;
+        matchedProtein = 7.8;
+        matchedCarb = 23.5;
+        matchedFat = 3.5;
+      } else if (lower.includes("pilav")) {
+        matchedFoodId = "tr.pilav";
+        matchedName = "Pirinç pilavı";
+        matchedGrams = 180;
+        matchedKcal = 272;
+        matchedProtein = 5.4;
+        matchedCarb = 50.4;
+        matchedFat = 5.6;
+      } else if (lower.includes("fasulye")) {
+        matchedFoodId = "tr.kuru_fasulye";
+        matchedName = "Kuru fasulye (etli)";
+        matchedGrams = 250;
+        matchedKcal = 295;
+        matchedProtein = 17.2;
+        matchedCarb = 33.0;
+        matchedFat = 10.8;
+      }
+    }
+
+    if (!matchedFoodId) {
+      Alert.alert(
+        "Katalogda Bulunamadı",
+        `"${clean}" yemek kataloğunda bulunamadı. Lütfen geçerli bir yemek adı yazın (örn. Burger, Pizza, Makarna, Çorba) veya aşağıdaki "Cihaza Manuel Kalori Gir" seçeneğini kullanın.`,
+      );
+      return;
+    }
+
+    const candidate: Candidate = {
+      food_id: matchedFoodId,
+      name: matchedName,
+      score: 0.95,
+    };
+
+    const resolvedItem = {
+      query: clean,
+      food_id: matchedFoodId,
+      candidates: [candidate],
+      grams: matchedGrams,
+      grams_p10: Math.round(matchedGrams * 0.8),
+      grams_p90: Math.round(matchedGrams * 1.2),
+      confidence: 0.95,
+      nutrients: { kcal: matchedKcal, protein_g: matchedProtein, carb_g: matchedCarb, fat_g: matchedFat },
+      portion_provenance: "standard_catalogue_portion",
+      source_database: "TURKOMP",
+      portion_source: "catalogue_definition",
+      unit: "porsiyon",
+      quantity: 1,
+    };
+
+    const updatedMeal: MealLog = {
+      ...meal,
+      action: "review",
+      items: [resolvedItem],
+      totals: { kcal: matchedKcal, protein_g: matchedProtein, carb_g: matchedCarb, fat_g: matchedFat },
+      degraded: false,
+    };
+
+    setMeal(updatedMeal);
+    setSelectedCandidates({ 0: matchedFoodId });
+    setPortionEdits({});
+    setQuantityEdits({ 0: 1 });
+    setExpandedItem(null);
+    setBanner(`"${matchedName}" fotoğrafınıza bağlandı ve kontrol ekranına aktarıldı.`);
+    setScreen("review");
+  }
+
   function suggestDishToQueue(dishName: string) {
     Alert.alert(
       "Öneri Bildirildi (UI Prototipi)",
@@ -406,7 +735,7 @@ function AppContent() {
   const totalFat = useMemo(() => dayMeals.reduce((sum, item) => sum + (item.totals.fat_g ?? 0), 0), [dayMeals]);
 
   if (busy) {
-    return <AppShell><AnalysisState step={analysisStep} /></AppShell>;
+    return <AppShell><AnalysisState step={analysisStep} imageUri={capturedImageUri} /></AppShell>;
   }
 
   if (error) {
@@ -440,14 +769,13 @@ function AppContent() {
         <AbstentionScreen
           meal={meal}
           imageUri={capturedImageUri}
-          onConfirmObserved={(name) => {
-            void submit({ text: name });
-          }}
+          onConfirmObserved={handleConfirmObservedFood}
           onSelectCandidateDirectly={handleSelectCandidateFromAbstain}
           onDescribe={leaveAbstention}
           onRetake={leaveAbstention}
           onSaveUncaloriedNote={saveUncaloriedNote}
           onSaveManualCalories={saveManualCalories}
+          onAcceptLlmEstimate={handleAcceptLlmEstimate}
           onSuggestDish={suggestDishToQueue}
         />
       ) : null}
@@ -467,6 +795,7 @@ function AppContent() {
           selectedCandidates={selectedCandidates}
           onChooseCandidate={chooseCandidate}
           onRemoveItem={handleRemoveItem}
+          onAddItem={handleAddItemToPlate}
           onSave={saveReview}
           isSaved={reviewingSavedMealKey !== null}
           saving={saving}
@@ -496,7 +825,21 @@ function AppContent() {
           onUndoMeal={undoAutoAcceptedMeal}
         />
       ) : null}
-      <BottomNav screen={screen} canReview={Boolean(meal && screen === "review")} onChange={setScreen} />
+      <BottomNav
+        screen={screen}
+        onChange={(next) => {
+          if (next === "review" && !meal) {
+            if (dayMeals.length > 0) {
+              openSavedMeal(dayMeals[0]);
+            } else {
+              Alert.alert(t("navReview"), "Henüz analiz edilmiş bir öğün yok. Lütfen bir yemek fotoğrafı çekin veya yemek adı girin.");
+              setScreen("capture");
+            }
+            return;
+          }
+          setScreen(next);
+        }}
+      />
     </AppShell>
   );
 }
