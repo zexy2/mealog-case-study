@@ -29,7 +29,7 @@ from mealog import obs
 from mealog.domain.models import CountOrigin, PerceivedItem
 from mealog.pipeline.ports import VisionInput
 
-PROMPT_VERSION = "p3"
+PROMPT_VERSION = "p4"
 DEFAULT_MODEL = "gemini-flash-lite-latest"
 SECONDARY_MODEL = "gemini-2.5-flash-lite"
 MODEL_ENV_VAR = "GEMINI_MODEL"
@@ -57,7 +57,8 @@ Rules:
 - Never invent an item you cannot see. Omission is cheaper than invention.
 - Set `count` only when items are individually countable and every instance is
   distinctly visible. Overlapping, stacked, cropped, or occluded instances must
-  return `count: null`; never guess.
+  return `count: null`; never guess. Two stacked simit rings are an occluded
+  arrangement: return `count: null` even if two rings appear recognisable.
 - A single serving in one glass, bowl, plate, or other container is one observed
   item: return one item with `count: null`. Never count liquid volume, pixels,
   or a serving container as multiple food instances. Do not report garnish,
@@ -66,6 +67,14 @@ Rules:
 - `count` is the only count field. Keep `portion_hint` non-numeric: use a
   qualitative description such as `whole`, `bowl`, or `stacked`, never a count,
   gram estimate, or numeric serving estimate.
+- Set `medium` to exactly one of `real_plate`, `screen`, `printed`,
+  `toy_or_model`, or `unclear` for every observed item. Use `screen` for food
+  shown inside a display, `printed` for paper, packaging, or other printed
+  imagery, and `toy_or_model` for a toy, miniature, moulded replica, or
+  obviously synthetic food. Use `real_plate` only for a real serving
+  photographed directly. If you cannot tell, or the image is torn between a
+  real serving and another medium, use `unclear`. `real_plate` is neutral
+  evidence, never positive evidence.
 """
 
 RESPONSE_SCHEMA = {
@@ -94,6 +103,11 @@ RESPONSE_SCHEMA = {
                         "minimum": 1,
                         "description": "Count only when each individually countable instance is distinctly visible; otherwise null.",
                     },
+                    "medium": {
+                        "type": "STRING",
+                        "enum": ["real_plate", "screen", "printed", "toy_or_model", "unclear"],
+                        "description": "Capture medium; real_plate is neutral, every other value is a safety red flag.",
+                    },
                     "confidence": {
                         "type": "NUMBER",
                         "minimum": 0,
@@ -106,6 +120,7 @@ RESPONSE_SCHEMA = {
                     "cooking_method",
                     "portion_hint",
                     "count",
+                    "medium",
                     "confidence",
                 ],
             },
@@ -240,6 +255,8 @@ def _parse_items(text: str, count_origin: CountOrigin = None) -> list[PerceivedI
         if unknown:
             fields = ", ".join(sorted(unknown))
             raise RuntimeError(f"Gemini item {index} contains unknown field(s): {fields}")
+        if "medium" not in raw:
+            raise RuntimeError(f"Gemini item {index} medium is required")
         try:
             item = PerceivedItem.model_validate(raw)
         except ValidationError as exc:

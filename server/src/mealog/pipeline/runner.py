@@ -12,7 +12,7 @@ from mealog import obs
 from mealog.domain.models import MealLog, Nutrients, ResolvedItem
 from mealog.locales.loader import LocalePack, load
 from mealog.pipeline import normalize, nutrition, portion, retrieval
-from mealog.pipeline.confidence import route
+from mealog.pipeline.confidence import capture_medium_question, route
 from mealog.pipeline.ports import VisionInput, VisionPort
 from mealog.pipeline.resolve import resolve
 
@@ -72,6 +72,8 @@ def _reconcile_resolved(items: list[ResolvedItem]) -> list[ResolvedItem]:
             if "vision" in {existing.count_origin, item.count_origin}
             else existing.count_origin or item.count_origin
         )
+        if existing.capture_medium == "real_plate" and item.capture_medium != "real_plate":
+            existing.capture_medium = item.capture_medium
         existing.confidence = min(existing.confidence, item.confidence)
 
     return reconciled
@@ -99,11 +101,14 @@ def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: C
         log.items = [
             ResolvedItem(query=p.surface_form, food_id=f"ungrounded:{p.surface_form}",
                          confidence=p.confidence,
+                         capture_medium=p.capture_medium,
                          nutrients=Nutrients(kcal=p.ungrounded_kcal or 0.0))
             for p in perceived
         ]
         log.totals = sum((i.nutrients for i in log.items), Nutrients()).rounded()
-        log.action = "auto_accept"
+        medium_flag = next((item for item in log.items if item.capture_medium != "real_plate"), None)
+        log.action = "auto_accept" if medium_flag is None else "ask"
+        log.question = capture_medium_question(medium_flag) if medium_flag is not None else None
         return log
 
     with obs.stage("normalize", locale=locale, rules=config.locale_rules):
@@ -117,6 +122,7 @@ def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: C
         r.quantity = item.quantity
         r.unit = item.unit
         r.count_origin = item.count_origin
+        r.capture_medium = item.original.capture_medium
         resolved.append(r)
 
     reconciled = _reconcile_resolved(resolved)
@@ -144,7 +150,12 @@ def run(vision: VisionPort, input_ref: VisionInput | str, locale: str, config: C
     if config.gating:
         log = route(log)
     else:
-        log.action = "auto_accept"
+        medium_flag = next((item for item in reconciled if item.capture_medium != "real_plate"), None)
+        if medium_flag is not None:
+            log.action = "ask"
+            log.question = capture_medium_question(medium_flag)
+        else:
+            log.action = "auto_accept"
 
     obs.event("meal_logged", config=config.name, locale=locale, action=log.action,
               items=len(reconciled), abstained=sum(i.abstained for i in reconciled),

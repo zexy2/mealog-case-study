@@ -16,6 +16,8 @@ export type ItemClarification = {
   options: Array<number | null>;
 };
 
+export type CaptureMedium = "real_plate" | "screen" | "printed" | "toy_or_model" | "unclear";
+
 export type Nutrients = {
   kcal: number;
   protein_g: number;
@@ -33,6 +35,8 @@ export type ResolvedItem = {
   grams_p10: number;
   grams_p90: number;
   confidence: number;
+  /** Optional for old saved records; missing is the neutral real_plate path. */
+  capture_medium?: CaptureMedium;
   nutrients: Nutrients;
   source_database?: string;
   portion_source?: string;

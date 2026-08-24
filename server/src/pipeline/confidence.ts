@@ -50,6 +50,20 @@ export function effectiveConfidence(item: MealLog['items'][number]): number {
   return Math.round(Math.min(item.confidence, portionConfidence(item), countConfidence(item)) * 1000) / 1000;
 }
 
+const CAPTURE_MEDIUM_QUESTIONS: Readonly<Record<string, string>> = {
+  screen: 'This image appears to show food on a screen. Please upload a direct photo of the real meal.',
+  printed: 'This image appears to be printed food imagery. Please upload a direct photo of the real meal.',
+  toy_or_model: 'This image may show a toy or model rather than real food. Please upload a direct photo of the real meal.',
+  unclear: 'I could not confirm this is a direct photo of a real meal. Please upload a clearer meal photo.',
+};
+
+/** Any non-real_plate value is a safety red flag, never positive evidence. */
+export function captureMediumQuestion(item: MealLog['items'][number]): string | null {
+  return item.capture_medium === 'real_plate'
+    ? null
+    : CAPTURE_MEDIUM_QUESTIONS[item.capture_medium] ?? CAPTURE_MEDIUM_QUESTIONS.unclear;
+}
+
 /** Route a meal log in place, preserving identity confidence and question text. */
 export function route(log: MealLog): MealLog {
   if (log.degraded) {
@@ -60,6 +74,13 @@ export function route(log: MealLog): MealLog {
   if (log.items.length === 0) {
     log.action = 'ask';
     log.question = 'I could not read this meal. What did you eat?';
+    return log;
+  }
+
+  const mediumFlag = log.items.find((item) => item.capture_medium !== 'real_plate');
+  if (mediumFlag !== undefined) {
+    log.action = 'ask';
+    log.question = captureMediumQuestion(mediumFlag);
     return log;
   }
 

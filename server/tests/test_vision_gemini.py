@@ -11,6 +11,7 @@ import pytest
 
 from mealog import obs
 from mealog.adapters import vision_gemini
+from mealog.adapters.vision_fixture import FixtureVision
 from mealog.adapters.vision_gemini import (
     RUNG_CONFIGURED_MODEL,
     RUNG_FAILURE,
@@ -63,6 +64,7 @@ def provider_response(surface_form: str = "rice") -> dict:
                                             "surface_form": surface_form,
                                             "cooking_method": None,
                                             "portion_hint": None,
+                                            "medium": "real_plate",
                                             "confidence": 0.9,
                                         }
                                     ]
@@ -84,6 +86,7 @@ def test_vision_single_count_is_not_explicit_quantity() -> None:
                 "cooking_method": "baked",
                 "portion_hint": "whole",
                 "count": 1,
+                "medium": "real_plate",
                 "confidence": 0.9,
             }
         ]
@@ -93,6 +96,32 @@ def test_vision_single_count_is_not_explicit_quantity() -> None:
 
     assert items[0].count is None
     assert items[0].count_origin == "vision"
+
+
+def test_live_response_requires_medium() -> None:
+    payload = {
+        "items": [{
+            "surface_form": "simit",
+            "cooking_method": "baked",
+            "portion_hint": "whole",
+            "count": None,
+            "confidence": 0.9,
+        }],
+    }
+
+    with pytest.raises(RuntimeError, match="medium is required"):
+        vision_gemini._parse_items(json.dumps(payload), "vision")
+
+
+def test_legacy_fixture_without_medium_defaults_only_at_replay_boundary(tmp_path: Path) -> None:
+    (tmp_path / "legacy.json").write_text(
+        json.dumps({"items": [{"surface_form": "simit", "confidence": 0.9}]}),
+        encoding="utf-8",
+    )
+
+    items = FixtureVision(tmp_path).perceive("legacy")
+
+    assert items[0].capture_medium == "real_plate"
 
 
 def provider_error(status: int, headers: dict[str, str] | None = None) -> HTTPError:

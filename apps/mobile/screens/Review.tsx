@@ -3,8 +3,8 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { Candidate, ItemClarification, MealLog } from "../src/types";
-import { t } from "../src/strings";
+import { Candidate, CaptureMedium, ItemClarification, MealLog } from "../src/types";
+import { StringKey, t } from "../src/strings";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -32,6 +32,13 @@ function quantityLabel(item: MealLog["items"][number], quantity = item.quantity,
 
 function selectedName(item: MealLog["items"][number], selected: string) {
   return item.candidates.find((candidate) => candidate.food_id === selected)?.name ?? selected;
+}
+
+function captureMediumCopy(medium: CaptureMedium): StringKey {
+  if (medium === "screen") return "captureMediumScreen";
+  if (medium === "printed") return "captureMediumPrinted";
+  if (medium === "toy_or_model") return "captureMediumToy";
+  return "captureMediumUnclear";
 }
 
 function clarificationPrompt(
@@ -81,6 +88,7 @@ export function ReviewScreen({
 }: ReviewScreenProps) {
   const displayAction = meal.degraded ? "review" : meal.action;
   const tone = actionTone(displayAction);
+  const flaggedMedium = meal.items.find((item) => (item.capture_medium ?? "real_plate") !== "real_plate")?.capture_medium ?? null;
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header eyebrow={t("reviewEyebrow")} title={isSaved ? t("savedReviewTitle") : t("reviewTitle")} subtitle={isSaved ? t("savedReviewSubtitle") : t("reviewSubtitle")} />
@@ -90,6 +98,15 @@ export function ReviewScreen({
           <View style={styles.degradedCopy}>
             <Text style={styles.degradedTitle}>{t("degradedTitle")}</Text>
             <Text style={styles.degradedText}>{t("degradedCopy")}</Text>
+          </View>
+        </View>
+      ) : null}
+      {flaggedMedium ? (
+        <View style={styles.captureMediumBanner}>
+          <Ionicons name="image-outline" size={19} color="#8D641C" />
+          <View style={styles.degradedCopy}>
+            <Text style={styles.degradedTitle}>{t("captureMedium")}</Text>
+            <Text style={styles.degradedText}>{t(captureMediumCopy(flaggedMedium))}</Text>
           </View>
         </View>
       ) : null}
@@ -206,6 +223,7 @@ export function ReviewScreen({
                 <AuditRow label={t("matchedFoodId")} value={selected} mono />
                 <AuditRow label={t("sourceDatabase")} value={item.source_database ?? t("catalogueProvenance")} />
                 <AuditRow label={t("confidence")} value={`${Math.round(item.confidence * 100)}%`} />
+                <AuditRow label={t("captureMedium")} value={item.capture_medium ?? "real_plate"} />
                 <AuditRow label={t("quantity")} value={quantityLabel(item, quantity, quantityUnit)} />
                 <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
                 <AuditRow label={t("portionSource")} value={item.portion_source ?? t("catalogueProvenance")} />
@@ -229,6 +247,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 22, paddingBottom: 34 },
   degradedBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FBF1D8", borderRadius: 17, padding: 13, marginBottom: 14 },
+  captureMediumBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FBF1D8", borderRadius: 17, padding: 13, marginBottom: 14 },
   degradedCopy: { flex: 1 },
   degradedTitle: { color: "#8D641C", fontSize: 12, fontWeight: "800" },
   degradedText: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 3 },

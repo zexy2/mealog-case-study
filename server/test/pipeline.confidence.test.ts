@@ -49,6 +49,24 @@ describe('confidence routing', () => {
     expect(log.question).toBeNull();
   });
 
+  it('asks about a flagged medium even when identity, retrieval and portion are perfect', () => {
+    const resolved = item('simit', 1);
+    resolved.capture_medium = 'screen';
+    resolved.candidates[0].score = 1;
+
+    const log = route(meal(resolved));
+
+    expect(log.action).toBe('ask');
+    expect(log.question).toMatch(/screen/i);
+  });
+
+  it('treats real_plate as neutral so the existing confidence gate is unchanged', () => {
+    const resolved = item('simit', AUTO_ACCEPT);
+    resolved.capture_medium = 'real_plate';
+
+    expect(route(meal(resolved)).action).toBe('auto_accept');
+  });
+
   it('never auto-accepts a degraded meal, even when every item is confident', () => {
     const log = meal(item('eggs', 0.99));
     log.degraded = true;

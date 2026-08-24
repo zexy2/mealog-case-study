@@ -129,6 +129,8 @@ export interface PerceivedItem {
   count: number | null;
   /** Where quantity evidence originated, never inferred from the food name. */
   count_origin: CountOrigin;
+  /** Provider classification of the capture surface; non-real media is a red flag. */
+  capture_medium: CaptureMedium;
   confidence: number;
   /**
    * Only populated by the V0 baseline, which asks the model for calories
@@ -138,6 +140,7 @@ export interface PerceivedItem {
 }
 
 export type CountOrigin = 'vision' | 'user_text' | null;
+export type CaptureMedium = 'real_plate' | 'screen' | 'printed' | 'toy_or_model' | 'unclear';
 
 export function makePerceivedItem(
   init: Partial<PerceivedItem> & Pick<PerceivedItem, 'surface_form'>,
@@ -148,6 +151,7 @@ export function makePerceivedItem(
     portion_hint: init.portion_hint ?? null,
     count: init.count ?? null,
     count_origin: init.count_origin ?? null,
+    capture_medium: init.capture_medium ?? 'real_plate',
     confidence: init.confidence ?? 0.5,
     ungrounded_kcal: init.ungrounded_kcal ?? null,
   };
@@ -185,6 +189,8 @@ export interface ResolvedItem {
   quantity: number | null;
   unit: string | null;
   count_origin: CountOrigin;
+  /** Perception media classification carried through to the response. */
+  capture_medium: CaptureMedium;
   grams: number;
   grams_p10: number;
   grams_p90: number;
@@ -205,6 +211,7 @@ export function makeResolvedItem(
     quantity: init.quantity ?? null,
     unit: init.unit ?? null,
     count_origin: init.count_origin ?? null,
+    capture_medium: init.capture_medium ?? 'real_plate',
     grams: init.grams ?? 0.0,
     grams_p10: init.grams_p10 ?? 0.0,
     grams_p90: init.grams_p90 ?? 0.0,

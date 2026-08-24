@@ -79,6 +79,7 @@ class CanonicalFood(BaseModel):
 
 
 CountOrigin = Literal['vision', 'user_text'] | None
+CaptureMedium = Literal['real_plate', 'screen', 'printed', 'toy_or_model', 'unclear']
 
 
 class PerceivedItem(BaseModel):
@@ -90,6 +91,7 @@ class PerceivedItem(BaseModel):
     portion_hint: str | None = None
     count: int | None = None
     count_origin: CountOrigin = None
+    capture_medium: CaptureMedium = "real_plate"
     confidence: float = 0.5
     #: Only populated by the V0 baseline, which asks the model for calories
     #: directly. Kept so the ablation can quantify what grounding buys us.
@@ -119,6 +121,7 @@ class ResolvedItem(BaseModel):
     quantity: float | None = None
     unit: str | None = None
     count_origin: CountOrigin = None
+    capture_medium: CaptureMedium = "real_plate"
     grams: float = 0.0
     grams_p10: float = 0.0
     grams_p90: float = 0.0
