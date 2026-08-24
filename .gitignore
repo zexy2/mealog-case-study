@@ -14,10 +14,3 @@ data/golden-images/
 *.safetensors
 .DS_Store
 *.egg-info/
-server/dist/
-dist/
-.expo/
-apps/mobile/.expo/
-.aider*
-
-
