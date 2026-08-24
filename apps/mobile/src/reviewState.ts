@@ -30,18 +30,11 @@ export function countAnswerPending(_item: CountClarificationItem, _hasQuantityEd
   return false;
 }
 
-/**
- * Count edits change the server-side portion calculation. When quantity > 1,
- * the client awaits server recalculation. When quantity is 1 or null (standard portion),
- * the baseline catalogue values remain valid.
- */
 export function computedValuesNeedServerRefresh(
-  item: CountClarificationItem,
-  hasQuantityEdit: boolean,
-  quantity: number | null | undefined,
+  _item: CountClarificationItem,
+  _hasQuantityEdit: boolean,
+  _quantity: number | null | undefined,
 ) {
-  if (!isCountClarification(item)) return false;
-  if (hasQuantityEdit && typeof quantity === "number" && quantity !== 1) return true;
   return false;
 }
 
