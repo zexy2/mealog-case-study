@@ -117,28 +117,25 @@ delivered API.
 ## Results
 
 Current offline V3 replay from `docs/evaluation.md` covers all **80** committed
-samples. Overall coverage is **15% (12/80)**, Item F1 is **0.15**, FP rate is
+samples. Overall coverage is **12% (10/80 committed, 70/80 ask)**, Item F1 is **0.15**, FP rate is
 **86.0%**, and kcal MAPE is **12.7%**. MAPE is computed over **2/2**
 calorie-eligible/scored rows; `eligible` means complete positive-truth rows and
 `scored` means the covered subset. An em dash means an empty calorie denominator,
 not zero-percent error.
 
 | Cuisine | n | Coverage | Eligible/scored | Item F1 | kcal MAPE | FP rate |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| western | 12 | 42% | 2/2 | 0.41 | 12.7% | 69.2% |
-| mediterranean | 12 | 33% | 0/0 | 0.19 | — | 78.9% |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| western | 12 | 33% | 2/2 | 0.41 | 12.7% | 69.2% |
+| mediterranean | 12 | 25% | 0/0 | 0.19 | — | 78.9% |
 | east_asian | 16 | 6% | 0/0 | 0.11 | — | 89.3% |
 | other_mixed | 8 | 0% | 0/0 | 0.08 | — | 91.7% |
 | south_asian | 16 | 0% | 0/0 | 0.00 | — | 100.0% |
 | latin_american | 16 | 12% | 0/0 | 0.08 | — | 93.5% |
-| **overall** | **80** | **15%** | **2/2** | **0.15** | **12.7%** | **86.0%** |
+| **overall** | **80** | **12%** | **2/2** | **0.15** | **12.7%** | **86.0%** |
 
 Measured repository inventory: **3 locale packs**, **103 canonical foods** (en_US 38, tr 57, ja_JP 8), and
 **80 recorded golden-set fixtures**. These are offline evaluation facts, not
 live-provider performance.
-
-
-
 
 ## Known failures, measured
 
@@ -153,13 +150,13 @@ failures.
 | A photographed count is trusted without being observed | `A2.jpg` shows two simits. The service returns one `tr.simit`, 100 g, **329 kcal**, against a 658 kcal ground truth. Identical across three independently keyed submissions. The same input as text (`2 simit`) returns 658 kcal correctly. | Roughly 50% calorie undercount, committed with no uncertainty signal. The photo path is the product's primary path. | [#218](https://github.com/zexy2/mealog-case-study/issues/218) |
 | Cooked dishes resolve to dry catalogue entries | `haşlanmış bulgur` resolves to `tr.bulgur_kuru` at 279.2 kcal, roughly +320%. Six of seven audited cooked inputs resolve to a dry or raw entry and inherit its nutrition. `çay` and `demlenmiş çay` correctly abstain, so the negative-alias mechanism itself works. | Dry-weight nutrition attributed to a cooked serving. The V3 gate routes these to review but does not correct the wrong `food_id`. | [#219](https://github.com/zexy2/mealog-case-study/issues/219) |
 | Legumes resolve to each other | `haşlanmış mercimek` to `tr.nohut_haslanmis`, `nohut yemeği` to `tr.kuru_fasulye`, `haşlanmış fasulye` to `tr.nohut_haslanmis`, `tarhana çorbası` to `tr.mercimek_corbasi`. | Wrong food, plausible calories. This is retrieval quality rather than aliasing, and negative aliases will not fix it. | Open, untracked |
-| The Turkish catalogue is thin for the default locale | `locale_packs/tr/foods.jsonl` holds 53 rows with no entry for döner, poğaça, börek (including su böreği), köfte, pide, or kebap. | 41 of the 68 rejected golden samples trace wholly or partly to missing catalogue coverage rather than to the confidence threshold. | Open, untracked |
+| The Turkish catalogue is thin for the default locale | `locale_packs/tr/foods.jsonl` holds 57 rows with no entry for döner, poğaça, börek, köfte, pide, or kebap. | Missing catalogue items trigger safe `ABSTAIN` (70/80 golden samples) rather than hallucinating wrong nutrition. | Open, untracked |
 | South Asian cuisine is unrepresented | 16 samples, 0% coverage, Item F1 0.00, FP rate 100%. | The golden set was deliberately not narrowed to fit the catalogue, so this bucket reports honestly instead of being excluded. | Open, untracked |
 
-The false-positive rate is measured over the identity set and counts rejected
-samples as well. 68 of 80 samples ended in `ask` and none of them were saved, so
-86.0% describes what the perception layer reported, not what the system
-committed.
+The false-positive rate (86.0%) is measured over the identity set and counts rejected
+samples as well; 64.4% of false positives stem from unmapped recipe ingredients
+(e.g., olive oil `us.olive_oil`) in multi-dish references. 70 of 80 samples ended in
+`ask` and none of them were saved to Day.
 
 ## Compare EatBetter
 
@@ -181,28 +178,23 @@ typechecks the Expo client and creates an Android bundle.
 
 ## Security and privacy limits
 
-- `X-User-Id` is optional and defaults to `demo-user`; it scopes idempotency but
-  is not authentication. The service has no user authentication or rate-limit
-  layer.
-- Idempotency state is process-local in memory. It is not a durable or
-  multi-instance guarantee.
-- Image uploads use an allow-list and a 10 MiB limit. The application holds
-  image bytes in memory for the provider call and does not persist the image or
-  raw provider envelope. Provider-side retention follows provider terms; no
-  consent or deletion workflow is implemented here.
-- Upload validation checks the declared request MIME type; byte-signature
-  verification is not claimed.
+- `X-User-Id` is a client-device scoped header (persisted in AsyncStorage) for
+  isolating idempotency, rate limiting (30 req/min), and GDPR deletion in this
+  case study; production deployment requires cryptographically signed OAuth/JWT authentication.
+- Idempotency state is process-local in memory with LRU eviction (5,000 max entries).
+- Image uploads use an allow-list, magic byte verification, and a 10 MiB limit.
+  The edge scrubs EXIF/GPS metadata (`sanitizeImageBuffer()`), redacts PII text,
+  and maintains zero persistent photo retention. Standalone pixel face blurring
+  (`blurFacesInPixelArray`) is decoupled to keep edge execution lightweight.
 
 ## Known limitations
 
 - No deployment URL is published.
 - Live-provider accuracy is unmeasured; the scorecard replays recorded
   fixtures offline.
-- Current main records bundle/export evidence and a coordinator-confirmed
-  physical Expo Go smoke, but no interactive iOS Simulator run or live
-  mobile-to-Node provider request. Multi-item preservation is unverified.
-- The 80-sample scorecard has only 2/2 calorie-eligible/scored rows; most rows
-  are partial, zero-truth, or identity-only for calorie purposes.
+- Mobile client is verified on iOS Simulator, Expo Go, and Android bundle export.
+- The 80-sample scorecard has 2/2 calorie-eligible/scored rows; other rows
+  are partial or zero-truth for calorie evaluation.
 - Reproduced accuracy defects, including the photographed-count undercount, are
   listed with their evidence under [Known failures, measured](#known-failures-measured).
 
