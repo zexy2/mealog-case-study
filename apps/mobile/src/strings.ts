@@ -117,6 +117,7 @@ export type StringKey =
   | "alternates"
   | "chooseAlternateCandidate"
   | "unresolvedAbstainHint"
+  | "removeItem"
   | "whyResult"
   | "traceDecision"
   | "matchedFoodId"
@@ -337,6 +338,7 @@ export const tr: Dictionary = {
   alternates: "BU YEMEĞİ DÜZELT",
   chooseAlternateCandidate: "Yemek bu değilse aşağıdaki katalog eşleşmesini seçin:",
   unresolvedAbstainHint: "Çözülmemiş yemek eşleşmesi var; kaydetmeden önce aşağıdaki listeden eşleştirin.",
+  removeItem: "Bu öğeyi tabaktan çıkar",
   whyResult: "Nasıl bulundu?",
   traceDecision: "İsteğe bağlı teknik kaynak ve doğrulama detayı",
   matchedFoodId: "Katalog eşleşmesi",
@@ -556,6 +558,7 @@ export const en: Dictionary = {
   alternates: "CORRECT THIS DISH",
   chooseAlternateCandidate: "If this dish is different, pick a catalogue match below:",
   unresolvedAbstainHint: "Unresolved dish match; pick a catalogue match below before saving.",
+  removeItem: "Remove this item from meal",
   whyResult: "Why this result?",
   traceDecision: "Optional technical verification details",
   matchedFoodId: "Matched food_id",

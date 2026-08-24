@@ -313,6 +313,24 @@ function AppContent() {
     setScreen("review");
   }
 
+  function handleRemoveItem(itemIndex: number) {
+    if (!meal) return;
+    const remainingItems = meal.items.filter((_, idx) => idx !== itemIndex);
+    if (remainingItems.length === 0) {
+      setMeal(null);
+      setScreen("capture");
+      return;
+    }
+    const updatedMeal: MealLog = {
+      ...meal,
+      items: remainingItems,
+    };
+    setMeal(updatedMeal);
+    setPortionEdits({});
+    setSelectedCandidates({});
+    setQuantityEdits({});
+  }
+
   function saveUncaloriedNote(abstainMeal: MealLog, dishName: string) {
     const noteMeal: MealLog = {
       ...abstainMeal,
@@ -448,6 +466,7 @@ function AppContent() {
           setQuantityEdits={setQuantityEdits}
           selectedCandidates={selectedCandidates}
           onChooseCandidate={chooseCandidate}
+          onRemoveItem={handleRemoveItem}
           onSave={saveReview}
           isSaved={reviewingSavedMealKey !== null}
           saving={saving}
