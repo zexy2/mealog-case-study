@@ -60,13 +60,20 @@ export type StringKey =
   | "abstainOutOfCatalogueEyebrow"
   | "abstainOutOfCatalogueTitle"
   | "abstainOutOfCatalogueSubtitle"
+  | "abstainGenericMealName"
   | "abstainHonestGuarantee"
   | "suggestDishButton"
   | "suggestDishSuccess"
+  | "suggestDishPrototypeTitle"
+  | "suggestDishPrototypeCopy"
   | "searchCatalogueButton"
   | "saveAsUncaloriedNoteButton"
   | "saveManualCaloriesButton"
   | "manualCaloriesPrompt"
+  | "manualCaloriesPlaceholder"
+  | "manualSaveButton"
+  | "invalidCaloriesTitle"
+  | "invalidCaloriesCopy"
   | "manualCaloriesProvenance"
   | "uncaloriedNoteProvenance"
   | "uncaloriedBadge"
@@ -260,15 +267,22 @@ export const tr: Dictionary = {
   abstainTitle: "Tanıyamadım.",
   abstainCopy: "Bu yiyecek kataloğumuzun dışında olabilir. Yakın bir tahminle kaydetmek yerine senden tarif etmeni istiyoruz.",
   abstainOutOfCatalogueEyebrow: "KATALOG KAPSAMI DIŞINDA",
-  abstainOutOfCatalogueTitle: "{dish} Katalogda Yok",
-  abstainOutOfCatalogueSubtitle: "Fotoğrafta {dish} tespit edildi. Resmi laboratuvar besin verisi olmadığı için tahmini kalori eklemedik.",
+  abstainOutOfCatalogueTitle: "Bu öğün katalogda yok.",
+  abstainOutOfCatalogueSubtitle: "Fotoğraftaki öğün için güvenli bir katalog eşleşmesi oluşmadı. Resmi laboratuvar besin verisi olmadan kalori eklemedik.",
+  abstainGenericMealName: "Katalog dışı öğün",
   abstainHonestGuarantee: "Mealog yalnızca resmi laboratuvar (TÜRKOMP) verisiyle çalışır; katalog dışı yemeklere tahmini/sahte kalori atamaz.",
   suggestDishButton: "Yemeği Kataloğa Öner (Konsept)",
-  suggestDishSuccess: "Öneri bildirildi (UI Prototipi). Production mimarisinde bu talep, kullanıcı onayıyla anonimleştirilmiş katalog geri bildirim kuyruğuna iletilir.",
+  suggestDishSuccess: "Öneri kaydedildi (prototip)",
+  suggestDishPrototypeTitle: "Öneri kaydedildi (prototip)",
+  suggestDishPrototypeCopy: "“{dish}” önerisi bu cihazda işaretlendi. Üretim sürümünde kullanıcı onayıyla anonimleştirilmiş katalog geri bildirim akışına iletilir.",
   searchCatalogueButton: "Katalogda Başka Yemek Ara",
   saveAsUncaloriedNoteButton: "Cihaza Kalorisiz Not Olarak Kaydet",
   saveManualCaloriesButton: "Cihaza Manuel Kalori Gir",
   manualCaloriesPrompt: "Bu cihaz için manuel kalori girin (Yerel Kullanıcı Girişi olarak saklanır):",
+  manualCaloriesPlaceholder: "Örn. 350",
+  manualSaveButton: "Kaydet",
+  invalidCaloriesTitle: "Geçersiz kalori",
+  invalidCaloriesCopy: "1 ile 5000 arasında geçerli bir kalori değeri girin.",
   manualCaloriesProvenance: "Kullanıcı manuel girişi (yerel)",
   uncaloriedNoteProvenance: "Kalorisiz öğün notu (yerel)",
   uncaloriedBadge: "Kalorisiz not",
@@ -463,15 +477,22 @@ export const en: Dictionary = {
   abstainTitle: "I could not identify it.",
   abstainCopy: "This food may be outside our catalogue. Instead of saving a nearby guess, tell us what it was.",
   abstainOutOfCatalogueEyebrow: "OUT OF CATALOGUE SCOPE",
-  abstainOutOfCatalogueTitle: "{dish} Not in Catalogue",
-  abstainOutOfCatalogueSubtitle: "Detected {dish} in photo. No estimated calories were added due to lack of verified laboratory data.",
+  abstainOutOfCatalogueTitle: "This meal is not in the catalogue.",
+  abstainOutOfCatalogueSubtitle: "No safe catalogue match was found for the meal in this photo. We did not add calories without verified laboratory data.",
+  abstainGenericMealName: "Out-of-catalogue meal",
   abstainHonestGuarantee: "Mealog strictly relies on verified laboratory data (TÜRKOMP/USDA); no hallucinated calories are ever assigned.",
   suggestDishButton: "Suggest Dish to Catalogue (Concept)",
-  suggestDishSuccess: "Suggestion noted (UI Prototype). In production, this request is queued to the catalogue curation pipeline.",
+  suggestDishSuccess: "Suggestion noted (prototype)",
+  suggestDishPrototypeTitle: "Suggestion noted (prototype)",
+  suggestDishPrototypeCopy: "“{dish}” is marked on this device. In production, it would be sent to an anonymized catalogue feedback flow with user consent.",
   searchCatalogueButton: "Search Different Food in Catalogue",
   saveAsUncaloriedNoteButton: "Save Local Note to Device (No Calories)",
   saveManualCaloriesButton: "Enter Manual Calories on Device",
   manualCaloriesPrompt: "Enter manual calories for this device (saved as Local User Entry):",
+  manualCaloriesPlaceholder: "e.g. 350",
+  manualSaveButton: "Save",
+  invalidCaloriesTitle: "Invalid calories",
+  invalidCaloriesCopy: "Enter a calorie value between 1 and 5000.",
   manualCaloriesProvenance: "User manual entry (local)",
   uncaloriedNoteProvenance: "Meal note (local)",
   uncaloriedBadge: "Meal note",

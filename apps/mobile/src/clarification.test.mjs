@@ -96,6 +96,8 @@ assert.match(abstainSource, /saveAsUncaloriedNoteButton/);
 assert.match(abstainSource, /saveManualCaloriesButton/);
 assert.match(abstainSource, /emptyPlateOverrideButton/);
 assert.match(abstainSource, /overrideSubmitButton/);
+assert.match(abstainSource, /abstainGenericMealName/);
+assert.doesNotMatch(abstainSource, /rawDishName/);
 
 const daySource = readFileSync(new URL("../screens/Day.tsx", import.meta.url), "utf8");
 assert.match(daySource, /macroCol/);

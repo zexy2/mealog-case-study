@@ -33,9 +33,9 @@ export function AbstentionScreen({
   const isEmptyPlate = meal.items.length === 0;
   const isDegraded = Boolean(meal.degraded);
 
-  // Extract human-readable observed name
-  const rawDishName = meal.items.map((i) => i.query).filter(Boolean).join(", ");
-  const dishName = rawDishName ? rawDishName.charAt(0).toUpperCase() + rawDishName.slice(1) : "Öğün";
+  // Provider observations are free text, not Turkish catalogue data. Do not
+  // present them as localized food names or carry them into fallback logs.
+  const dishName = t("abstainGenericMealName");
 
   const [suggested, setSuggested] = useState(false);
   const [showOverrideInput, setShowOverrideInput] = useState(false);
@@ -49,8 +49,8 @@ export function AbstentionScreen({
       onSuggestDish(dishName);
     } else {
       Alert.alert(
-        "Öneri Bildirildi (UI Prototipi)",
-        `"${dishName}" önerisi arayüz prototipinde işaretlendi. Production mimarisinde bu talep, kullanıcı onayıyla anonimleştirilmiş katalog geri bildirim kuyruğuna iletilecektir.`,
+        t("suggestDishPrototypeTitle"),
+        t("suggestDishPrototypeCopy", { dish: dishName }),
       );
     }
   }
@@ -71,7 +71,7 @@ export function AbstentionScreen({
         onSaveManualCalories(meal, finalName, kcal);
       }
     } else {
-      Alert.alert("Geçersiz Kalori", "Lütfen 1 ile 5000 arasında geçerli bir kalori değeri girin.");
+      Alert.alert(t("invalidCaloriesTitle"), t("invalidCaloriesCopy"));
     }
   }
 
@@ -79,8 +79,8 @@ export function AbstentionScreen({
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header
         eyebrow={isEmptyPlate ? t("emptyPlateEyebrow") : t("abstainOutOfCatalogueEyebrow")}
-        title={isEmptyPlate ? t("emptyPlateTitle") : t("abstainOutOfCatalogueTitle", { dish: dishName })}
-        subtitle={isEmptyPlate ? t("emptyPlateSubtitle") : t("abstainOutOfCatalogueSubtitle", { dish: dishName })}
+        title={isEmptyPlate ? t("emptyPlateTitle") : t("abstainOutOfCatalogueTitle")}
+        subtitle={isEmptyPlate ? t("emptyPlateSubtitle") : t("abstainOutOfCatalogueSubtitle")}
       />
 
       {imageUri ? (
@@ -163,7 +163,7 @@ export function AbstentionScreen({
           >
             <Ionicons name={suggested ? "checkmark-circle" : "bulb-outline"} size={18} color={colors.white} />
             <Text style={styles.primaryButtonText}>
-              {suggested ? "Öneri Bildirildi (Prototip)" : t("suggestDishButton")}
+              {suggested ? t("suggestDishSuccess") : t("suggestDishButton")}
             </Text>
           </Pressable>
         )}
@@ -211,7 +211,7 @@ export function AbstentionScreen({
                   style={styles.manualTextInput}
                   keyboardType="number-pad"
                   value={manualCalorieText}
-                  placeholder="Örn: 350"
+                  placeholder={t("manualCaloriesPlaceholder")}
                   placeholderTextColor={colors.muted}
                   maxLength={4}
                   onChangeText={setManualCalorieText}
@@ -221,9 +221,9 @@ export function AbstentionScreen({
                   style={styles.manualSaveButton}
                   onPress={handleSaveManual}
                   accessibilityRole="button"
-                  accessibilityLabel="Manuel Kaydet"
+                  accessibilityLabel={t("manualSaveButton")}
                 >
-                  <Text style={styles.manualSaveButtonText}>Kaydet</Text>
+                  <Text style={styles.manualSaveButtonText}>{t("manualSaveButton")}</Text>
                 </Pressable>
               </View>
             </View>
