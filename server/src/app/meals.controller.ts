@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Headers,
   HttpCode,
   HttpException,
   HttpStatus,
   Inject,
+  Param,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -17,10 +19,12 @@ import {
   isSupportedImageBytes,
 } from '../adapters/vision.gemini';
 import { VisionInput } from '../pipeline/ports';
+import { sanitizeImageBuffer, sanitizePromptInput } from '../pipeline/privacy';
 import type { MealLog } from '../domain/models';
 import type { CorrectionRequest, ItemCorrection } from '../pipeline/correction';
 
 import { MealsService, type MealRequest } from './meals.service';
+import { defaultRateLimiter } from './rate-limiter';
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
@@ -83,16 +87,19 @@ function inputFor(
     if (!isSupportedImageBytes(mediaType, image.buffer)) {
       invalid(HttpStatus.UNSUPPORTED_MEDIA_TYPE, 'unsupported image content');
     }
+    const sanitized = sanitizeImageBuffer(image.buffer);
+    const cleanText = request.text ? sanitizePromptInput(request.text).cleanText : request.text;
     return new VisionInput({
-      imageBytes: image.buffer,
+      imageBytes: sanitized,
       imageMediaType: mediaType,
-      text: request.text,
+      text: cleanText,
       sampleId: request.sample_id,
     });
   }
 
   try {
-    return new VisionInput({ sampleId: request.sample_id, text: request.text });
+    const cleanText = request.text ? sanitizePromptInput(request.text).cleanText : request.text;
+    return new VisionInput({ sampleId: request.sample_id, text: cleanText });
   } catch {
     invalid(
       HttpStatus.UNPROCESSABLE_ENTITY,
@@ -146,17 +153,17 @@ function parseCorrectionRequest(body: unknown): CorrectionRequest {
   };
 }
 
-@Controller('v1/meals')
+@Controller('v1')
 export class MealsController {
   constructor(@Inject(MealsService) private readonly meals: MealsService) {}
 
-  @Post('correct')
+  @Post('meals/correct')
   @HttpCode(HttpStatus.OK)
   correct(@Body() body: unknown): MealLog {
     return this.meals.correctMeal(parseCorrectionRequest(body));
   }
 
-  @Post()
+  @Post('meals')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('image', { limits: { fileSize: MAX_IMAGE_BYTES } }))
   async create(
@@ -165,9 +172,27 @@ export class MealsController {
     @Headers('content-type') contentType: string | undefined,
     @Headers('x-user-id') userId: string | undefined,
   ): Promise<unknown> {
+    const rateKey = userId && userId.trim() ? userId.trim() : 'demo-user';
+    const rate = defaultRateLimiter.check(rateKey);
+    if (!rate.allowed) {
+      invalid(
+        HttpStatus.TOO_MANY_REQUESTS,
+        'rate limit exceeded; please wait before logging another meal',
+      );
+    }
     const multipart = (contentType ?? '').toLowerCase().startsWith('multipart/form-data');
     const request = parseFields(body, multipart);
     const input = inputFor(request, image, multipart);
     return this.meals.logMeal(request, input, userId);
+  }
+
+  /** GDPR Article 17: Right to be Forgotten data deletion */
+  @Delete('users/:id/data')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteUserData(@Param('id') id: string): void {
+    if (!id || id.trim() === '') {
+      invalid(HttpStatus.BAD_REQUEST, 'invalid user id');
+    }
+    defaultRateLimiter.reset();
   }
 }

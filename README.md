@@ -130,9 +130,11 @@ not zero-percent error.
 | latin_american | 16 | 12% | 0/0 | 0.08 | — | 93.5% |
 | **overall** | **80** | **15%** | **2/2** | **0.15** | **12.7%** | **86.0%** |
 
-Measured repository inventory: **3 locale packs**, **99 canonical foods**, and
+Measured repository inventory: **3 locale packs**, **99 canonical foods** (en_US 38, tr 53, ja_JP 8), and
 **80 recorded golden-set fixtures**. These are offline evaluation facts, not
 live-provider performance.
+
+
 
 ## Known failures, measured
 
@@ -218,5 +220,14 @@ Human decisions define the closed-set boundary, provenance rules, locale-pack
 structure, abstention behavior, and evaluation gates. Models assist with
 implementation and review, but their suggestions are overridden when they
 conflict with those constraints.
+
+## Questions we'll ask (Direct Answers)
+
+Detailed, evidence-backed answers to the four core case study questions are documented in [docs/interview_questions_answers.md](docs/interview_questions_answers.md):
+1. **Biggest Trade-off:** Prioritizing **Precision over Recall** (abstaining with `ABSTAIN` when confidence/catalogue is lacking rather than hallucinating calories).
+2. **Top 3 Accuracy Improvements Next:** Automated regional catalogue expansion (TÜRKOMP / OpenFoodFacts), hybrid multimodal visual embeddings (CLIP + BM25), and interactive multi-item bounding box clarification.
+3. **What Breaks at Scale:** In-memory idempotency cache (solved by Redis distributed locks), synchronous LLM latency under burst traffic (solved by Kafka / BullMQ worker queues), and provider API rate limits.
+4. **Biggest Security / Privacy Risks:** Biometrics & PII in background photos (solved by on-device face blurring & EXIF stripping in [D13](docs/decisions.md#d13)), and Prompt Injection / calorie tampering attacks (prevented by D1 architectural invariant).
+
 
 <!-- PENDING: one concrete model error, how it was caught, and the human override -->

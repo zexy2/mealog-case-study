@@ -18,10 +18,9 @@ dependencies = [
 dev = [
   "pytest>=8.3",
   "ruff>=0.7",
-  # Required by fastapi.testclient -> starlette.testclient. Not pulled in by
-  # FastAPI itself, so it has to be declared or a clean install fails at test
-  # collection. It did, on every CI run, for a day.
-  "httpx2",
+  # Required by fastapi.testclient -> starlette.testclient.
+  # httpx2 is the Pydantic-stewarded continuation of httpx (pinned >=2.12).
+  "httpx2>=2.12",
 ]
 
 [build-system]

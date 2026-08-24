@@ -27,8 +27,9 @@ function NavItem({ icon, label, active, disabled, onPress }: { icon: keyof typeo
 }
 
 const styles = StyleSheet.create({
-  nav: { flexDirection: "row", justifyContent: "space-around", borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.card, paddingTop: 9, paddingBottom: Platform.OS === "ios" ? 23 : 12 },
+  nav: { flexDirection: "row", justifyContent: "space-around", borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.card, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 28 : 12 },
   navItem: { alignItems: "center", gap: 4, minWidth: 78 },
+
   navLabel: { color: colors.muted, fontSize: 10, fontWeight: "700" },
   navLabelActive: { color: colors.terracotta },
   navLabelDisabled: { color: colors.line },

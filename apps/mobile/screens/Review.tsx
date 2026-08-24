@@ -1,7 +1,7 @@
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Candidate, CaptureMedium, ItemClarification, MealLog } from "../src/types";
 import { StringKey, t } from "../src/strings";
@@ -57,6 +57,7 @@ function clarificationPrompt(
 
 export type ReviewScreenProps = {
   meal: MealLog;
+  imageUri?: string | null;
   expandedItem: number | null;
   setExpandedItem: (value: number | null) => void;
   portionEdits: Record<number, number>;
@@ -71,8 +72,10 @@ export type ReviewScreenProps = {
   onBack: () => void;
 };
 
+
 export function ReviewScreen({
   meal,
+  imageUri,
   expandedItem,
   setExpandedItem,
   portionEdits,
@@ -92,7 +95,19 @@ export function ReviewScreen({
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header eyebrow={t("reviewEyebrow")} title={isSaved ? t("savedReviewTitle") : t("reviewTitle")} subtitle={isSaved ? t("savedReviewSubtitle") : t("reviewSubtitle")} />
+
+      {imageUri ? (
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
+          <View style={styles.imageBadge}>
+            <Ionicons name="image-outline" size={13} color={colors.white} />
+            <Text style={styles.imageBadgeText}>Öğün Fotoğrafı</Text>
+          </View>
+        </View>
+      ) : null}
+
       {meal.degraded ? (
+
         <View style={styles.degradedBanner}>
           <Ionicons name="warning-outline" size={19} color="#8D641C" />
           <View style={styles.degradedCopy}>
@@ -220,16 +235,33 @@ export function ReviewScreen({
             </Pressable>
             {expandedItem === index ? (
               <View style={styles.auditBox}>
-                <AuditRow label={t("matchedFoodId")} value={selected} mono />
-                <AuditRow label={t("sourceDatabase")} value={item.source_database ?? t("catalogueProvenance")} />
-                <AuditRow label={t("confidence")} value={`${Math.round(item.confidence * 100)}%`} />
-                <AuditRow label={t("captureMedium")} value={item.capture_medium ?? "real_plate"} />
+                <AuditRow
+                  label={t("matchedFoodId")}
+                  value={selectedName(item, selected)}
+                  badge={selected !== "ABSTAIN" ? selected : undefined}
+                />
+                <AuditRow
+                  label={t("sourceDatabase")}
+                  value={item.source_database === "TURKOMP" ? "TÜRKOMP (Ulusal Veri Tabanı)" : item.source_database ?? t("catalogueProvenance")}
+                />
+                <AuditRow label={t("confidence")} value={`%${Math.round(item.confidence * 100)}`} />
+                {item.capture_medium && item.capture_medium !== "real_plate" ? (
+                  <AuditRow label={t("captureMedium")} value={item.capture_medium} />
+                ) : null}
+
                 <AuditRow label={t("quantity")} value={quantityLabel(item, quantity, quantityUnit)} />
                 <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
-                <AuditRow label={t("portionSource")} value={item.portion_source ?? t("catalogueProvenance")} />
-                <AuditRow label={t("portionProvenance")} value={item.portion_provenance ?? t("pending")} />
+                <AuditRow
+                  label={t("portionSource")}
+                  value={item.portion_source === "catalogue_default" ? "Resmi Porsiyon Standartı" : item.portion_source ?? t("catalogueProvenance")}
+                />
+                <AuditRow
+                  label={t("portionProvenance")}
+                  value={item.portion_provenance?.includes("default_serving") ? `Katalog Tanımı (${Math.round(grams)}g)` : item.portion_provenance ?? t("pending")}
+                />
               </View>
             ) : null}
+
           </View>
         );
       })}
@@ -246,8 +278,41 @@ export function ReviewScreen({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 22, paddingBottom: 34 },
+  imageContainer: {
+    width: "100%",
+    height: 180,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    position: "relative",
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imageBadge: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    backgroundColor: "rgba(31, 36, 33, 0.82)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  imageBadgeText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: "700",
+  },
   degradedBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FBF1D8", borderRadius: 17, padding: 13, marginBottom: 14 },
   captureMediumBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FBF1D8", borderRadius: 17, padding: 13, marginBottom: 14 },
+
+
   degradedCopy: { flex: 1 },
   degradedTitle: { color: "#8D641C", fontSize: 12, fontWeight: "800" },
   degradedText: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 3 },

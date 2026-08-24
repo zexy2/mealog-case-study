@@ -312,3 +312,15 @@ distribution remains visible across the boundary, and D11's confidence gate
 stays parked. In exchange the parity gate turns the boundary claims in D1, D2
 and D6 into a demonstrated property: the served pipeline changes language and
 the measured numbers do not move.
+
+---
+
+## D13 — Privacy-by-Design: Client-side EXIF stripping, face blurring, and ephemeral retention
+
+**Decision.** All images processed by MeaLog undergo client-side EXIF/geotag stripping before network transmission, automatic face/PII detection & blurring before vision model ingestion, and strict ephemeral in-memory processing with zero persistent photo retention.
+
+**Rejected.** Storing user meal photos on disk/cloud for training or fine-tuning without explicit opt-in consent. Passing raw device EXIF headers (timestamp, GPS coordinates, camera serial) to external vision providers.
+
+**Constraint.** GDPR and KVKK compliance require minimizing personal identifiable information (PII). Photos containing dining companions, restaurant staff, or background documents must not leak identifiable biometrics to third-party LLM providers.
+
+**Cost.** Face blurring and EXIF sanitization introduce a lightweight pre-processing step (~10-20ms) and require privacy invariants to be verified in pipeline tests (`test/face_blurring.test.ts`, `test/pipeline.privacy.test.ts`).

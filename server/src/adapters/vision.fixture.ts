@@ -96,6 +96,8 @@ export class FixtureVision {
       throw new Error('fixture replay needs image bytes or a sample_id');
     }
 
+
+
     const path = join(this.dir, `${key}.json`);
     if (!existsSync(path)) {
       throw new Error(

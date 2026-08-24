@@ -1,6 +1,7 @@
 import {
   CallHandler,
   ExecutionContext,
+  HttpException,
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
@@ -8,6 +9,8 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
 import { event, metrics, newRequestId, withRequestId } from '../obs';
+import { VisionProviderError } from '../adapters/vision.gemini';
+
 
 /**
  * Only the surface this interceptor touches, declared structurally.
@@ -90,9 +93,18 @@ export class ObservabilityInterceptor implements NestInterceptor {
   }
 
   private statusOf(error: unknown): number {
-    const status = (error as { status?: unknown } | null)?.status;
+    if (error instanceof VisionProviderError) {
+      return 503;
+    }
+    if (error instanceof HttpException) {
+      return error.getStatus();
+    }
+    const status =
+      (error as { status?: unknown; statusCode?: unknown } | null)?.status ??
+      (error as { statusCode?: unknown } | null)?.statusCode;
     return typeof status === 'number' ? status : 500;
   }
+
 
   private record(route: string, status: number, started: number, body: unknown): void {
     const durationMs = Number((performance.now() - started).toFixed(2));

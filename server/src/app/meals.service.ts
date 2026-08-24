@@ -107,9 +107,15 @@ export class MealsService {
       );
       this.completed.set(cacheKey, result);
       return result;
+    } catch (caught) {
+      if (caught instanceof Error && /no locale pack at|unknown locale/i.test(caught.message)) {
+        error(HttpStatus.UNPROCESSABLE_ENTITY, `unsupported or unknown locale '${request.locale}'`);
+      }
+      throw caught;
     } finally {
       this.inFlight.delete(cacheKey);
     }
+
   }
 
   /**

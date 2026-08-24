@@ -53,15 +53,19 @@ Rules:
 - Name dishes in the language on the plate's origin if you recognise it.
 - If unsure between two dishes, return the more general one and lower confidence.
 - Never invent an item you cannot see. Omission is cheaper than invention.
+- Strict Admissibility Gates:
+  * If the image is blurry, out of focus, motion-blurred, or unrecognizable, do NOT guess dishes (e.g. do not guess pie, soup, or bread). Return empty items: [].
+  * If the image shows plastic toy food, fake miniature models, decorative replicas, or inedible synthetic items, do NOT treat them as food. Return empty items: [].
+  * If the image depicts a smartphone/digital screen, laptop monitor, or printed photograph displaying a picture of food rather than real food in person, do NOT extract the meal on the screen. Return empty items: [].
+  * If the plate or table is empty (no food present), return empty items: [].
 - Set \`count\` only when items are individually countable and every instance is
   distinctly visible. Overlapping, stacked, cropped, or occluded instances must
   return \`count: null\`; never guess. Two stacked simit rings are an occluded
   arrangement: return \`count: null\` even if two rings appear recognisable.
-- A single serving in one glass, bowl, plate, or other container is one observed
-  item: return one item with \`count: null\`. Never count liquid volume, pixels,
-  or a serving container as multiple food instances. Do not report garnish,
-  decorative leaves, or unidentifiable background as separate food items. Do not
-  add ABSTAIN or other placeholder items.
+- Never count liquid volume, pixels, or a serving container as multiple food instances. Do not report non-food objects (cutlery, wallet, receipt, table), inedible garnish, decorative leaves, lemon wedges, herbs/seasoning, or unidentifiable background as separate food items. Return only the primary prepared food dishes and distinct edible side dishes. Do not add ABSTAIN or other placeholder items.
+
+
+
 - \`count\` is the only count field. Keep \`portion_hint\` non-numeric: use a
   qualitative description such as \`whole\`, \`bowl\`, or \`stacked\`, never a
   count, gram estimate, or numeric serving estimate.
@@ -74,6 +78,7 @@ Rules:
   real serving and another medium, use \`unclear\`. \`real_plate\` is neutral
   evidence, never positive evidence.
 `;
+
 
 export const RESPONSE_SCHEMA = {
   type: 'OBJECT',
