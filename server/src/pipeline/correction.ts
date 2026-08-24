@@ -72,11 +72,11 @@ function validateBase(meal: MealLog): void {
 
 function validateCandidateIds(meal: MealLog, foods: Record<string, unknown>): void {
   for (const item of meal.items) {
-    if (item.food_id !== ABSTAIN && !foods[item.food_id]) {
+    if (item.food_id !== ABSTAIN && item.food_id !== 'USER_CUSTOM' && !foods[item.food_id]) {
       throw new CorrectionValidationError(`unknown food_id '${item.food_id}'`);
     }
     for (const candidate of item.candidates) {
-      if (!foods[candidate.food_id]) {
+      if (candidate.food_id !== 'USER_CUSTOM' && !foods[candidate.food_id]) {
         throw new CorrectionValidationError(`unknown candidate food_id '${candidate.food_id}'`);
       }
     }
@@ -130,6 +130,20 @@ export function applyCorrections(request: CorrectionRequest): MealLog {
         nutrients: makeNutrients(),
         portion_source: 'not_applicable',
         portion_provenance: 'not_applicable',
+        clarification: null,
+      });
+    }
+
+    if (foodId === 'USER_CUSTOM') {
+      return makeResolvedItem({
+        ...original,
+        food_id: 'USER_CUSTOM',
+        grams: original.grams,
+        grams_p10: original.grams_p10,
+        grams_p90: original.grams_p90,
+        nutrients: original.nutrients,
+        portion_source: original.portion_source,
+        portion_provenance: original.portion_provenance,
         clarification: null,
       });
     }

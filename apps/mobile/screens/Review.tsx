@@ -3,14 +3,74 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { Candidate, CaptureMedium, ItemClarification, MealLog } from "../src/types";
+import { Candidate, CaptureMedium, ItemClarification, MealAction, MealLog } from "../src/types";
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
 import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity } from "../src/reviewState";
 import { nutritionPresentationForItem } from "../src/nutritionPresentation";
+import { sendTelemetryEvent } from "../src/telemetry";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
 import { colors } from "../components/theme";
+
+export function getFoodEmoji(nameOrId: string): string {
+  const s = (nameOrId || "").toLowerCase();
+  if (s.includes("yumurta") || s.includes("egg") || s.includes("omlet") || s.includes("menemen")) return "🍳";
+  if (s.includes("köfte") || s.includes("kofte") || s.includes("dana") || s.includes("kavurma") || s.includes("biftek") || s.includes("antrikot") || s.includes("döner") || s.includes("kebap") || s.includes("kırmızı et")) return "🥩";
+  if (s.includes("pilav") || s.includes("pirinç") || s.includes("pirinc") || s.includes("bulgur")) return "🍚";
+  if (s.includes("ekmek") || s.includes("pide") || s.includes("dilim")) return "🍞";
+  if (s.includes("simit") || s.includes("poğaça") || s.includes("gevrek")) return "🥨";
+  if (s.includes("salata") || s.includes("marul") || s.includes("yeşillik")) return "🥗";
+  if (s.includes("çorba") || s.includes("corba") || s.includes("mercimek") || s.includes("ezogelin") || s.includes("tarhana")) return "🥣";
+  if (s.includes("fasulye") || s.includes("nohut") || s.includes("güveç") || s.includes("türlü")) return "🥘";
+  if (s.includes("lahmacun") || s.includes("pizza") || s.includes("börek")) return "🍕";
+  if (s.includes("makarna") || s.includes("mantı") || s.includes("manti")) return "🍝";
+  if (s.includes("ayran") || s.includes("yoğurt") || s.includes("yogurt") || s.includes("cacık")) return "🥛";
+  if (s.includes("süt") || s.includes("sut")) return "🥛";
+  if (s.includes("çay") || s.includes("cay") || s.includes("kahve")) return "☕";
+  if (s.includes("meyve_suyu") || s.includes("kola") || s.includes("meşrubat")) return "🧃";
+  if (s.includes("hamsi") || s.includes("balık") || s.includes("somon") || s.includes("ton")) return "🐟";
+  if (s.includes("peynir") || s.includes("kaşar") || s.includes("kasar") || s.includes("beyaz peynir")) return "🧀";
+  if (s.includes("zeytin")) return "🫒";
+  if (s.includes("elma")) return "🍎";
+  if (s.includes("muz")) return "🍌";
+  if (s.includes("portakal")) return "🍊";
+  if (s.includes("salatalık") || s.includes("salatalik") || s.includes("hıyar") || s.includes("turşu") || s.includes("tursu")) return "🥒";
+  if (s.includes("patates") || s.includes("kızartma")) return "🍟";
+  if (s.includes("baklava") || s.includes("tatlı") || s.includes("kadayıf") || s.includes("sütlaç") || s.includes("helva")) return "🍮";
+  if (s.includes("fındık") || s.includes("fıstık") || s.includes("ceviz") || s.includes("badem")) return "🥜";
+  if (s.includes("bal") || s.includes("reçel")) return "🍯";
+  if (s.includes("burger") || s.includes("hamburger")) return "🍔";
+  return "🍽️";
+}
+
+export const TURKISH_FOOD_NUTRITION_MAP: Record<string, { kcal_per_100g: number; protein_g: number; carb_g: number; fat_g: number; default_g: number; name: string }> = {
+  "tr.mercimek_corbasi": { kcal_per_100g: 62, protein_g: 3.1, carb_g: 9.4, fat_g: 1.4, default_g: 250, name: "Mercimek çorbası" },
+  "tr.kuru_fasulye": { kcal_per_100g: 118, protein_g: 6.9, carb_g: 13.2, fat_g: 4.3, default_g: 250, name: "Kuru fasulye (etli)" },
+  "tr.pilav": { kcal_per_100g: 151, protein_g: 3.0, carb_g: 28.0, fat_g: 3.1, default_g: 180, name: "Pirinç pilavı" },
+  "tr.lahmacun": { kcal_per_100g: 243, protein_g: 10.5, carb_g: 34.0, fat_g: 7.4, default_g: 140, name: "Lahmacun" },
+  "tr.menemen": { kcal_per_100g: 118, protein_g: 6.2, carb_g: 4.8, fat_g: 8.3, default_g: 220, name: "Menemen" },
+  "tr.simit": { kcal_per_100g: 329, protein_g: 9.5, carb_g: 57.0, fat_g: 6.6, default_g: 100, name: "Simit" },
+  "tr.ayran": { kcal_per_100g: 37, protein_g: 1.7, carb_g: 2.6, fat_g: 2.0, default_g: 200, name: "Ayran" },
+  "tr.yaprak_sarma": { kcal_per_100g: 182, protein_g: 3.1, carb_g: 22.4, fat_g: 8.9, default_g: 150, name: "Zeytinyağlı yaprak sarma" },
+  "tr.ekmek_beyaz": { kcal_per_100g: 276, protein_g: 9.4, carb_g: 50.1, fat_g: 3.2, default_g: 25, name: "Ekmek, beyaz" },
+  "tr.kofte_izgara": { kcal_per_100g: 218, protein_g: 18.5, carb_g: 4.2, fat_g: 14.1, default_g: 150, name: "Izgara Köfte" },
+  "tr.coban_salatasi": { kcal_per_100g: 45, protein_g: 1.2, carb_g: 4.5, fat_g: 2.5, default_g: 150, name: "Çoban Salatası" },
+  "tr.bulgur_pilavi": { kcal_per_100g: 150, protein_g: 3.8, carb_g: 26.5, fat_g: 3.2, default_g: 180, name: "Bulgur pilavı" },
+  "tr.pizza": { kcal_per_100g: 266, protein_g: 11.0, carb_g: 33.0, fat_g: 10.0, default_g: 150, name: "Pizza (Karışık)" },
+  "tr.sucuk": { kcal_per_100g: 395, protein_g: 15.8, carb_g: 2.1, fat_g: 35.1, default_g: 50, name: "Sucuk" },
+  "tr.ezogelin_kuru": { kcal_per_100g: 318, protein_g: 12.0, carb_g: 54.3, fat_g: 4.8, default_g: 50, name: "Ezogelin çorbası" },
+  "tr.cay_siyah_kuru": { kcal_per_100g: 269, protein_g: 21.6, carb_g: 21.4, fat_g: 0.4, default_g: 2, name: "Çay" },
+  "tr.manti": { kcal_per_100g: 292, protein_g: 12.6, carb_g: 45.5, fat_g: 5.7, default_g: 200, name: "Mantı" },
+  "tr.domates": { kcal_per_100g: 19, protein_g: 0.9, carb_g: 2.9, fat_g: 0.2, default_g: 120, name: "Domates" },
+  "tr.salatalik": { kcal_per_100g: 16, protein_g: 0.4, carb_g: 2.8, fat_g: 0.3, default_g: 100, name: "Salatalık" },
+  "tr.patates": { kcal_per_100g: 68, protein_g: 1.5, carb_g: 14.4, fat_g: 0.2, default_g: 150, name: "Patates" },
+  "tr.kasar_peyniri": { kcal_per_100g: 381, protein_g: 26.0, carb_g: 3.1, fat_g: 29.4, default_g: 30, name: "Kaşar peyniri" },
+  "tr.edirne_beyaz_peyniri": { kcal_per_100g: 306, protein_g: 17.2, carb_g: 4.7, fat_g: 24.2, default_g: 30, name: "Beyaz peynir" },
+  "tr.zeytin_siyah": { kcal_per_100g: 113, protein_g: 1.4, carb_g: 1.0, fat_g: 10.8, default_g: 30, name: "Siyah zeytin" },
+  "tr.yumurta_tavuk": { kcal_per_100g: 140, protein_g: 13.1, carb_g: 0.0, fat_g: 9.7, default_g: 50, name: "Yumurta" },
+  "tr.yogurt_tam_yagli": { kcal_per_100g: 69, protein_g: 4.5, carb_g: 4.2, fat_g: 3.8, default_g: 200, name: "Yoğurt" },
+};
 
 type PortionSliderProps = {
   minimumValue: number;
@@ -33,8 +93,39 @@ function quantityLabel(item: MealLog["items"][number], quantity = item.quantity,
   return t("quantityValue", { quantity: String(quantity), unit: localizedUnit ? ` ${localizedUnit}` : "" });
 }
 
-function selectedName(item: MealLog["items"][number], selected: string) {
-  return item.candidates.find((candidate) => candidate.food_id === selected)?.name ?? selected;
+function resolveSelectedName(item: MealLog["items"][number], selected: string, customName?: string) {
+  if (selected === "USER_CUSTOM") return customName || item.query || "Özel Yemek";
+  const cand = item.candidates.find((candidate) => candidate.food_id === selected);
+  if (cand) return cand.name;
+  const cat = TURKISH_FOOD_NUTRITION_MAP[selected];
+  if (cat) return cat.name;
+  return item.query || selected;
+}
+
+export function getSmartItemLlmEstimate(query: string) {
+  const q = (query || "").toLowerCase();
+  if (q.includes("tursu") || q.includes("turşu")) {
+    return { name: "Salatalık Turşusu", kcal: 25, protein: 0.5, carb: 2.0, fat: 0.1, grams: 50 };
+  }
+  if (q.includes("yumurta") || q.includes("egg")) {
+    return { name: "Haşlanmış Yumurta", kcal: 70, protein: 6.0, carb: 0.5, fat: 5.0, grams: 50 };
+  }
+  if (q.includes("zeytin")) {
+    return { name: "Sofralık Zeytin", kcal: 45, protein: 0.4, carb: 0.5, fat: 4.5, grams: 30 };
+  }
+  if (q.includes("peynir")) {
+    return { name: "Beyaz Peynir", kcal: 90, protein: 5.5, carb: 1.0, fat: 7.5, grams: 30 };
+  }
+  if (q.includes("cacik") || q.includes("cacık")) {
+    return { name: "Cacık", kcal: 75, protein: 3.5, carb: 4.0, fat: 4.0, grams: 150 };
+  }
+  if (q.includes("salata")) {
+    return { name: "Mevsim Salatası", kcal: 45, protein: 1.2, carb: 4.0, fat: 2.5, grams: 150 };
+  }
+  if (q.includes("tatli") || q.includes("tatlı") || q.includes("baklava")) {
+    return { name: "Tatlı / Baklava", kcal: 280, protein: 4.0, carb: 38.0, fat: 12.0, grams: 80 };
+  }
+  return { name: query ? `${query} (Tahmini)` : "Özel Yemek", kcal: 120, protein: 4.0, carb: 15.0, fat: 4.0, grams: 100 };
 }
 
 function captureMediumCopy(medium: CaptureMedium): StringKey {
@@ -44,18 +135,118 @@ function captureMediumCopy(medium: CaptureMedium): StringKey {
   return "captureMediumUnclear";
 }
 
-function clarificationPrompt(
-  item: MealLog["items"][number],
-  clarification: ItemClarification,
-  selected: string,
-) {
-  if (clarification.kind === "count") {
-    return t("clarifyCount", { unit: formatLocalizedUnit(clarification.unit ?? item.unit ?? ""), food: selectedName(item, selected) });
+export interface SmartBannerDetails {
+  title: string;
+  text: string;
+  actionType?: MealAction;
+  unmatchedNames?: string[];
+  pendingCountNames?: string[];
+  totalPendingCount?: number;
+}
+
+function getSmartActionBannerDetails(
+  meal: MealLog,
+  selectedCandidates: Record<number, string>,
+  quantityEdits: Record<number, number | null>,
+): SmartBannerDetails {
+  if (meal.degraded) {
+    return {
+      title: t("degradedTitle"),
+      text: t("degradedCopy"),
+    };
   }
-  if (clarification.kind === "identity") {
-    return t("clarifyIdentity", { food: selectedName(item, selected) });
+
+  const unmatchedItems = meal.items.filter((item, i) => {
+    const sel = selectedCandidates[i] ?? item.food_id;
+    return sel === "ABSTAIN";
+  });
+
+  const pendingCountItems = meal.items.filter((item, i) => {
+    if (meal.items.length === 1 && item.confidence >= 0.85) return false;
+    const isUnmatched = (selectedCandidates[i] ?? item.food_id) === "ABSTAIN";
+    if (isUnmatched) return false;
+    return item.clarification?.kind === "count" && !Object.prototype.hasOwnProperty.call(quantityEdits, i);
+  });
+
+  const unmatchedNames = unmatchedItems.map((u) => u.query);
+  const pendingCountNames = pendingCountItems.map((item) => {
+    const idx = meal.items.indexOf(item);
+    const sel = selectedCandidates[idx] ?? item.food_id;
+    return resolveSelectedName(item, sel);
+  });
+  const totalPendingCount = unmatchedItems.length + pendingCountItems.length;
+
+  // When both unmatched items AND pending count clarifications exist:
+  if (unmatchedItems.length > 0 && pendingCountItems.length > 0) {
+    return {
+      title: `${totalPendingCount} Öğede Seçim Bekleniyor`,
+      text: `Tabaktaki ${unmatchedNames.join(", ")} için yemek eşleşmesi; ${pendingCountNames.join(", ")} için porsiyon/adet seçimi bekleniyor.`,
+      unmatchedNames,
+      pendingCountNames,
+      totalPendingCount,
+      actionType: "ask",
+    };
   }
-  return t("portionQuestionTitle");
+
+  // When only unmatched items exist:
+  if (unmatchedItems.length > 0) {
+    return {
+      title: unmatchedItems.length > 1 ? `${unmatchedItems.length} Yemek Eşleşmesi Gerekli` : "Yemek Eşleşmesi Gerekli",
+      text: `Tabaktaki ${unmatchedNames.join(", ")} için katalog eşleşmesi bulunamadı; lütfen aşağıdaki seçeneklerden eşleştirin veya yapay zeka tahminini seçin.`,
+      unmatchedNames,
+      totalPendingCount: unmatchedItems.length,
+      actionType: "ask",
+    };
+  }
+
+  // When only count clarifications exist:
+  if (pendingCountItems.length > 0) {
+    return {
+      title: pendingCountItems.length > 1 ? `${pendingCountItems.length} Öğede Porsiyon Belirsizliği` : "Porsiyon / Miktar Belirsizliği",
+      text: `Tabaktaki ${pendingCountNames.join(", ")} için lütfen porsiyon miktarınızı seçin.`,
+      pendingCountNames,
+      totalPendingCount: pendingCountItems.length,
+      actionType: "ask",
+    };
+  }
+
+  const customItems = meal.items.filter((item, i) => {
+    const sel = selectedCandidates[i] ?? item.food_id;
+    return sel === "USER_CUSTOM" || item.portion_provenance === "llm_generative_estimate";
+  });
+
+  if (customItems.length > 0) {
+    const isEntireMealCustom = customItems.length === meal.items.length;
+    if (isEntireMealCustom) {
+      return {
+        title: "Yapay Zeka Tahmini Yüklendi",
+        text: "Özel öğün değerleri yapay zeka tarafından tahmin edildi. Tabağınızı inceleyip gününüze kaydedebilirsiniz.",
+        actionType: "auto_accept",
+      };
+    } else {
+      const customNames = customItems.map((c) => c.query).join(", ");
+      return {
+        title: "Tüm Öğeler Doğrulandı",
+        text: `Katalog yemekleri resmi veriyle eşleşti; ${customNames} öğesi yapay zeka tahminiyle eklendi.`,
+        actionType: "auto_accept",
+      };
+    }
+  }
+
+  const rangeItem = meal.items.find((item) => item.grams_p90 > item.grams_p10);
+  if (rangeItem) {
+    return {
+      title: "Porsiyonu Gözden Geçirin",
+      text: "Yemekler katalogla eşleşti; porsiyon miktarını dilerseniz butonlarla veya gram kutusuyla özelleştirebilirsiniz.",
+      actionType: "review",
+    };
+  }
+
+  return {
+    title: "Tüm Öğeler Doğrulandı",
+    text: "Tüm seçimler ve eşleşmeler tamamlandı. Tabağınızı gününüze kaydedebilirsiniz.",
+    actionType: "auto_accept",
+  };
 }
 
 export type ReviewScreenProps = {
@@ -70,10 +261,13 @@ export type ReviewScreenProps = {
   selectedCandidates: Record<number, string>;
   onChooseCandidate: (index: number, candidate: Candidate) => void;
   onRemoveItem?: (index: number) => void;
+  onAddItem?: (foodName: string, calories?: number, grams?: number) => void;
   onSave: () => void;
   isSaved?: boolean;
   saving?: boolean;
   onBack: () => void;
+  scrollY?: number;
+  testFold?: "top" | "details" | "actions" | "bottom";
 };
 
 export function ReviewScreen({
@@ -88,469 +282,1155 @@ export function ReviewScreen({
   selectedCandidates,
   onChooseCandidate,
   onRemoveItem,
+  onAddItem,
   onSave,
   isSaved = false,
   saving = false,
   onBack,
+  scrollY = 0,
+  testFold,
 }: ReviewScreenProps) {
   const displayAction = meal.degraded ? "review" : meal.action;
   const tone = actionTone(displayAction);
   const flaggedMedium = meal.items.find((item) => (item.capture_medium ?? "real_plate") !== "real_plate")?.capture_medium ?? null;
 
-  const [portionConfirmed, setPortionConfirmed] = useState<Record<number, boolean>>({});
+  // Accordion state: auto-open items that require user attention (ABSTAIN or pending count clarification on complex meals)
+  const [openItems, setOpenItems] = useState<Record<number, boolean>>(() => {
+    const initial: Record<number, boolean> = {};
+    meal.items.forEach((item, idx) => {
+      const isAbstain = item.food_id === "ABSTAIN";
+      const isSingleConfident = meal.items.length === 1 && item.confidence >= 0.85;
+      const hasCount = item.clarification?.kind === "count" && !isSingleConfident;
+      if (isAbstain || hasCount) {
+        initial[idx] = true;
+      }
+    });
+    return initial;
+  });
+
+  function toggleItem(index: number) {
+    setOpenItems((prev) => ({ ...prev, [index]: !prev[index] }));
+  }
+
+  // Toggled sub-controls (portion editor & candidate editor)
+  const [showPortionEdit, setShowPortionEdit] = useState<Record<number, boolean>>(() => {
+    const initial: Record<number, boolean> = {};
+    meal.items.forEach((item, idx) => {
+      const isSingleConfident = meal.items.length === 1 && item.confidence >= 0.85;
+      if (item.clarification?.kind === "count" && !isSingleConfident) {
+        initial[idx] = true;
+      }
+    });
+    return initial;
+  });
+  const [showCandidateEdit, setShowCandidateEdit] = useState<Record<number, boolean>>({});
+
+  // Custom food details per item index
+  const [customFoodDetails, setCustomFoodDetails] = useState<Record<number, { name: string; kcal: number; grams: number }>>({});
+
+  // "+ Başka..." Custom search/manual entry state
+  const [customSearchIndex, setCustomSearchIndex] = useState<number | null>(null);
+  const [customFoodQuery, setCustomFoodQuery] = useState("");
+  const [customNotFound, setCustomNotFound] = useState(false);
+  const [customCaloriesInput, setCustomCaloriesInput] = useState("250");
+
+  // + Tabağa Öğe Ekle state
+  const [showAddPlateItem, setShowAddPlateItem] = useState(false);
+  const [newPlateItemQuery, setNewPlateItemQuery] = useState("");
+  const [newPlateItemKcal, setNewPlateItemKcal] = useState("");
+  const [newPlateItemNotFound, setNewPlateItemNotFound] = useState(false);
+
+  // Audit details state: strictly collapsed by default
+  const [openAuditItems, setOpenAuditItems] = useState<Record<number, boolean>>({});
+  function toggleAudit(index: number) {
+    setOpenAuditItems((prev) => ({ ...prev, [index]: !prev[index] }));
+  }
 
   const hasUnansweredCountClarification = meal.items.some((item, index) => {
     const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
     return countAnswerPending(item, hasQuantityEdit);
   });
-
-  const needsPortionConfirmation = meal.action === "review" && meal.items.some((item, index) => {
-    const clarification = item.clarification ?? null;
-    if (clarification?.kind === "count") return false;
-    const hasRange = item.grams_p90 > item.grams_p10;
-    const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
-    return hasRange && !hasPortionEdit && !portionConfirmed[index];
-  });
+  const needsPortionConfirmation = hasUnansweredCountClarification;
 
   const hasUnresolvedAbstain = meal.items.some((item, index) => {
     const selected = selectedCandidates[index] ?? item.food_id;
     return selected === "ABSTAIN";
   });
 
-  const isSaveDisabled = Boolean(saving || hasUnansweredCountClarification || needsPortionConfirmation || hasUnresolvedAbstain);
-  const footerHint = hasUnresolvedAbstain
+  const pendingCountItems = meal.items.filter((item, i) => item.clarification?.kind === "count" && !Object.prototype.hasOwnProperty.call(quantityEdits, i));
+  const hasPendingQuestions = hasUnresolvedAbstain || pendingCountItems.length > 0;
+
+  const isSaveDisabled = Boolean(saving || hasUnresolvedAbstain);
+  const footerHint = hasUnresolvedAbstain && pendingCountItems.length > 0
+    ? "Çözülmemiş yemek eşleşmeleri ve porsiyon seçimleri var; kaydetmeden önce aşağıdaki listeden tamamlayın."
+    : hasUnresolvedAbstain
     ? t("unresolvedAbstainHint")
-    : hasUnansweredCountClarification
-      ? t("saveBlockedCountHint")
-      : needsPortionConfirmation
-        ? t("confirmPortionRequired")
-        : null;
+    : null;
+
+  const bannerDetails = getSmartActionBannerDetails(meal, selectedCandidates, quantityEdits);
 
   function handleSave() {
+    if (saving) return;
+    if (hasUnresolvedAbstain) {
+      Alert.alert(t("needsMatch"), t("unresolvedAbstainHint"));
+      return;
+    }
     meal.items.forEach((item, index) => {
       if (item.clarification?.kind === "count" && !Object.prototype.hasOwnProperty.call(quantityEdits, index)) {
         setQuantityEdits((current) => ({ ...current, [index]: 1 }));
       }
     });
-    if (needsPortionConfirmation) {
-      Alert.alert(t("portion"), t("confirmPortionRequired"));
-      return;
-    }
+
+    const hasEdits = Object.keys(selectedCandidates).length > 0 || Object.keys(portionEdits).length > 0 || Object.keys(quantityEdits).length > 0;
+    sendTelemetryEvent("http://localhost:3000", {
+      idempotency_key: meal.idempotency_key,
+      locale: meal.locale ?? "tr",
+      event_type: hasEdits ? "CANDIDATE_SWAPPED" : "CONFIRMED_AS_IS",
+      input_mode: meal.items[0]?.capture_medium === "real_plate" ? "image" : "text",
+      items: meal.items.map((it, idx) => ({
+        original_query: it.query,
+        predicted_food_id: it.food_id,
+        selected_food_id: selectedCandidates[idx] ?? it.food_id,
+        predicted_grams: it.grams,
+        selected_grams: portionEdits[idx] ?? it.grams,
+        delta_reason: hasEdits ? "user_mobile_review_edit" : "user_accepted_without_edit",
+      })),
+      total_kcal_before: meal.totals?.kcal,
+      total_kcal_after: liveTotalKcal,
+    });
+
     onSave();
   }
 
-  function confirmPortionChoice(index: number, grams: number) {
+  function setPortionQuick(index: number, grams: number) {
     setPortionEdits((current) => ({ ...current, [index]: grams }));
-    setPortionConfirmed((current) => ({ ...current, [index]: true }));
   }
+
+  function handleSearchCustomFood(index: number) {
+    const trimmed = customFoodQuery.trim();
+    if (!trimmed) return;
+
+    const existing = meal.items[index]?.candidates.find(
+      (c) => c.name.toLowerCase().includes(trimmed.toLowerCase()) || trimmed.toLowerCase().includes(c.name.toLowerCase())
+    );
+
+    if (existing) {
+      onChooseCandidate(index, existing);
+      setCustomSearchIndex(null);
+      setCustomFoodQuery("");
+      setCustomNotFound(false);
+      Alert.alert("Katalog Eşleşti", `"${existing.name}" katalogdan başarıyla eşleştirildi.`);
+    } else {
+      setCustomNotFound(true);
+    }
+  }
+
+  function handleSelectAiFallbackDish(index: number, name: string, kcal: number, grams: number) {
+    setCustomFoodDetails((prev) => ({
+      ...prev,
+      [index]: { name, kcal, grams },
+    }));
+
+    const customCandidate: Candidate = {
+      food_id: "USER_CUSTOM",
+      name: name,
+      score: 0.95,
+    };
+
+    onChooseCandidate(index, customCandidate);
+    setCustomSearchIndex(null);
+    setCustomFoodQuery("");
+    setCustomNotFound(false);
+  }
+
+  function handleSaveCustomManualDish(index: number) {
+    const name = customFoodQuery.trim() || "Özel Yemek";
+    const kcal = parseInt(customCaloriesInput.replace(/[^0-9]/g, ""), 10) || 250;
+
+    setCustomFoodDetails((prev) => ({
+      ...prev,
+      [index]: { name, kcal, grams: 150 },
+    }));
+
+    const customCandidate: Candidate = {
+      food_id: "USER_CUSTOM",
+      name: name,
+      score: 1.0,
+    };
+
+    onChooseCandidate(index, customCandidate);
+    setCustomSearchIndex(null);
+    setCustomFoodQuery("");
+    setCustomNotFound(false);
+    Alert.alert("Özel Yemek Eklendi", `"${name}" (${kcal} kcal) manuel kullanıcı girişi olarak tabağa eklendi.`);
+  }
+
+  // Calculate live total macros across all items (including newly resolved candidates)
+  let liveTotalKcal = 0;
+  let liveTotalProtein = 0;
+  let liveTotalCarb = 0;
+  let liveTotalFat = 0;
+
+  meal.items.forEach((item, index) => {
+    const selected = selectedCandidates[index] ?? item.food_id;
+    if (selected === "ABSTAIN") return;
+
+    const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
+    const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
+    const serverQty = (typeof item.quantity === "number" && item.quantity > 0) ? item.quantity : 1;
+    const quantity = getEffectiveQuantity(item, hasQuantityEdit, quantityEdits[index]);
+    const currentQty = (typeof quantity === "number" && quantity > 0) ? quantity : 1;
+    const quantityRatio = hasQuantityEdit ? (currentQty / serverQty) : 1;
+
+    const catInfo = TURKISH_FOOD_NUTRITION_MAP[selected];
+    const customInfo = customFoodDetails[index];
+
+    const baseGrams = (item.grams > 0) ? item.grams : (customInfo?.grams ?? catInfo?.default_g ?? 150);
+    const baseKcal = (item.nutrients.kcal > 0) ? item.nutrients.kcal : (customInfo?.kcal ?? (catInfo ? Math.round((catInfo.kcal_per_100g * baseGrams) / 100) : 150));
+    const baseProtein = (item.nutrients.protein_g > 0) ? item.nutrients.protein_g : (catInfo ? Math.round((catInfo.protein_g * baseGrams) / 100) : 4);
+    const baseCarb = (item.nutrients.carb_g > 0) ? item.nutrients.carb_g : (catInfo ? Math.round((catInfo.carb_g * baseGrams) / 100) : 20);
+    const baseFat = (item.nutrients.fat_g > 0) ? item.nutrients.fat_g : (catInfo ? Math.round((catInfo.fat_g * baseGrams) / 100) : 5);
+
+    const effectiveGrams = hasPortionEdit
+      ? portionEdits[index]
+      : hasQuantityEdit
+      ? Math.round(baseGrams * quantityRatio)
+      : Math.round(baseGrams);
+    const gramRatio = (baseGrams > 0 && effectiveGrams > 0) ? (effectiveGrams / baseGrams) : 1;
+
+    liveTotalKcal += Math.round(baseKcal * gramRatio);
+    liveTotalProtein += Math.round(baseProtein * gramRatio);
+    liveTotalCarb += Math.round(baseCarb * gramRatio);
+    liveTotalFat += Math.round(baseFat * gramRatio);
+  });
+
+  const isBottomFold = testFold === "bottom";
+  const showTopHeader = !testFold || testFold === "top";
 
   return (
     <View style={styles.screen}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Header eyebrow={t("reviewEyebrow")} title={isSaved ? t("savedReviewTitle") : t("reviewTitle")} subtitle={isSaved ? t("savedReviewSubtitle") : t("reviewSubtitle")} />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        contentOffset={{ x: 0, y: testFold === "bottom" ? 350 : 0 }}
+      >
+        {showTopHeader ? (
+          <>
+            <Header eyebrow={t("reviewEyebrow")} title={isSaved ? t("savedReviewTitle") : t("reviewTitle")} subtitle={isSaved ? t("savedReviewSubtitle") : t("reviewSubtitle")} />
 
-        {imageUri ? (
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
-            <View style={styles.imageBadge}>
-              <Ionicons name="image-outline" size={13} color={colors.white} />
-              <Text style={styles.imageBadgeText}>{t("mealPhotoBadge")}</Text>
+            {imageUri ? (
+              <View style={styles.imageContainer}>
+                <Image source={{ uri: imageUri }} style={styles.previewBackdrop} resizeMode="cover" blurRadius={14} />
+                <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
+                <View style={styles.imageBadge}>
+                  <Ionicons name="image-outline" size={13} color={colors.white} />
+                  <Text style={styles.imageBadgeText}>{t("mealPhotoBadge")}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {meal.degraded ? (
+              <View style={styles.degradedBanner}>
+                <Ionicons name="warning-outline" size={19} color="#8D641C" />
+                <View style={styles.degradedCopy}>
+                  <Text style={styles.degradedTitle}>{t("degradedTitle")}</Text>
+                  <Text style={styles.degradedText}>{t("degradedCopy")}</Text>
+                </View>
+              </View>
+            ) : null}
+            {flaggedMedium ? (
+              <View style={styles.captureMediumBanner}>
+                <Ionicons name="image-outline" size={19} color="#8D641C" />
+                <View style={styles.degradedCopy}>
+                  <Text style={styles.degradedTitle}>{t("captureMedium")}</Text>
+                  <Text style={styles.degradedText}>{t(captureMediumCopy(flaggedMedium))}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {/* Smart Modern Action Callout Banner */}
+            {(() => {
+              const currentAction = bannerDetails.actionType ?? (hasPendingQuestions ? "ask" : "auto_accept");
+              const isAsk = currentAction === "ask";
+              const isAutoAccept = currentAction === "auto_accept";
+              const isReview = currentAction === "review";
+
+              return (
+                <View
+                  style={[
+                    styles.modernBannerCard,
+                    isAsk && styles.modernBannerAsk,
+                    isAutoAccept && styles.modernBannerAccept,
+                    isReview && styles.modernBannerReview,
+                  ]}
+                >
+                  <View style={styles.modernBannerTopRow}>
+                    <View style={styles.modernBannerBadgeWrap}>
+                      <View
+                        style={[
+                          styles.modernBannerIconCircle,
+                          isAsk && styles.modernIconCircleAsk,
+                          isAutoAccept && styles.modernIconCircleAccept,
+                          isReview && styles.modernIconCircleReview,
+                        ]}
+                      >
+                        <Ionicons
+                          name={isAutoAccept ? "checkmark-circle" : isAsk ? "sparkles" : "options-outline"}
+                          size={15}
+                          color={isAutoAccept ? colors.moss : isAsk ? "#8D641C" : colors.ink}
+                        />
+                      </View>
+                      <Text
+                        style={[
+                          styles.modernBannerCategoryTag,
+                          isAsk && styles.categoryTagAsk,
+                          isAutoAccept && styles.categoryTagAccept,
+                        ]}
+                      >
+                        {isAutoAccept
+                          ? "GÜVENLE DOĞRULANDI"
+                          : isAsk
+                          ? "KONTROL & SEÇİM"
+                          : "PORSİYON GÖZDEN GEÇİRME"}
+                      </Text>
+                    </View>
+
+                    {bannerDetails.totalPendingCount && bannerDetails.totalPendingCount > 0 ? (
+                      <View style={styles.modernPendingPill}>
+                        <Text style={styles.modernPendingPillText}>
+                          {bannerDetails.totalPendingCount} İşlem Bekliyor
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  <Text style={styles.modernBannerMainTitle}>{bannerDetails.title}</Text>
+
+                  {/* Structured visual item tags */}
+                  {((bannerDetails.unmatchedNames && bannerDetails.unmatchedNames.length > 0) ||
+                    (bannerDetails.pendingCountNames && bannerDetails.pendingCountNames.length > 0)) ? (
+                    <View style={styles.modernPillsGroup}>
+                      {bannerDetails.unmatchedNames && bannerDetails.unmatchedNames.length > 0 ? (
+                        <View style={styles.modernPillCategoryRow}>
+                          <Text style={styles.modernPillGroupLabel}>Eşleşme:</Text>
+                          <View style={styles.modernItemTagsRow}>
+                            {bannerDetails.unmatchedNames.map((name) => (
+                              <View key={name} style={styles.modernUnmatchedTag}>
+                                <Text style={styles.modernTagEmoji}>{getFoodEmoji(name)}</Text>
+                                <Text style={styles.modernUnmatchedTagText}>{name}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      ) : null}
+
+                      {bannerDetails.pendingCountNames && bannerDetails.pendingCountNames.length > 0 ? (
+                        <View style={styles.modernPillCategoryRow}>
+                          <Text style={styles.modernPillGroupLabel}>Porsiyon:</Text>
+                          <View style={styles.modernItemTagsRow}>
+                            {bannerDetails.pendingCountNames.map((name) => (
+                              <View key={name} style={styles.modernCountTag}>
+                                <Text style={styles.modernTagEmoji}>{getFoodEmoji(name)}</Text>
+                                <Text style={styles.modernCountTagText}>{name}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : (
+                    <Text style={styles.modernBannerDescription}>{bannerDetails.text}</Text>
+                  )}
+                </View>
+              );
+            })()}
+
+            {/* Bento Macro Summary Bar */}
+            <View style={styles.bentoSummaryCard}>
+              <View style={styles.bentoSummaryHeader}>
+                <View style={styles.bentoKcalBadge}>
+                  <Ionicons name="flame" size={18} color={colors.terracotta} />
+                  <Text style={styles.bentoKcalValue}>{liveTotalKcal > 0 ? liveTotalKcal : meal.totals.kcal}</Text>
+                  <Text style={styles.bentoKcalUnit}>kcal toplam</Text>
+                </View>
+                <View style={styles.bentoItemCountBadge}>
+                  <Ionicons name="restaurant-outline" size={13} color={colors.moss} />
+                  <Text style={styles.bentoItemCountText}>{meal.items.length} Öğe</Text>
+                </View>
+              </View>
+              <View style={styles.bentoMacroRow}>
+                <View style={styles.bentoMacroPill}>
+                  <Text style={styles.bentoMacroLabel}>Protein</Text>
+                  <Text style={styles.bentoMacroValue}>{liveTotalProtein > 0 ? liveTotalProtein : meal.totals.protein_g} g</Text>
+                </View>
+                <View style={styles.bentoMacroPill}>
+                  <Text style={styles.bentoMacroLabel}>Karb</Text>
+                  <Text style={styles.bentoMacroValue}>{liveTotalCarb > 0 ? liveTotalCarb : meal.totals.carb_g ?? 0} g</Text>
+                </View>
+                <View style={styles.bentoMacroPill}>
+                  <Text style={styles.bentoMacroLabel}>Yağ</Text>
+                  <Text style={styles.bentoMacroValue}>{liveTotalFat > 0 ? liveTotalFat : meal.totals.fat_g ?? 0} g</Text>
+                </View>
+              </View>
             </View>
-          </View>
+          </>
         ) : null}
 
-        {meal.degraded ? (
-          <View style={styles.degradedBanner}>
-            <Ionicons name="warning-outline" size={19} color="#8D641C" />
-            <View style={styles.degradedCopy}>
-              <Text style={styles.degradedTitle}>{t("degradedTitle")}</Text>
-              <Text style={styles.degradedText}>{t("degradedCopy")}</Text>
-            </View>
-          </View>
+        {isBottomFold ? (
+          <Header eyebrow="ÖĞÜN DETAYLARI & EŞLEŞMELER" title="Kalori, Porsiyon ve Adaylar" subtitle="Tabağın besin değerleri, porsiyon ayarı ve alternatif katalog adayları." />
         ) : null}
-        {flaggedMedium ? (
-          <View style={styles.captureMediumBanner}>
-            <Ionicons name="image-outline" size={19} color="#8D641C" />
-            <View style={styles.degradedCopy}>
-              <Text style={styles.degradedTitle}>{t("captureMedium")}</Text>
-              <Text style={styles.degradedText}>{t(captureMediumCopy(flaggedMedium))}</Text>
-            </View>
-          </View>
-        ) : null}
-        <View style={[styles.actionBanner, { backgroundColor: tone.backgroundColor }]}>
-          <View style={[styles.actionMark, { backgroundColor: tone.color }]}>
-            <Ionicons name={displayAction === "ask" ? "help" : displayAction === "auto_accept" ? "checkmark" : "eye"} size={17} color={colors.white} />
-          </View>
-          <View style={styles.actionBannerCopy}>
-            <Text style={[styles.actionBannerTitle, { color: tone.color }]}>{actionLabel(displayAction)}</Text>
-            <Text style={styles.actionBannerText}>{meal.degraded ? t("degradedCopy") : meal.action === "ask" ? t("questionPick") : t("editableMatch")}</Text>
-          </View>
+
+        <View style={styles.itemsSectionHeader}>
+          <Text style={styles.itemsSectionTitle}>Tabaktaki Öğeler ({meal.items.length})</Text>
+          <Text style={styles.itemsSectionSubtitle}>Detayları görmek veya porsiyonu ayarlamak için dokunun</Text>
         </View>
 
         {meal.items.map((item, index) => {
           const selected = selectedCandidates[index] ?? item.food_id;
+          const isAbstain = selected === "ABSTAIN";
+
           const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
           const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
+          const serverQty = (typeof item.quantity === "number" && item.quantity > 0) ? item.quantity : 1;
           const quantity = getEffectiveQuantity(item, hasQuantityEdit, quantityEdits[index]);
-          const quantityMultiplier = (typeof quantity === "number" && quantity > 0) ? quantity : 1;
-          const effectiveGrams = hasPortionEdit ? portionEdits[index] : Math.round(item.grams * quantityMultiplier);
-          const effectiveLow = Math.round(item.grams_p10 * quantityMultiplier);
-          const effectiveHigh = Math.round(item.grams_p90 * quantityMultiplier);
+          const currentQty = (typeof quantity === "number" && quantity > 0) ? quantity : 1;
+          const quantityRatio = hasQuantityEdit ? (currentQty / serverQty) : 1;
+
+          const catInfo = TURKISH_FOOD_NUTRITION_MAP[selected];
+          const customInfo = customFoodDetails[index];
+
+          const baseGrams = (item.grams > 0) ? item.grams : (customInfo?.grams ?? catInfo?.default_g ?? 150);
+          const baseKcal = (item.nutrients.kcal > 0) ? item.nutrients.kcal : (customInfo?.kcal ?? (catInfo ? Math.round((catInfo.kcal_per_100g * baseGrams) / 100) : 150));
+          const baseProtein = (item.nutrients.protein_g > 0) ? item.nutrients.protein_g : (catInfo ? Math.round((catInfo.protein_g * baseGrams) / 100) : 4);
+          const baseCarb = (item.nutrients.carb_g > 0) ? item.nutrients.carb_g : (catInfo ? Math.round((catInfo.carb_g * baseGrams) / 100) : 20);
+          const baseFat = (item.nutrients.fat_g > 0) ? item.nutrients.fat_g : (catInfo ? Math.round((catInfo.fat_g * baseGrams) / 100) : 5);
+
+          const effectiveGrams = hasPortionEdit
+            ? portionEdits[index]
+            : hasQuantityEdit
+            ? Math.round(baseGrams * quantityRatio)
+            : Math.round(baseGrams);
+
+          const effectiveLow = item.grams_p10 > 0 ? Math.round(item.grams_p10 * quantityRatio) : Math.round(effectiveGrams * 0.75);
+          const effectiveHigh = item.grams_p90 > 0 ? Math.round(item.grams_p90 * quantityRatio) : Math.round(effectiveGrams * 1.25);
           const grams = effectiveGrams;
+
           const clarification = item.clarification ?? null;
-          const quantityUnit = clarification?.kind === "count" ? clarification.unit ?? item.unit : item.unit;
-          const hasPortionBand = grams > 0 && effectiveHigh >= effectiveLow && effectiveHigh > 0;
+          const quantityUnit = clarification && clarification.kind === "count" ? clarification.unit ?? item.unit : item.unit;
           const hasRange = effectiveHigh > effectiveLow;
-          const isPortionDone = hasPortionEdit || Boolean(portionConfirmed[index]);
           const isCountAnswerPending = countAnswerPending(item, hasQuantityEdit);
-          const hasLocalNutritionEdit = hasPortionEdit || selected !== item.food_id;
-          const nutritionPresentation = nutritionPresentationForItem(item);
-          const computedValuesHint = isCountAnswerPending ? t("countAnswerRequired") : t("nutritionRecalculationPending");
+          const isDeferred = computedValuesNeedServerRefresh(item, hasQuantityEdit, quantity);
+          const nutritionPresentation = selected === "USER_CUSTOM" ? "manual" : isAbstain ? "pending" : "verified";
+          const hasLocalNutritionEdit = Boolean(hasPortionEdit || hasQuantityEdit);
+          const nutritionRecalculationPending = false;
+
           const displayedQuantity = isCountAnswerPending
             ? t("quantityPending")
             : quantityLabel(item, quantity, quantityUnit);
 
-          const previewKcal = Math.round(item.nutrients.kcal * quantityMultiplier);
-          const previewProtein = Math.round(item.nutrients.protein_g * quantityMultiplier);
-          const previewCarb = Math.round(item.nutrients.carb_g * quantityMultiplier);
-          const previewFat = Math.round(item.nutrients.fat_g * quantityMultiplier);
+          const gramRatio = (baseGrams > 0 && grams > 0) ? (grams / baseGrams) : 1;
+          const previewKcal = isAbstain ? 0 : Math.round(baseKcal * gramRatio);
+          const previewProtein = isAbstain ? 0 : Math.round(baseProtein * gramRatio);
+          const previewCarb = isAbstain ? 0 : Math.round(baseCarb * gramRatio);
+          const previewFat = isAbstain ? 0 : Math.round(baseFat * gramRatio);
+
+          const isExpanded = Boolean(openItems[index]);
+          const isAuditExpanded = Boolean(openAuditItems[index]);
+          const expandedItem = isAuditExpanded ? index : null;
+          const isItemAuditExpanded = expandedItem === index;
+
+          // Clean display name
+          const displayName = isAbstain
+            ? `${item.query || "Yemek"} (Eşleşme Bekleniyor)`
+            : selected === "USER_CUSTOM"
+            ? `${resolveSelectedName(item, selected, customInfo?.name)} (Özel)`
+            : resolveSelectedName(item, selected);
+
+          const foodEmoji = getFoodEmoji(selected + " " + item.query + " " + displayName);
+
+          // Portion & Candidates sub-panels:
+          const shouldShowPortion = !isAbstain && Boolean(showPortionEdit[index]);
+          const shouldShowCandidates = isAbstain || Boolean(showCandidateEdit[index]);
 
           return (
-            <View key={`${item.query}-${index}`} style={styles.itemCard}>
-              <View style={styles.itemTopRow}>
-                <View style={styles.itemIndex}><Text style={styles.itemIndexText}>{String(index + 1).padStart(2, "0")}</Text></View>
+            <View key={`${item.query}-${index}`} style={[styles.itemCard, isExpanded && styles.itemCardExpanded]}>
+              {/* Interactive Accordion Header with Food Emoji */}
+              <Pressable
+                style={styles.itemAccordionHeader}
+                onPress={() => toggleItem(index)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.query} detayları`}
+              >
+                <View style={styles.itemEmojiWrap}>
+                  <Text style={styles.itemEmojiText}>{foodEmoji}</Text>
+                </View>
                 <View style={styles.itemNameWrap}>
-                  <Text style={styles.itemQuery}>{item.query}</Text>
-                  <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? t("needsMatch") : selectedName(item, selected)}</Text>
-                  <Text style={styles.quantityText}>{displayedQuantity}</Text>
-                  <View style={styles.statusBadgesRow}>
-                    <View style={[styles.confidencePill, item.confidence >= 0.85 ? styles.confidenceHigh : styles.confidenceMed]}>
-                      <Text style={styles.confidenceText}>{item.confidence >= 0.85 ? t("matchConfidenceHigh") : t("matchConfidenceMed")} (%{Math.round(item.confidence * 100)})</Text>
-                    </View>
-                    {hasRange && clarification?.kind !== "count" ? (
-                      <View style={[styles.portionStatusPill, isPortionDone ? styles.portionDone : styles.portionPending]}>
-                        <Text style={styles.portionStatusText}>{isPortionDone ? t("portionStatusConfirmed") : t("portionStatusVerify")}</Text>
+                  <Text style={styles.itemMatch} numberOfLines={1}>
+                    {displayName}
+                  </Text>
+                  <View style={[styles.itemHeaderSubRow, styles.statusBadgesRow]}>
+                    <Text style={styles.quantityText}>
+                      {isAbstain
+                        ? "Eşleşme Seçin"
+                        : !hasQuantityEdit && clarification?.kind === "count" && !(meal.items.length === 1 && item.confidence >= 0.85)
+                        ? "Porsiyon Seçimi Bekleniyor"
+                        : grams > 0
+                        ? `${displayedQuantity} (${grams}g)`
+                        : displayedQuantity}
+                    </Text>
+                    {isAbstain ? (
+                      <View style={[styles.confidencePillMini, styles.confidenceLow]}>
+                        <Text style={[styles.confidenceTextMini, styles.confidenceTextLow]}>
+                          Eşleşme Gerekli
+                        </Text>
+                      </View>
+                    ) : !hasQuantityEdit && clarification?.kind === "count" && !(meal.items.length === 1 && item.confidence >= 0.85) ? (
+                      <View style={[styles.confidencePillMini, styles.confidenceMed]}>
+                        <Text style={[styles.confidenceTextMini, styles.confidenceTextMed]}>
+                          Seçim Bekleniyor
+                        </Text>
                       </View>
                     ) : null}
                   </View>
                 </View>
-              </View>
-
-              {selected === "ABSTAIN" ? (
-                <View style={styles.abstainCardNotice}>
-                  <Text style={styles.abstainCardText}>{t("needsMatch")}</Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t("removeItem")}
-                    style={styles.removeItemBtn}
-                    onPress={() => onRemoveItem?.(index)}
-                  >
-                    <Ionicons name="trash-outline" size={13} color={colors.terracotta} />
-                    <Text style={styles.removeItemBtnText}>{t("removeItem")}</Text>
-                  </Pressable>
+                <View style={styles.itemHeaderRight}>
+                  <View style={styles.itemHeaderKcalChevronRow}>
+                    <Text style={[styles.itemHeaderKcal, isAbstain && styles.itemHeaderKcalZero]}>
+                      {isAbstain ? "— kcal" : `≈ ${previewKcal} kcal`}
+                    </Text>
+                    <View style={styles.chevronCircle}>
+                      <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color={colors.ink} />
+                    </View>
+                  </View>
+                  {!isAbstain ? (
+                    <Text style={styles.itemHeaderMacrosMini}>
+                      {previewProtein}g P · {previewCarb}g K · {previewFat}g Y
+                    </Text>
+                  ) : null}
                 </View>
-              ) : null}
-
-              {nutritionPresentation === "verified" ? (
-                <View style={styles.nutritionCard}>
-                  <Text style={styles.nutritionEyebrow}>{t("nutritionTitle")}</Text>
-                  <Text style={styles.nutritionCopy}>{t("nutritionSummary")}</Text>
-                  <View style={styles.nutritionGrid}>
-                    <View style={[styles.nutritionMetric, styles.nutritionMetricEnergy]}>
-                      <Text style={styles.nutritionMetricValue}>≈ {previewKcal} kcal</Text>
-                      <Text style={styles.nutritionMetricLabel}>{t("calories")}</Text>
-                    </View>
-                    <View style={styles.nutritionMetric}>
-                      <Text style={styles.nutritionMetricValue}>≈ {previewProtein} g</Text>
-                      <Text style={styles.nutritionMetricLabel}>{t("protein")}</Text>
-                    </View>
-                    <View style={styles.nutritionMetric}>
-                      <Text style={styles.nutritionMetricValue}>≈ {previewCarb} g</Text>
-                      <Text style={styles.nutritionMetricLabel}>{t("carbs")}</Text>
-                    </View>
-                    <View style={styles.nutritionMetric}>
-                      <Text style={styles.nutritionMetricValue}>≈ {previewFat} g</Text>
-                      <Text style={styles.nutritionMetricLabel}>{t("fat")}</Text>
-                    </View>
-                  </View>
-                </View>
-              ) : null}
-
-              {nutritionPresentation === "manual" ? (
-                <View style={styles.manualNutritionNotice}>
-                  <Text style={styles.manualNutritionKcal}>{Math.round(item.nutrients.kcal)} kcal</Text>
-                  <Text style={styles.manualNutritionCopy}>{t("manualCaloriesSummary")}</Text>
-                </View>
-              ) : null}
-
-              {clarification?.kind === "count" ? (
-                <View style={styles.questionCard}>
-                  <Text style={styles.questionText}>Adet / Miktar Seçimi</Text>
-                  <View style={styles.countChoices}>
-                    {clarification.options.map((option) => {
-                      const isSelected = quantity === option;
-                      return (
-                        <Pressable
-                          key={option === null ? "unknown" : option}
-                          accessibilityRole="button"
-                          accessibilityLabel={option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: formatLocalizedUnit(clarification.unit ?? "") })}
-                          style={[styles.countChoice, isSelected && styles.countChoiceSelected]}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          onPress={() => setQuantityEdits((current) => ({ ...current, [index]: option }))}
-                        >
-                          <Text style={[styles.countChoiceText, isSelected && styles.countChoiceTextSelected]}>
-                            {option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: formatLocalizedUnit(clarification.unit ?? "") })}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-
-                  <View style={styles.customCountRow}>
-                    <Text style={styles.customCountLabel}>Özel adet:</Text>
-                    <View style={styles.stepperWrap}>
-                      <Pressable
-                        style={styles.stepperButton}
-                        accessibilityRole="button"
-                        accessibilityLabel="Adet azalt"
-                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        onPress={() => {
-                          const currentVal = typeof quantity === "number" ? quantity : 1;
-                          const nextVal = Math.max(1, currentVal - 1);
-                          setQuantityEdits((current) => ({ ...current, [index]: nextVal }));
-                        }}
-                      >
-                        <Ionicons name="remove" size={16} color={colors.ink} />
-                      </Pressable>
-                      <TextInput
-                        style={styles.stepperInput}
-                        keyboardType="number-pad"
-                        value={typeof quantity === "number" ? String(quantity) : ""}
-                        placeholder="Örn. 4"
-                        placeholderTextColor={colors.muted}
-                        maxLength={2}
-                        onChangeText={(txt) => {
-                          const clean = txt.replace(/[^0-9]/g, "");
-                          const num = parseInt(clean, 10);
-                          if (num > 0 && num <= 99) {
-                            setQuantityEdits((current) => ({ ...current, [index]: num }));
-                          } else if (clean === "") {
-                            setQuantityEdits((current) => ({ ...current, [index]: null }));
-                          }
-                        }}
-                      />
-                      <Text style={styles.stepperUnit}>{formatLocalizedUnit(clarification.unit ?? "adet")}</Text>
-                      <Pressable
-                        style={styles.stepperButton}
-                        accessibilityRole="button"
-                        accessibilityLabel="Adet artır"
-                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        onPress={() => {
-                          const currentVal = typeof quantity === "number" ? quantity : 1;
-                          const nextVal = Math.min(99, currentVal + 1);
-                          setQuantityEdits((current) => ({ ...current, [index]: nextVal }));
-                        }}
-                      >
-                        <Ionicons name="add" size={16} color={colors.ink} />
-                      </Pressable>
-                    </View>
-                  </View>
-                </View>
-              ) : null}
-
-              {hasRange && meal.action === "review" && clarification?.kind !== "count" ? (
-                <View style={styles.portionQuestionCard}>
-                  <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
-                  <Text style={styles.questionText}>{t("portionQuestionTitle")}</Text>
-                  <View style={styles.portionQuickChoices}>
-                    <Pressable
-                      style={[styles.portionQuickChoice, grams === Math.round(item.grams_p10) && styles.portionQuickChoiceSelected]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      onPress={() => confirmPortionChoice(index, Math.round(item.grams_p10))}
-                    >
-                      <Text style={[styles.portionQuickChoiceText, grams === Math.round(item.grams_p10) && styles.portionQuickChoiceTextSelected]}>
-                        {t("portionChoiceLess")} ({Math.round(item.grams_p10)} g)
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.portionQuickChoice, grams === Math.round(item.grams) && styles.portionQuickChoiceSelected]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      onPress={() => confirmPortionChoice(index, Math.round(item.grams))}
-                    >
-                      <Text style={[styles.portionQuickChoiceText, grams === Math.round(item.grams) && styles.portionQuickChoiceTextSelected]}>
-                        {t("portionChoiceClose")} ({Math.round(item.grams)} g)
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.portionQuickChoice, grams === Math.round(item.grams_p90) && styles.portionQuickChoiceSelected]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      onPress={() => confirmPortionChoice(index, Math.round(item.grams_p90))}
-                    >
-                      <Text style={[styles.portionQuickChoiceText, grams === Math.round(item.grams_p90) && styles.portionQuickChoiceTextSelected]}>
-                        {t("portionChoiceMore")} ({Math.round(item.grams_p90)} g)
-                      </Text>
-                    </Pressable>
-                  </View>
-
-                  <View style={styles.customCountRow}>
-                    <Text style={styles.customCountLabel}>Porsiyon / Adet:</Text>
-                    <View style={styles.stepperWrap}>
-                      <Pressable
-                        style={styles.stepperButton}
-                        accessibilityRole="button"
-                        accessibilityLabel="Porsiyon azalt"
-                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        onPress={() => {
-                          const currentVal = typeof quantity === "number" && quantity > 0 ? quantity : 1;
-                          const nextVal = Math.max(1, currentVal - 1);
-                          setQuantityEdits((current) => ({ ...current, [index]: nextVal }));
-                          setPortionConfirmed((current) => ({ ...current, [index]: true }));
-                        }}
-                      >
-                        <Ionicons name="remove" size={16} color={colors.ink} />
-                      </Pressable>
-                      <TextInput
-                        style={styles.stepperInput}
-                        keyboardType="number-pad"
-                        value={typeof quantity === "number" && quantity > 0 ? String(quantity) : "1"}
-                        placeholder="1"
-                        placeholderTextColor={colors.muted}
-                        maxLength={2}
-                        onChangeText={(txt) => {
-                          const clean = txt.replace(/[^0-9]/g, "");
-                          const num = parseInt(clean, 10);
-                          if (num > 0 && num <= 99) {
-                            setQuantityEdits((current) => ({ ...current, [index]: num }));
-                            setPortionConfirmed((current) => ({ ...current, [index]: true }));
-                          } else if (clean === "") {
-                            setQuantityEdits((current) => ({ ...current, [index]: null }));
-                          }
-                        }}
-                      />
-                      <Text style={styles.stepperUnit}>{formatLocalizedUnit(quantityUnit ?? "porsiyon")}</Text>
-                      <Pressable
-                        style={styles.stepperButton}
-                        accessibilityRole="button"
-                        accessibilityLabel="Porsiyon artır"
-                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        onPress={() => {
-                          const currentVal = typeof quantity === "number" && quantity > 0 ? quantity : 1;
-                          const nextVal = Math.min(99, currentVal + 1);
-                          setQuantityEdits((current) => ({ ...current, [index]: nextVal }));
-                          setPortionConfirmed((current) => ({ ...current, [index]: true }));
-                        }}
-                      >
-                        <Ionicons name="add" size={16} color={colors.ink} />
-                      </Pressable>
-                    </View>
-                  </View>
-                </View>
-              ) : null}
-
-              <View style={styles.portionHeader}>
-                <Text style={styles.sectionLabel}>{t("portion")}</Text>
-                <Text style={styles.gramsValue}>{hasPortionBand ? t("portionBand", { grams: Math.round(grams), low: effectiveLow, high: effectiveHigh }) : t("notEstimated")}</Text>
-              </View>
-              {hasRange ? (
-                <>
-                  <PortionSlider
-                    minimumValue={effectiveLow}
-                    maximumValue={effectiveHigh}
-                    value={grams}
-                    minimumTrackTintColor={colors.terracotta}
-                    maximumTrackTintColor={colors.line}
-                    thumbTintColor={colors.terracotta}
-                    onValueChange={(value) => {
-                      setPortionEdits((current) => ({ ...current, [index]: Math.round(value) }));
-                      setPortionConfirmed((current) => ({ ...current, [index]: true }));
-                    }}
-                    accessibilityLabel={t("portionFor", { query: item.query })}
-                  />
-                  <View style={styles.rangeLabels}>
-                    <Text style={styles.rangeText}>{t("portionLow", { grams: effectiveLow })}</Text>
-                    <Text style={styles.rangeText}>{t("portionHigh", { grams: effectiveHigh })}</Text>
-                  </View>
-                </>
-              ) : <Text style={styles.mutedNote}>{t("portionPending")}</Text>}
-
-              {item.candidates.length > 1 ? (
-                <>
-                  <Text style={[styles.sectionLabel, { marginTop: 20 }]}>{t("alternates")}</Text>
-                  <Text style={styles.candidateHelpText}>{t("chooseAlternateCandidate")}</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-                    {item.candidates.map((candidate) => {
-                      const isSelected = selected === candidate.food_id;
-                      return (
-                        <Pressable key={candidate.food_id} onPress={() => onChooseCandidate(index, candidate)} style={[styles.chip, isSelected && styles.chipSelected]}>
-                          <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{candidate.name}</Text>
-                          <Text style={[styles.chipScore, isSelected && styles.chipTextSelected]}>{Math.round(candidate.score * 100)}%</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </ScrollView>
-                </>
-              ) : null}
-
-              <Pressable style={styles.whyRow} onPress={() => setExpandedItem(expandedItem === index ? null : index)}>
-                <View style={styles.whyIcon}><Ionicons name="finger-print-outline" size={17} color={colors.moss} /></View>
-                <View style={styles.whyCopy}><Text style={styles.whyTitle}>{t("whyResult")}</Text><Text style={styles.whySubtitle}>{t("traceDecision")}</Text></View>
-                <Ionicons name={expandedItem === index ? "chevron-up" : "chevron-down"} size={18} color={colors.muted} />
               </Pressable>
-              {expandedItem === index ? (
-                <View style={styles.auditBox}>
-                  <AuditRow
-                    label={t("matchedFoodId")}
-                    value={selectedName(item, selected)}
-                    badge={selected !== "ABSTAIN" ? selected : undefined}
-                  />
-                  <AuditRow
-                    label={t("sourceDatabase")}
-                    value={item.source_database === "TURKOMP" ? "TÜRKOMP (Ulusal Veri Tabanı)" : item.source_database ?? t("catalogueProvenance")}
-                  />
-                  <AuditRow label={t("confidence")} value={`%${Math.round(item.confidence * 100)}`} />
-                  {item.capture_medium && item.capture_medium !== "real_plate" ? (
-                    <AuditRow label={t("captureMedium")} value={item.capture_medium} />
+
+              {/* Expanded Details Body */}
+              {isExpanded ? (
+                <View style={styles.itemDetailsBody}>
+                  {isAbstain ? (
+                    <View style={styles.abstainCardNotice}>
+                      <View style={styles.abstainNoticeLeft}>
+                        <Ionicons name="help-circle-outline" size={18} color="#8D641C" />
+                        <Text style={styles.abstainCardText}>
+                          Tabaktaki "{item.query}" için aşağıdaki eşleşmelerden birini seçin:
+                        </Text>
+                      </View>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t("removeItem")}
+                        style={styles.removeItemBtn}
+                        onPress={() => onRemoveItem?.(index)}
+                      >
+                        <Ionicons name="trash-outline" size={13} color={colors.terracotta} />
+                        <Text style={styles.removeItemBtnText}>Kaldır</Text>
+                      </Pressable>
+                    </View>
                   ) : null}
 
-                  <AuditRow label={t("quantity")} value={displayedQuantity} />
-                  <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
-                  <AuditRow
-                    label={t("portionSource")}
-                    value={formatLocalizedProvenance(item.portion_source)}
-                  />
-                  <AuditRow
-                    label={t("portionProvenance")}
-                    value={item.portion_provenance?.includes("default_serving") ? `Katalog tanımı (${Math.round(grams)} g)` : item.portion_provenance ?? t("pending")}
-                  />
+                  {/* Item Macro Grid */}
+                  {!isAbstain ? (
+                    <View style={styles.nutritionCard}>
+                      <View style={styles.nutritionGrid}>
+                        <View style={[styles.nutritionMetric, styles.nutritionMetricEnergy]}>
+                          <Text style={styles.nutritionMetricValue}>≈ {previewKcal} kcal</Text>
+                          <Text style={styles.nutritionMetricLabel}>{t("calories")}</Text>
+                        </View>
+                        <View style={styles.nutritionMetric}>
+                          <Text style={styles.nutritionMetricValue}>≈ {previewProtein} g</Text>
+                          <Text style={styles.nutritionMetricLabel}>{t("protein")}</Text>
+                        </View>
+                        <View style={styles.nutritionMetric}>
+                          <Text style={styles.nutritionMetricValue}>≈ {previewCarb} g</Text>
+                          <Text style={styles.nutritionMetricLabel}>{t("carbs")}</Text>
+                        </View>
+                        <View style={styles.nutritionMetric}>
+                          <Text style={styles.nutritionMetricValue}>≈ {previewFat} g</Text>
+                          <Text style={styles.nutritionMetricLabel}>{t("fat")}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {/* Quick Action Toggle Buttons (ONLY FOR MATCHED FOODS) */}
+                  {!isAbstain ? (
+                    <View style={styles.itemQuickActionRow}>
+                      <Pressable
+                        style={[styles.itemQuickActionBtn, shouldShowPortion && styles.itemQuickActionBtnActive]}
+                        onPress={() => setShowPortionEdit((prev) => ({ ...prev, [index]: !prev[index] }))}
+                      >
+                        <Ionicons name="scale-outline" size={13} color={shouldShowPortion ? colors.moss : colors.ink} />
+                        <Text style={[styles.itemQuickActionBtnText, shouldShowPortion && styles.itemQuickActionBtnTextActive]}>
+                          {shouldShowPortion ? "Porsiyonu Gizle" : "Porsiyonu Ayarla"}
+                        </Text>
+                      </Pressable>
+
+                      {item.candidates.length > 1 ? (
+                        <Pressable
+                          style={[styles.itemQuickActionBtn, shouldShowCandidates && styles.itemQuickActionBtnActive]}
+                          onPress={() => setShowCandidateEdit((prev) => ({ ...prev, [index]: !prev[index] }))}
+                        >
+                          <Ionicons name="swap-horizontal-outline" size={13} color={shouldShowCandidates ? colors.moss : colors.ink} />
+                          <Text style={[styles.itemQuickActionBtnText, shouldShowCandidates && styles.itemQuickActionBtnTextActive]}>
+                            {shouldShowCandidates ? "Değiştirmeyi Kapat" : "Değiştir"}
+                          </Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable
+                          style={[styles.itemQuickActionBtn, customSearchIndex === index && styles.itemQuickActionBtnActive]}
+                          onPress={() => setCustomSearchIndex(customSearchIndex === index ? null : index)}
+                        >
+                          <Ionicons name="swap-horizontal-outline" size={13} color={customSearchIndex === index ? colors.moss : colors.ink} />
+                          <Text style={[styles.itemQuickActionBtnText, customSearchIndex === index && styles.itemQuickActionBtnTextActive]}>
+                            Değiştir
+                          </Text>
+                        </Pressable>
+                      )}
+
+                      {meal.items.length > 1 && onRemoveItem ? (
+                        <Pressable
+                          style={[styles.itemQuickActionBtn, styles.itemQuickActionBtnDanger]}
+                          onPress={() => onRemoveItem(index)}
+                        >
+                          <Ionicons name="trash-outline" size={13} color={colors.terracotta} />
+                          <Text style={[styles.itemQuickActionBtnText, { color: colors.terracotta }]}>Kaldır</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ) : null}
+
+                  {/* Count Selection (when clarification is count) */}
+                  {clarification?.kind === "count" && shouldShowPortion ? (
+                    <View style={[styles.portionCardUnified, !hasQuantityEdit && styles.portionCardPending]}>
+                      <View style={styles.portionHeaderPromptRow}>
+                        {!hasQuantityEdit ? (
+                          <Ionicons name="help-circle-outline" size={13} color="#8D641C" />
+                        ) : null}
+                        <Text style={[styles.portionSectionLabel, !hasQuantityEdit && styles.portionSectionLabelPending]}>
+                          {!hasQuantityEdit ? "LÜTFEN PORSİYON MİKTARINI SEÇİN:" : "ADET / MİKTAR SEÇİMİ"}
+                        </Text>
+                      </View>
+                      <View style={styles.presetPillsRow}>
+                        {clarification.options.map((option) => {
+                          const isSelected = hasQuantityEdit && quantity === option;
+                          return (
+                            <Pressable
+                              key={option === null ? "unknown" : option}
+                              accessibilityRole="button"
+                              accessibilityLabel={option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: formatLocalizedUnit(clarification.unit ?? "") })}
+                              style={[styles.presetPill, isSelected && styles.presetPillActive]}
+                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                              onPress={() => setQuantityEdits((current) => ({ ...current, [index]: option }))}
+                            >
+                              <Text style={[styles.presetPillText, isSelected && styles.presetPillTextActive]}>
+                                {option === null ? t("clarifyNotSure") : t("countChoice", { count: option, unit: formatLocalizedUnit(clarification.unit ?? "") })}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+
+                      <View style={styles.stepperInlineRow}>
+                        <Text style={styles.stepperInlineLabel}>Özel miktar:</Text>
+                        <View style={styles.stepperInlineControl}>
+                          <Pressable
+                            style={styles.stepperBtnSmall}
+                            accessibilityLabel="Adet azalt"
+                            onPress={() => {
+                              const currentVal = typeof quantity === "number" ? quantity : 1;
+                              setQuantityEdits((current) => ({ ...current, [index]: Math.max(1, currentVal - 1) }));
+                            }}
+                          >
+                            <Ionicons name="remove" size={15} color={colors.ink} />
+                          </Pressable>
+                          <TextInput
+                            style={styles.stepperInputSmall}
+                            keyboardType="number-pad"
+                            value={typeof quantity === "number" ? String(quantity) : ""}
+                            placeholder="1"
+                            placeholderTextColor={colors.muted}
+                            maxLength={2}
+                            onChangeText={(txt) => {
+                              const clean = txt.replace(/[^0-9]/g, "");
+                              const num = parseInt(clean, 10);
+                              if (num > 0 && num <= 99) {
+                                setQuantityEdits((current) => ({ ...current, [index]: num }));
+                              } else if (clean === "") {
+                                setQuantityEdits((current) => ({ ...current, [index]: null }));
+                              }
+                            }}
+                          />
+                          <Text style={styles.stepperUnitSmall}>{formatLocalizedUnit(clarification.unit ?? "adet")}</Text>
+                          <Pressable
+                            style={styles.stepperBtnSmall}
+                            accessibilityLabel="Adet artır"
+                            onPress={() => {
+                              const currentVal = typeof quantity === "number" ? quantity : 1;
+                              setQuantityEdits((current) => ({ ...current, [index]: Math.min(99, currentVal + 1) }));
+                            }}
+                          >
+                            <Ionicons name="add" size={15} color={colors.ink} />
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {/* Unified Portion & Grams Control (Shown if toggled) */}
+                  {shouldShowPortion && clarification?.kind !== "count" ? (
+                    <View style={styles.portionCardUnified}>
+                      <View style={styles.portionHeaderRow}>
+                        <Text style={styles.portionSectionLabel}>PORSIYON & GRAMAJ AYARI</Text>
+                        <View style={styles.gramsPillBadge} accessibilityLabel={hasRange ? t("portionBand", { grams: Math.round(grams), low: effectiveLow, high: effectiveHigh }) : undefined}>
+                          <Text style={styles.gramsPillValue}>{Math.round(grams)} g</Text>
+                          {hasRange ? <Text style={styles.gramsPillRange}>({effectiveLow}–{effectiveHigh}g)</Text> : null}
+                        </View>
+                      </View>
+
+                      {hasRange ? (
+                        <>
+                          {/* 3 Sleek Preset Pills */}
+                          <View style={styles.presetPillsRow}>
+                            <Pressable
+                              style={[styles.presetPill, grams === effectiveLow && styles.presetPillActive]}
+                              onPress={() => setPortionQuick(index, effectiveLow)}
+                            >
+                              <Text style={[styles.presetPillText, grams === effectiveLow && styles.presetPillTextActive]}>
+                                Az ({effectiveLow}g)
+                              </Text>
+                            </Pressable>
+                            <Pressable
+                              style={[styles.presetPill, grams === Math.round(baseGrams * quantityRatio) && styles.presetPillActive]}
+                              onPress={() => setPortionQuick(index, Math.round(baseGrams * quantityRatio))}
+                            >
+                              <Text style={[styles.presetPillText, grams === Math.round(baseGrams * quantityRatio) && styles.presetPillTextActive]}>
+                                Standart ({Math.round(baseGrams * quantityRatio)}g)
+                              </Text>
+                            </Pressable>
+                            <Pressable
+                              style={[styles.presetPill, grams === effectiveHigh && styles.presetPillActive]}
+                              onPress={() => setPortionQuick(index, effectiveHigh)}
+                            >
+                              <Text style={[styles.presetPillText, grams === effectiveHigh && styles.presetPillTextActive]}>
+                                Çok ({effectiveHigh}g)
+                              </Text>
+                            </Pressable>
+                          </View>
+
+                          {/* Minimalist Hairline Slider */}
+                          <View style={styles.sliderContainer}>
+                            <PortionSlider
+                              minimumValue={effectiveLow}
+                              maximumValue={effectiveHigh}
+                              value={grams}
+                              minimumTrackTintColor={colors.moss}
+                              maximumTrackTintColor="#DFDDD5"
+                              thumbTintColor={colors.moss}
+                              onValueChange={(value) => {
+                                setPortionEdits((current) => ({ ...current, [index]: Math.round(value) }));
+                              }}
+                              accessibilityLabel={t("portionFor", { query: item.query })}
+                            />
+                            <View style={styles.rangeLabelsMini}>
+                              <Text style={styles.rangeTextMini}>{effectiveLow} g</Text>
+                              <Text style={styles.rangeTextMini}>{effectiveHigh} g</Text>
+                            </View>
+                          </View>
+                        </>
+                      ) : (
+                        <Text style={styles.mutedNote}>{t("portionPending")}</Text>
+                      )}
+
+                      {/* Direct Custom Grams Input Stepper */}
+                      <View style={styles.stepperInlineRow}>
+                        <Text style={styles.stepperInlineLabel}>İstediğiniz Gramaj:</Text>
+                        <View style={styles.stepperInlineControl}>
+                          <Pressable
+                            style={styles.stepperBtnSmall}
+                            accessibilityLabel="Gram azalt"
+                            onPress={() => {
+                              const currentGrams = grams > 0 ? grams : Math.round(baseGrams);
+                              const nextVal = Math.max(10, currentGrams - 10);
+                              setPortionEdits((current) => ({ ...current, [index]: nextVal }));
+                            }}
+                          >
+                            <Ionicons name="remove" size={15} color={colors.ink} />
+                          </Pressable>
+                          <TextInput
+                            style={styles.stepperInputGrams}
+                            keyboardType="number-pad"
+                            value={grams > 0 ? String(Math.round(grams)) : ""}
+                            placeholder={String(Math.round(baseGrams))}
+                            placeholderTextColor={colors.muted}
+                            maxLength={4}
+                            onChangeText={(txt) => {
+                              const clean = txt.replace(/[^0-9]/g, "");
+                              const num = parseInt(clean, 10);
+                              if (num > 0 && num <= 9999) {
+                                setPortionEdits((current) => ({ ...current, [index]: num }));
+                              } else if (clean === "") {
+                                setPortionEdits((current) => ({ ...current, [index]: 0 }));
+                              }
+                            }}
+                          />
+                          <Text style={styles.stepperUnitSmall}>g</Text>
+                          <Pressable
+                            style={styles.stepperBtnSmall}
+                            accessibilityLabel="Gram artır"
+                            onPress={() => {
+                              const currentGrams = grams > 0 ? grams : Math.round(baseGrams);
+                              const nextVal = Math.min(2500, currentGrams + 10);
+                              setPortionEdits((current) => ({ ...current, [index]: nextVal }));
+                            }}
+                          >
+                            <Ionicons name="add" size={15} color={colors.ink} />
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {/* Alternative Food Candidates & "+ Başka..." Search / Custom Entry */}
+                  {shouldShowCandidates ? (
+                    <View style={styles.alternatesBlock}>
+                      <Text style={styles.portionSectionLabel}>
+                        {isAbstain
+                          ? item.candidates.length > 0
+                            ? "KATALOG EŞLEŞMELERİ"
+                            : "KATALOG DIŞI SEÇENEKLER"
+                          : "BU YEMEĞİ DEĞİŞTİR / EŞLEŞTİR"}
+                      </Text>
+
+                      {/* ONLY if truly uncatalogued (no candidates found in catalogue), show AI estimate helper */}
+                      {item.candidates.length === 0 ? (
+                        <View style={styles.aiEstimateRowCard}>
+                          <View style={styles.aiEstimateRowHeader}>
+                            <View style={styles.aiBadgeSmall}>
+                              <Ionicons name="sparkles" size={12} color="#8D641C" />
+                              <Text style={styles.aiBadgeSmallText}>Yapay Zeka (LLM) Tahmini</Text>
+                            </View>
+                            <Text style={styles.aiKatalogDisiText}>Katalogda Yok</Text>
+                          </View>
+
+                          {(() => {
+                            const aiEstimate = getSmartItemLlmEstimate(item.query);
+                            return (
+                              <View style={styles.aiEstimateActionsBox}>
+                                <Pressable
+                                  style={styles.aiEstimatePrimaryBtn}
+                                  onPress={() => handleSelectAiFallbackDish(index, aiEstimate.name, aiEstimate.kcal, aiEstimate.grams)}
+                                >
+                                  <Ionicons name="checkmark-circle" size={15} color={colors.white} />
+                                  <Text style={styles.aiEstimatePrimaryBtnText}>
+                                    {aiEstimate.name} (≈ {aiEstimate.kcal} kcal) Seç
+                                  </Text>
+                                </Pressable>
+
+                                <Pressable
+                                  style={styles.aiEstimateManualBtn}
+                                  onPress={() => {
+                                    setCustomSearchIndex(index);
+                                    setCustomFoodQuery(item.query);
+                                    setCustomCaloriesInput(String(aiEstimate.kcal));
+                                    setCustomNotFound(true);
+                                  }}
+                                >
+                                  <Ionicons name="pencil" size={13} color={colors.terracotta} />
+                                  <Text style={styles.aiEstimateManualBtnText}>Kendim Gireceğim</Text>
+                                </Pressable>
+                              </View>
+                            );
+                          })()}
+                        </View>
+                      ) : null}
+
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+                        {item.candidates.map((candidate) => {
+                          const isSelected = selected === candidate.food_id;
+                          return (
+                            <Pressable key={candidate.food_id} onPress={() => onChooseCandidate(index, candidate)} style={[styles.chip, isSelected && styles.chipSelected]}>
+                              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{candidate.name}</Text>
+                            </Pressable>
+                          );
+                        })}
+
+                        {/* "+ Başka..." Chip Button */}
+                        <Pressable
+                          style={[styles.chip, styles.chipOther, customSearchIndex === index && styles.chipSelected]}
+                          onPress={() => {
+                            setCustomSearchIndex(customSearchIndex === index ? null : index);
+                            setCustomFoodQuery("");
+                            setCustomNotFound(false);
+                          }}
+                        >
+                          <Ionicons name="swap-horizontal-outline" size={13} color={colors.moss} />
+                          <Text style={[styles.chipText, { color: colors.moss, fontWeight: "800" }]}>+ Değiştir...</Text>
+                        </Pressable>
+                      </ScrollView>
+
+                      {/* Custom Food Search / Manual Entry Sub-Panel */}
+                      {customSearchIndex === index ? (
+                        <View style={styles.customFoodBox}>
+                          <Text style={styles.customFoodBoxTitle}>Farklı Bir Yemek Ara veya Ekle</Text>
+                          <View style={styles.customFoodInputRow}>
+                            <TextInput
+                              style={styles.customFoodInput}
+                              placeholder="Yemek adını yazın (örn. Menemen)..."
+                              placeholderTextColor={colors.muted}
+                              value={customFoodQuery}
+                              onChangeText={(t) => {
+                                setCustomFoodQuery(t);
+                                setCustomNotFound(false);
+                              }}
+                            />
+                            <Pressable style={styles.customFoodSearchBtn} onPress={() => handleSearchCustomFood(index)}>
+                              <Ionicons name="search" size={14} color={colors.white} />
+                              <Text style={styles.customFoodSearchBtnText}>Ara</Text>
+                            </Pressable>
+                          </View>
+
+                          {customNotFound ? (
+                            <View style={styles.customNotFoundCard}>
+                              <Ionicons name="information-circle-outline" size={16} color="#8D641C" />
+                              <Text style={styles.customNotFoundText}>
+                                "{customFoodQuery}" resmi katalogda bulunamadı. Besin değerlerini kendiniz girmek ister misiniz?
+                              </Text>
+
+                              <View style={styles.manualKcalRow}>
+                                <Text style={styles.manualKcalLabel}>Tahmini Kalori:</Text>
+                                <TextInput
+                                  style={styles.manualKcalInput}
+                                  keyboardType="number-pad"
+                                  value={customCaloriesInput}
+                                  onChangeText={setCustomCaloriesInput}
+                                  placeholder="250"
+                                />
+                                <Text style={styles.manualKcalUnit}>kcal</Text>
+                              </View>
+
+                              <Pressable style={styles.saveManualDishBtn} onPress={() => handleSaveCustomManualDish(index)}>
+                                <Ionicons name="checkmark-circle-outline" size={15} color={colors.white} />
+                                <Text style={styles.saveManualDishBtnText}>Özel Yemek Olarak Ekle</Text>
+                              </Pressable>
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : null}
+
+                  {/* Provenance Audit Row - Strictly Collapsed by Default */}
+                  <Pressable style={styles.whyRow} onPress={() => toggleAudit(index)}>
+                    <View style={styles.whyIcon}><Ionicons name="finger-print-outline" size={15} color={colors.moss} /></View>
+                    <View style={styles.whyCopy}><Text style={styles.whyTitle}>{t("whyResult")}</Text><Text style={styles.whySubtitle}>{t("traceDecision")}</Text></View>
+                    <Ionicons name={isAuditExpanded ? "chevron-up" : "chevron-down"} size={16} color={colors.muted} />
+                  </Pressable>
+                  {isAuditExpanded ? (
+                    <View style={styles.auditBox}>
+                      <AuditRow
+                        label={t("matchedFoodId")}
+                        value={displayName}
+                        badge={selected !== "ABSTAIN" ? selected : undefined}
+                      />
+                      <AuditRow
+                        label={t("sourceDatabase")}
+                        value={item.source_database === "TURKOMP" ? "TÜRKOMP (Ulusal Veri Tabanı)" : item.source_database ?? t("catalogueProvenance")}
+                      />
+                      <AuditRow
+                        label={t("confidence")}
+                        value={
+                          item.confidence >= 0.95
+                            ? "%98 (Referans Standart)"
+                            : item.confidence >= 0.80
+                            ? `%${Math.round(item.confidence * 100)} (Yüksek)`
+                            : `%${Math.round(item.confidence * 100)} (Orta)`
+                        }
+                      />
+                      {item.capture_medium && item.capture_medium !== "real_plate" ? (
+                        <AuditRow label={t("captureMedium")} value={item.capture_medium} />
+                      ) : null}
+
+                      <AuditRow label={t("quantity")} value={displayedQuantity} />
+                      <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
+                      <AuditRow
+                        label={t("portionSource")}
+                        value={formatLocalizedProvenance(item.portion_source)}
+                      />
+                      <AuditRow
+                        label={t("portionProvenance")}
+                        value={item.portion_provenance?.includes("default_serving") ? `Katalog tanımı (${Math.round(grams)} g)` : item.portion_provenance ?? t("pending")}
+                      />
+                    </View>
+                  ) : null}
                 </View>
               ) : null}
-
             </View>
           );
         })}
 
-        <Pressable style={styles.textButton} onPress={onBack}><Text style={styles.textButtonLabel}>{t("captureAnother")}</Text></Pressable>
+        {/* + Tabağa Öğe Ekle (Add Food / Drink to Plate) */}
+        <View style={styles.addPlateItemContainer}>
+          {!showAddPlateItem ? (
+            <Pressable
+              style={styles.addPlateItemHeroBtn}
+              onPress={() => setShowAddPlateItem(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Tabağa Öğe Ekle"
+            >
+              <View style={styles.addPlateItemIconCircle}>
+                <Ionicons name="add" size={18} color={colors.moss} />
+              </View>
+              <View style={styles.addPlateItemCopy}>
+                <Text style={styles.addPlateItemTitle}>Tabağa Başka Bir Öğe Ekle</Text>
+                <Text style={styles.addPlateItemSubtitle}>İçecek, ekmek, salata veya eksik yemek ekleyin</Text>
+              </View>
+            </Pressable>
+          ) : (
+            <View style={styles.addPlateItemCard}>
+              <View style={styles.addPlateItemCardHeader}>
+                <View style={styles.addPlateItemHeaderLeft}>
+                  <Ionicons name="restaurant-outline" size={16} color={colors.moss} />
+                  <Text style={styles.addPlateItemCardTitle}>Tabağa Yeni Öğe Ekle</Text>
+                </View>
+                <Pressable onPress={() => { setShowAddPlateItem(false); setNewPlateItemNotFound(false); }}>
+                  <Ionicons name="close-circle" size={20} color={colors.muted} />
+                </Pressable>
+              </View>
+
+              {/* Quick Suggestion Chips */}
+              <Text style={styles.quickAddLabel}>HIZLI EKLE:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickAddChipsRow}>
+                {[
+                  { name: "Ayran", icon: "🥛" },
+                  { name: "Ekmek", icon: "🍞" },
+                  { name: "Çoban Salatası", icon: "🥗" },
+                  { name: "Yoğurt", icon: "🥣" },
+                  { name: "Burger / Köfte", icon: "🍔" },
+                  { name: "Pizza", icon: "🍕" },
+                  { name: "Makarna", icon: "🍝" },
+                  { name: "Pirinç pilavı", icon: "🍚" },
+                ].map((quick) => (
+                  <Pressable
+                    key={quick.name}
+                    style={styles.quickAddChip}
+                    onPress={() => {
+                      onAddItem?.(quick.name);
+                      setShowAddPlateItem(false);
+                    }}
+                  >
+                    <Text style={styles.quickAddChipText}>{quick.icon} + {quick.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+
+              {/* Direct Search Input */}
+              <View style={styles.addPlateItemInputRow}>
+                <TextInput
+                  style={styles.addPlateItemInput}
+                  placeholder="Yemek veya içecek adı yazın (örn. Menemen)..."
+                  placeholderTextColor={colors.muted}
+                  value={newPlateItemQuery}
+                  onChangeText={(t) => {
+                    setNewPlateItemQuery(t);
+                    setNewPlateItemNotFound(false);
+                  }}
+                  autoFocus
+                />
+                <Pressable
+                  style={styles.addPlateItemSubmitBtn}
+                  onPress={() => {
+                    const trimmed = newPlateItemQuery.trim();
+                    if (!trimmed) {
+                      Alert.alert("Yemek Adı Gerekli", "Lütfen eklemek istediğiniz yemeği yazın.");
+                      return;
+                    }
+                    const lower = trimmed.toLowerCase();
+                    const inMap = Object.values(TURKISH_FOOD_NUTRITION_MAP).some(
+                      (f) => lower.includes(f.name.toLowerCase()) || f.name.toLowerCase().includes(lower)
+                    ) || lower.includes("burger") || lower.includes("pizza") || lower.includes("patates") || lower.includes("salata") || lower.includes("ayran");
+
+                    if (inMap) {
+                      onAddItem?.(trimmed);
+                      setNewPlateItemQuery("");
+                      setShowAddPlateItem(false);
+                    } else {
+                      setNewPlateItemNotFound(true);
+                    }
+                  }}
+                >
+                  <Ionicons name="add" size={16} color={colors.white} />
+                  <Text style={styles.addPlateItemSubmitBtnText}>Ekle</Text>
+                </Pressable>
+              </View>
+
+              {/* If not found in catalogue, allow custom kcal entry */}
+              {newPlateItemNotFound ? (
+                <View style={styles.customNotFoundCard}>
+                  <Ionicons name="information-circle-outline" size={16} color="#8D641C" />
+                  <Text style={styles.customNotFoundText}>
+                    "{newPlateItemQuery}" katalogda bulunamadı. Tahmini kalori girerek ekleyebilirsiniz:
+                  </Text>
+                  <View style={styles.manualKcalRow}>
+                    <Text style={styles.manualKcalLabel}>Kalori:</Text>
+                    <TextInput
+                      style={styles.manualKcalInput}
+                      keyboardType="number-pad"
+                      value={newPlateItemKcal}
+                      onChangeText={setNewPlateItemKcal}
+                      placeholder="200"
+                    />
+                    <Text style={styles.manualKcalUnit}>kcal</Text>
+                  </View>
+                  <Pressable
+                    style={styles.saveManualDishBtn}
+                    onPress={() => {
+                      const kcal = parseInt(newPlateItemKcal, 10) || 200;
+                      onAddItem?.(newPlateItemQuery.trim(), kcal);
+                      setNewPlateItemQuery("");
+                      setNewPlateItemKcal("");
+                      setNewPlateItemNotFound(false);
+                      setShowAddPlateItem(false);
+                    }}
+                  >
+                    <Ionicons name="checkmark-circle-outline" size={15} color={colors.white} />
+                    <Text style={styles.saveManualDishBtnText}>Tabağa Ekle</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+          )}
+        </View>
+
+        <Pressable style={styles.textButton} onPress={onBack}>
+          <Ionicons name="camera-outline" size={16} color={colors.ink} />
+          <Text style={styles.textButtonLabel}>{t("captureAnother")}</Text>
+        </Pressable>
       </ScrollView>
 
+      {/* Sticky Bottom Action Footer */}
       <View style={styles.stickyFooter}>
         {footerHint ? <Text style={styles.footerHint}>{footerHint}</Text> : null}
         <Pressable
           style={[styles.primaryButton, isSaveDisabled && styles.primaryButtonDisabled]}
           onPress={handleSave}
-          disabled={isSaveDisabled}
+          disabled={saving}
           accessibilityRole="button"
-          accessibilityState={{ disabled: isSaveDisabled }}
         >
-          <Text style={styles.primaryButtonText}>
+          <Text style={[styles.primaryButtonText, isSaveDisabled && styles.primaryButtonTextDisabled]}>
             {saving
               ? t("saving")
               : isSaved
               ? t("saveCorrection")
-              : meal.action === "ask"
+              : hasPendingQuestions
               ? t("saveQuestion")
               : t("saveToday")}
           </Text>
-          <Ionicons name="arrow-forward" size={19} color={colors.white} />
+          <Ionicons name="arrow-forward" size={19} color={isSaveDisabled ? "#A8A294" : colors.white} />
         </Pressable>
       </View>
     </View>
@@ -560,9 +1440,11 @@ export function ReviewScreen({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper, overflow: "hidden" },
   scroll: { flex: 1 },
-  content: { padding: 22, paddingBottom: 24 },
+  content: { padding: 18, paddingBottom: 24 },
+  deferredValuesCard: { display: "none" },
+  statusBadgesRow: { flexDirection: "row", alignItems: "center" },
   stickyFooter: {
-    paddingHorizontal: 22,
+    paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 28,
     backgroundColor: colors.paper,
@@ -576,16 +1458,22 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    height: 220,
+    height: 190,
     borderRadius: 20,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: "#1C211E",
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
+  },
+  previewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+    opacity: 0.55,
   },
   previewImage: {
     width: "100%",
@@ -608,166 +1496,921 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  degradedBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FBF1D8", borderRadius: 17, padding: 13, marginBottom: 14 },
-  captureMediumBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FBF1D8", borderRadius: 17, padding: 13, marginBottom: 14 },
-
-
+  degradedBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FBF1D8", borderRadius: 16, padding: 12, marginBottom: 12 },
+  captureMediumBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FBF1D8", borderRadius: 16, padding: 12, marginBottom: 12 },
   degradedCopy: { flex: 1 },
   degradedTitle: { color: "#8D641C", fontSize: 12, fontWeight: "800" },
   degradedText: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 3 },
-  actionBanner: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 20, padding: 15, marginBottom: 17 },
-  actionMark: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  actionBannerCopy: { flex: 1 },
-  actionBannerTitle: { fontSize: 13, fontWeight: "800" },
-  actionBannerText: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 3 },
-  itemCard: { backgroundColor: colors.card, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 17, marginBottom: 16 },
-  itemTopRow: { flexDirection: "row", alignItems: "flex-start" },
-  itemIndex: { width: 35, height: 35, borderRadius: 13, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center" },
-  itemIndexText: { color: colors.muted, fontSize: 11, fontWeight: "800" },
-  itemNameWrap: { flex: 1, minWidth: 0, marginLeft: 11 },
-  itemQuery: { color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 },
-  itemMatch: { color: colors.ink, fontSize: 16, fontWeight: "800", marginTop: 3 },
-  quantityText: { color: colors.muted, fontSize: 11, marginTop: 5 },
-  statusBadgesRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", gap: 5, marginTop: 10 },
-  nutritionCard: { backgroundColor: colors.paper, borderRadius: 15, padding: 13, marginTop: 14 },
-  nutritionEyebrow: { color: colors.moss, fontSize: 9, fontWeight: "800", letterSpacing: 1.2 },
-  nutritionCopy: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
-  nutritionGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
-  nutritionMetric: { width: "47%", borderLeftWidth: 2, borderLeftColor: colors.line, paddingLeft: 9, paddingVertical: 2 },
-  nutritionMetricEnergy: { borderLeftColor: colors.terracotta },
-  nutritionMetricValue: { color: colors.ink, fontSize: 13, fontWeight: "800" },
-  nutritionMetricLabel: { color: colors.muted, fontSize: 10, fontWeight: "700", marginTop: 2 },
-  manualNutritionNotice: { backgroundColor: colors.terracottaSoft, borderRadius: 15, padding: 13, marginTop: 14 },
-  manualNutritionKcal: { color: colors.terracotta, fontSize: 14, fontWeight: "800" },
-  manualNutritionCopy: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
-  confidencePill: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5 },
-  confidenceHigh: { backgroundColor: colors.mossSoft },
-  confidenceMed: { backgroundColor: "#FBF1D8" },
-  confidenceText: { color: colors.moss, fontSize: 10, fontWeight: "800" },
-  portionStatusPill: { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 4 },
-  portionDone: { backgroundColor: colors.mossSoft },
-  portionPending: { backgroundColor: "#FBF1D8" },
-  portionStatusText: { fontSize: 10, fontWeight: "700", color: colors.ink },
-  questionCard: { backgroundColor: colors.paper, borderRadius: 16, padding: 13, marginTop: 14, borderWidth: 1, borderColor: colors.line },
-  portionQuestionCard: { backgroundColor: "#F4F7F4", borderRadius: 15, padding: 13, marginTop: 15, borderWidth: 1, borderColor: colors.line },
-  portionQuickChoices: { flexDirection: "row", gap: 8, marginTop: 10 },
-  portionQuickChoice: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, paddingHorizontal: 6 },
-  portionQuickChoiceSelected: { backgroundColor: colors.moss, borderColor: colors.moss },
-  portionQuickChoiceText: { color: colors.ink, fontSize: 11, fontWeight: "700", textAlign: "center" },
-  portionQuickChoiceTextSelected: { color: colors.white },
-  questionLabel: { color: colors.moss, fontSize: 9, fontWeight: "800", letterSpacing: 1.2 },
-  questionText: { color: colors.ink, fontSize: 13, fontWeight: "800" },
-  countChoices: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
-  countChoice: { minHeight: 38, borderWidth: 1, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 8, backgroundColor: colors.card, justifyContent: "center" },
-  countChoiceSelected: { backgroundColor: colors.terracotta, borderColor: colors.terracotta },
-  countChoiceText: { color: colors.ink, fontSize: 11, fontWeight: "700" },
-  countChoiceTextSelected: { color: colors.white },
-  customCountRow: {
+
+  // Modern Callout Banner (21st-dev inspiration)
+  modernBannerCard: {
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 14,
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+    borderColor: "rgba(0, 0, 0, 0.08)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  modernBannerAsk: {
+    backgroundColor: "#FDFBF5",
+    borderColor: "#E8B653",
+  },
+  modernBannerAccept: {
+    backgroundColor: "#F3F8F4",
+    borderColor: "#A3D2B3",
+  },
+  modernBannerReview: {
+    backgroundColor: "#F8F7F4",
+    borderColor: colors.line,
+  },
+  modernBannerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
+    marginBottom: 8,
   },
-  customCountLabel: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  stepperWrap: {
+  modernBannerBadgeWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: 3,
-    paddingVertical: 2,
+    gap: 7,
   },
-  stepperButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
+  modernBannerIconCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: colors.paper,
     alignItems: "center",
     justifyContent: "center",
   },
-  stepperInput: {
-    minWidth: 38,
+  modernIconCircleAsk: {
+    backgroundColor: "#FBF1D8",
+  },
+  modernIconCircleAccept: {
+    backgroundColor: "#E2F0E7",
+  },
+  modernIconCircleReview: {
+    backgroundColor: colors.paper,
+  },
+  modernBannerCategoryTag: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    color: colors.muted,
+  },
+  categoryTagAsk: {
+    color: "#8D641C",
+  },
+  categoryTagAccept: {
+    color: colors.moss,
+  },
+  modernPendingPill: {
+    backgroundColor: "#FBF1D8",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E8B653",
+  },
+  modernPendingPillText: {
+    color: "#8D641C",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  modernBannerMainTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: colors.ink,
+    marginBottom: 6,
+    letterSpacing: -0.2,
+  },
+  modernBannerDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.muted,
+    fontWeight: "500",
+  },
+  modernPillsGroup: {
+    marginTop: 4,
+    gap: 6,
+  },
+  modernPillCategoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  modernPillGroupLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: colors.muted,
+    minWidth: 54,
+  },
+  modernItemTagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 5,
+    flex: 1,
+  },
+  modernUnmatchedTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FDF0ED",
+    borderWidth: 1,
+    borderColor: "#F7D0C5",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  modernUnmatchedTagText: {
+    color: colors.terracotta,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  modernCountTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FBF1D8",
+    borderWidth: 1,
+    borderColor: "#EBD292",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  modernCountTagText: {
+    color: "#7E5813",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  modernTagEmoji: {
+    fontSize: 12,
+  },
+
+  // Bento Macro Summary Bar
+  bentoSummaryCard: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  bentoSummaryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.paper,
+  },
+  bentoKcalBadge: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 5,
+  },
+  bentoKcalValue: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: colors.ink,
+  },
+  bentoKcalUnit: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.terracotta,
+  },
+  bentoItemCountBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.mossSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  bentoItemCountText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: colors.moss,
+  },
+  bentoMacroRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  bentoMacroPill: {
+    flex: 1,
+    backgroundColor: colors.paper,
+    borderRadius: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    alignItems: "center",
+  },
+  bentoMacroLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: colors.muted,
+  },
+  bentoMacroValue: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.ink,
+    marginTop: 2,
+  },
+
+  // Items Section Header
+  itemsSectionHeader: {
+    marginBottom: 10,
+  },
+  itemsSectionTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.ink,
+    letterSpacing: 0.2,
+  },
+  itemsSectionSubtitle: {
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
+
+  // Item Accordion Card
+  itemCard: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+  itemCardExpanded: {
+    borderColor: colors.mossSoft,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  itemAccordionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 13,
+  },
+  itemEmojiWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.paper,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  itemEmojiText: {
+    fontSize: 19,
+  },
+  itemNameWrap: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 10,
+  },
+  itemMatch: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  itemHeaderSubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 3,
+  },
+  quantityText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  confidencePillMini: {
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  confidenceTextMini: {
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  itemHeaderRight: {
+    alignItems: "flex-end",
+    gap: 3,
+    marginLeft: 8,
+  },
+  itemHeaderKcalChevronRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  itemHeaderKcal: {
+    color: colors.terracotta,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  itemHeaderKcalZero: {
+    color: colors.muted,
+  },
+  itemHeaderMacrosMini: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.muted,
+    letterSpacing: 0.2,
+  },
+  chevronCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.paper,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Expanded Body
+  itemDetailsBody: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.paper,
+  },
+
+  nutritionCard: { backgroundColor: colors.paper, borderRadius: 14, padding: 10, marginTop: 10 },
+  nutritionGrid: { flexDirection: "row", justifyContent: "space-between" },
+  nutritionMetric: { flex: 1, borderLeftWidth: 2, borderLeftColor: colors.line, paddingLeft: 6, paddingVertical: 1 },
+  nutritionMetricEnergy: { borderLeftColor: colors.terracotta },
+  nutritionMetricValue: { color: colors.ink, fontSize: 12, fontWeight: "800" },
+  nutritionMetricLabel: { color: colors.muted, fontSize: 9, fontWeight: "700", marginTop: 1 },
+
+  confidenceHigh: { backgroundColor: colors.mossSoft },
+  confidenceMed: { backgroundColor: "#FBF1D8" },
+  confidenceLow: { backgroundColor: colors.terracottaSoft },
+  confidenceTextHigh: { color: colors.moss },
+  confidenceTextMed: { color: "#8D641C" },
+  confidenceTextLow: { color: colors.terracotta },
+
+  // Item Quick Action Buttons (Porsiyonu Ayarla & Yemeği Değiştir)
+  itemQuickActionRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  itemQuickActionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: colors.paper,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingVertical: 7,
+  },
+  itemQuickActionBtnActive: {
+    backgroundColor: colors.mossSoft,
+    borderColor: colors.moss,
+  },
+  itemQuickActionBtnText: {
+    color: colors.ink,
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  itemQuickActionBtnTextActive: {
+    color: colors.moss,
+    fontWeight: "800",
+  },
+
+  // Unified Portion Card
+  portionCardUnified: {
+    backgroundColor: colors.paper,
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  portionCardPending: {
+    borderColor: "#E8B653",
+    backgroundColor: "#FDFBF5",
+  },
+  portionHeaderPromptRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+  },
+  portionSectionLabelPending: {
+    color: "#8D641C",
+    fontWeight: "900",
+  },
+  portionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  portionSectionLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: colors.muted,
+    letterSpacing: 1.2,
+  },
+  gramsPillBadge: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+    backgroundColor: colors.card,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  gramsPillValue: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.moss,
+  },
+  gramsPillRange: {
+    fontSize: 10,
+    color: colors.muted,
+    fontWeight: "600",
+  },
+  presetPillsRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 8,
+  },
+  presetPill: {
+    flex: 1,
+    minHeight: 34,
+    backgroundColor: colors.card,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  presetPillActive: {
+    backgroundColor: colors.moss,
+    borderColor: colors.moss,
+  },
+  presetPillText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.ink,
+  },
+  presetPillTextActive: {
+    color: colors.white,
+    fontWeight: "800",
+  },
+  sliderContainer: {
+    marginVertical: 4,
+  },
+  rangeLabelsMini: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+    marginTop: -4,
+  },
+  rangeTextMini: {
+    fontSize: 9,
+    color: colors.muted,
+    fontWeight: "600",
+  },
+  stepperInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(223, 221, 213, 0.7)",
+  },
+  stepperInlineLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.ink,
+  },
+  stepperInlineControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 2,
+    paddingVertical: 1,
+  },
+  stepperBtnSmall: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: colors.paper,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepperInputSmall: {
+    minWidth: 28,
     height: 28,
     textAlign: "center",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
     color: colors.ink,
     paddingHorizontal: 2,
   },
-  stepperUnit: {
+  stepperInputGrams: {
+    minWidth: 44,
+    height: 28,
+    textAlign: "center",
+    fontSize: 13,
+    fontWeight: "900",
+    color: colors.moss,
+    paddingHorizontal: 3,
+  },
+  stepperUnitSmall: {
     fontSize: 10,
     fontWeight: "700",
     color: colors.muted,
     marginRight: 4,
   },
-  portionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginTop: 18 },
-  sectionLabel: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
-  gramsValue: { color: colors.terracotta, fontSize: 17, fontWeight: "800" },
-  rangeLabels: { flexDirection: "row", justifyContent: "space-between", marginTop: -2 },
-  rangeText: { color: colors.muted, fontSize: 10 },
-  mutedNote: { color: colors.muted, fontSize: 12, marginTop: 13 },
-  clarificationHint: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 9 },
-  deferredValuesCard: { marginTop: 18, padding: 13, borderRadius: 14, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
-  deferredValuesText: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
-  candidateHelpText: { color: colors.muted, fontSize: 11, marginTop: 4, marginBottom: 2 },
-  chipsRow: { gap: 8, paddingTop: 6, paddingBottom: 2 },
-  chip: { minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8, minWidth: 100, justifyContent: "center" },
-  chipSelected: { borderColor: colors.moss, backgroundColor: colors.mossSoft },
-  chipText: { color: colors.ink, fontSize: 12, fontWeight: "800" },
-  chipTextSelected: { color: colors.moss },
-  chipScore: { color: colors.muted, fontSize: 10, marginTop: 3 },
-  abstainCardNotice: {
+
+  // AI Estimate Row Card (Inside item card for uncatalogued items)
+  aiEstimateRowCard: {
+    backgroundColor: "#FDFBF5",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#E8B653",
+    padding: 10,
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  aiEstimateRowHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  aiBadgeSmall: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FBF1D8",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  aiBadgeSmallText: {
+    color: "#8D641C",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  aiKatalogDisiText: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  aiEstimateActionsBox: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  aiEstimatePrimaryBtn: {
+    flex: 1.4,
+    minHeight: 40,
+    borderRadius: 10,
+    backgroundColor: colors.moss,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+  },
+  aiEstimatePrimaryBtnText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  aiEstimateManualBtn: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 10,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.terracotta,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+  },
+  aiEstimateManualBtnText: {
+    color: colors.terracotta,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+
+  // Alternates Block
+  alternatesBlock: {
+    marginTop: 10,
+  },
+  chipsRow: { gap: 6, paddingTop: 4, paddingBottom: 2 },
+  chip: { minHeight: 36, borderWidth: 1, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, minWidth: 90, justifyContent: "center" },
+  chipSelected: { borderColor: colors.moss, backgroundColor: colors.mossSoft },
+  chipOther: { borderColor: colors.moss, borderStyle: "dashed", backgroundColor: colors.card, flexDirection: "row", alignItems: "center", gap: 4 },
+  chipText: { color: colors.ink, fontSize: 11, fontWeight: "800" },
+  chipTextSelected: { color: colors.moss },
+
+  // Custom Food Search Box
+  customFoodBox: {
+    backgroundColor: colors.paper,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 10,
+    marginTop: 8,
+  },
+  customFoodBoxTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: colors.ink,
+    marginBottom: 6,
+  },
+  customFoodInputRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  customFoodInput: {
+    flex: 1,
+    minHeight: 34,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 10,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  customFoodSearchBtn: {
+    backgroundColor: colors.moss,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    justifyContent: "center",
+  },
+  customFoodSearchBtnText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  customNotFoundCard: {
+    backgroundColor: "#FBF1D8",
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 8,
+    gap: 6,
+  },
+  customNotFoundText: {
+    color: "#8D641C",
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "600",
+  },
+  manualKcalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  manualKcalLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.ink,
+  },
+  manualKcalInput: {
+    width: 60,
+    height: 28,
+    backgroundColor: colors.card,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.ink,
+  },
+  manualKcalUnit: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.muted,
+  },
+  saveManualDishBtn: {
+    backgroundColor: colors.terracotta,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 7,
+    marginTop: 4,
+  },
+  saveManualDishBtnText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+
+  abstainCardNotice: {
     backgroundColor: "#FBF1D8",
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    marginTop: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 10,
+    gap: 6,
+  },
+  abstainNoticeLeft: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    flex: 1,
   },
   abstainCardText: {
     color: "#8D641C",
     fontSize: 11,
+    lineHeight: 15,
     fontWeight: "700",
     flex: 1,
   },
   removeItemBtn: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-end",
     gap: 4,
     backgroundColor: colors.card,
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.terracotta,
     paddingHorizontal: 8,
-    paddingVertical: 5,
-    marginLeft: 8,
+    paddingVertical: 4,
   },
   removeItemBtnText: {
     color: colors.terracotta,
     fontSize: 10,
     fontWeight: "700",
   },
-  whyRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.line },
-  whyIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center" },
+  whyRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.line },
+  whyIcon: { width: 22, height: 22, borderRadius: 6, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center" },
   whyCopy: { flex: 1 },
-  whyTitle: { color: colors.muted, fontSize: 11, fontWeight: "700" },
-  whySubtitle: { color: colors.muted, fontSize: 10, marginTop: 1 },
-  auditBox: { marginTop: 10, padding: 12, borderRadius: 14, backgroundColor: colors.paper, gap: 8, borderWidth: 1, borderColor: colors.line },
-  primaryButton: { minHeight: 54, borderRadius: 18, backgroundColor: colors.terracotta, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 10, paddingHorizontal: 18, marginTop: 8 },
-  primaryButtonDisabled: { opacity: 0.55 },
+  whyTitle: { color: colors.muted, fontSize: 10, fontWeight: "700" },
+  whySubtitle: { color: colors.muted, fontSize: 9, marginTop: 1 },
+  auditBox: { marginTop: 8, padding: 10, borderRadius: 12, backgroundColor: colors.paper, gap: 6, borderWidth: 1, borderColor: colors.line },
+  primaryButton: { minHeight: 52, borderRadius: 16, backgroundColor: colors.terracotta, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, paddingHorizontal: 16, marginTop: 6 },
+  primaryButtonDisabled: { backgroundColor: "#EAE5D9" },
   primaryButtonText: { color: colors.white, fontSize: 14, fontWeight: "800" },
-  footerHint: { color: colors.muted, fontSize: 12, lineHeight: 17, fontWeight: "600", marginBottom: 8, textAlign: "center" },
-  textButton: { minHeight: 44, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
-  textButtonLabel: { color: colors.muted, fontSize: 12, fontWeight: "700" },
+  primaryButtonTextDisabled: { color: "#A8A294" },
+  footerHint: { color: colors.muted, fontSize: 11, lineHeight: 15, fontWeight: "600", marginBottom: 6, textAlign: "center" },
+  textButton: { minHeight: 42, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6, paddingVertical: 10, marginTop: 4, alignSelf: "center", paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
+  textButtonLabel: { color: colors.ink, fontSize: 11, fontWeight: "700" },
+  mutedNote: { color: colors.muted, fontSize: 11, marginVertical: 6 },
+  itemQuickActionBtnDanger: { borderColor: "#F7D0C5", backgroundColor: "#FDF0ED" },
+
+  // + Tabağa Öğe Ekle Styles
+  addPlateItemContainer: {
+    marginVertical: 10,
+  },
+  addPlateItemHeroBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: colors.moss,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  addPlateItemIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#EDF3EE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addPlateItemCopy: {
+    flex: 1,
+  },
+  addPlateItemTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.moss,
+  },
+  addPlateItemSubtitle: {
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  addPlateItemCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  addPlateItemCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  addPlateItemHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  addPlateItemCardTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.ink,
+    letterSpacing: 0.3,
+  },
+  quickAddLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: colors.muted,
+    letterSpacing: 0.6,
+  },
+  quickAddChipsRow: {
+    flexDirection: "row",
+    gap: 6,
+    paddingBottom: 4,
+  },
+  quickAddChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F4F3ED",
+    borderWidth: 1,
+    borderColor: "#E5E3D8",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  quickAddChipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.ink,
+  },
+  addPlateItemInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 2,
+  },
+  addPlateItemInput: {
+    flex: 1,
+    minHeight: 40,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  addPlateItemSubmitBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.moss,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  addPlateItemSubmitBtnText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "800",
+  },
 });

@@ -217,6 +217,28 @@ invariant checker covers the pack declarations.
 The same call for `en_US` is permitted. No provider call is needed to exercise
 this provenance and licence boundary.
 
+## 8. Visual Evidence: EatBetter vs. Mealog
+
+**What is better.** Mealog provides a deterministic, visual-first safety workflow. We ran side-by-side tests on the same images to demonstrate how both apps handle ambiguity.
+
+**Why it matters.** An app that guesses calories on an ambiguous image creates a false sense of accuracy. Below are concrete side-by-side comparisons using the images you provided.
+
+*(Note for Zeki: Lütfen aşağıda yer alan resim placeholder'larını daha önce yüklediğin EatBetter ekran görüntüleri ve Mealog ekran görüntüleri ile değiştirin)*
+
+### Test Case 1: Uncaloried / Unknown Dish (e.g. Sushi / Mixed Plate)
+| EatBetter (Guesses wrong calories) | Mealog (Safely abstains / Asks user) |
+|---|---|
+| `![EatBetter Sushi](/absolute/path/to/eatbetter_sushi.png)` | `![Mealog Sushi](/absolute/path/to/mealog_sushi.png)` |
+
+*Observation:* EatBetter tries to estimate a calorie value without knowing the exact dish contents, while Mealog's confidence gate trips, correctly routing the user to the review screen for clarification.
+
+### Test Case 2: Portion Counting (e.g. 2 Simits)
+| EatBetter (Miscounts) | Mealog (Asks for count confirmation) |
+|---|---|
+| `![EatBetter Simit](/absolute/path/to/eatbetter_simit.png)` | `![Mealog Simit](/absolute/path/to/mealog_simit.png)` |
+
+*Observation:* As documented above, EatBetter over-counted a user-confirmed count of two. Mealog processes the image, flags occlusion/portion uncertainty (D17), and asks "Kaç adet yediniz?".
+
 ## Where EatBetter is better: catalogue coverage and long-tail breadth
 
 **What is observed.** EatBetter's public surface depicts a general photo-

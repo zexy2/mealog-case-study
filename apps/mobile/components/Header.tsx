@@ -19,12 +19,12 @@ export function Header({ eyebrow, title, subtitle }: { eyebrow: string; title: s
 }
 
 const styles = StyleSheet.create({
-  header: { paddingTop: 26, paddingBottom: 20 },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
+  header: { paddingTop: 22, paddingBottom: 18 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 },
 
   brand: { color: colors.ink, fontSize: 19, fontWeight: "800", letterSpacing: -0.8 },
   brandDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.terracotta },
-  eyebrow: { color: colors.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1.6 },
-  title: { color: colors.ink, fontSize: 32, lineHeight: 36, fontWeight: "800", letterSpacing: -1.2 },
-  subtitle: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 7 },
+  eyebrow: { color: colors.mutedStrong, fontSize: 10, fontWeight: "800", letterSpacing: 1.6 },
+  title: { color: colors.ink, fontSize: 30, lineHeight: 36, fontWeight: "800", letterSpacing: -1 },
+  subtitle: { color: colors.mutedStrong, fontSize: 14, lineHeight: 20, marginTop: 6 },
 });

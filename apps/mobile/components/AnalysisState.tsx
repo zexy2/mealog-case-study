@@ -1,18 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 
 import { colors } from "./theme";
 import { StringKey, t } from "../src/strings";
 
 export const ANALYSIS_STEPS = ["analysisStepReading", "analysisStepMatching", "analysisStepPortion"] as const satisfies readonly StringKey[];
 
-export function AnalysisState({ step }: { step: number }) {
+export function AnalysisState({ step, imageUri }: { step: number; imageUri?: string | null }) {
+  const progress = Math.min(1, Math.max(0, step / ANALYSIS_STEPS.length));
   return (
     <View style={styles.analysisScreen}>
-      <View style={styles.analysisMark}>
-        <Ionicons name="scan-outline" size={30} color={colors.terracotta} />
-      </View>
+      {imageUri ? (
+        <View style={styles.analysisPreview}>
+          <Image source={{ uri: imageUri }} style={styles.analysisPreviewBackdrop} resizeMode="cover" blurRadius={14} />
+          <Image source={{ uri: imageUri }} style={styles.analysisPreviewImage} resizeMode="contain" />
+          <View style={styles.analysisPreviewBadge}>
+            <Ionicons name="restaurant-outline" size={12} color={colors.white} />
+            <Text style={styles.analysisPreviewBadgeText}>{t("mealPhotoBadge")}</Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.analysisMark}>
+          <Ionicons name="scan-outline" size={30} color={colors.terracotta} />
+        </View>
+      )}
       <Text style={styles.analysisEyebrow}>{t("analysisEyebrow")}</Text>
       <Text style={styles.analysisTitle}>
         {t("analysisTitle")}
@@ -20,6 +32,9 @@ export function AnalysisState({ step }: { step: number }) {
       </Text>
       <Text style={styles.analysisCopy}>{t("analysisCopy")}</Text>
       <View style={styles.pipelineCard}>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
+        </View>
         {ANALYSIS_STEPS.map((label, index) => {
           const active = index === step;
           const done = index < step;
@@ -41,12 +56,19 @@ export function AnalysisState({ step }: { step: number }) {
 
 const styles = StyleSheet.create({
   analysisScreen: { flex: 1, padding: 28, justifyContent: "center" },
+  analysisPreview: { width: "100%", height: 190, borderRadius: 22, overflow: "hidden", backgroundColor: "#1C211E", marginBottom: 26, borderWidth: 1, borderColor: colors.line },
+  analysisPreviewBackdrop: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%", opacity: 0.55 },
+  analysisPreviewImage: { width: "100%", height: "100%" },
+  analysisPreviewBadge: { position: "absolute", bottom: 10, left: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(31,36,33,0.82)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  analysisPreviewBadgeText: { color: colors.white, fontSize: 11, fontWeight: "700" },
   analysisMark: { width: 64, height: 64, borderRadius: 22, backgroundColor: colors.terracottaSoft, alignItems: "center", justifyContent: "center", marginBottom: 26 },
   analysisEyebrow: { color: colors.terracotta, fontSize: 10, fontWeight: "800", letterSpacing: 1.7 },
   analysisTitle: { color: colors.ink, fontSize: 34, lineHeight: 39, fontWeight: "800", letterSpacing: -1.2, marginTop: 12 },
   analysisTitleAccent: { color: colors.terracotta },
   analysisCopy: { color: colors.muted, fontSize: 15, lineHeight: 22, marginTop: 12, maxWidth: 310 },
   pipelineCard: { backgroundColor: colors.card, borderRadius: 22, padding: 19, marginTop: 34, borderWidth: 1, borderColor: colors.line },
+  progressTrack: { height: 4, borderRadius: 2, backgroundColor: colors.paper, overflow: "hidden", marginBottom: 14 },
+  progressFill: { height: 4, borderRadius: 2, backgroundColor: colors.terracotta },
   pipelineRow: { minHeight: 43, flexDirection: "row", alignItems: "center", gap: 12 },
   pipelineDot: { width: 23, height: 23, borderRadius: 12, borderWidth: 1.5, borderColor: colors.line, alignItems: "center", justifyContent: "center" },
   pipelineDotActive: { borderColor: colors.terracotta, backgroundColor: colors.terracottaSoft },

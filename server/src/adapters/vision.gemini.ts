@@ -26,8 +26,8 @@ import type { CaptureMedium, CountOrigin, PerceivedItem } from '../domain/models
 import { makePerceivedItem } from '../domain/models';
 
 export const PROMPT_VERSION = 'p4';
-export const DEFAULT_MODEL = 'gemini-flash-lite-latest';
-export const SECONDARY_MODEL = 'gemini-2.5-flash-lite';
+export const DEFAULT_MODEL = 'gemini-3.5-flash';
+export const SECONDARY_MODEL = 'gemini-3.7-flash';
 export const MODEL_ENV_VAR = 'GEMINI_MODEL';
 export const REQUEST_INTERVAL_SECONDS = 4.0;
 export const API_ROOT = 'https://generativelanguage.googleapis.com/v1beta';
@@ -58,6 +58,7 @@ Rules:
   * If the image shows plastic toy food, fake miniature models, decorative replicas, or inedible synthetic items, do NOT treat them as food. Return empty items: [].
   * If the image depicts a smartphone/digital screen, laptop monitor, or printed photograph displaying a picture of food rather than real food in person, do NOT extract the meal on the screen. Return empty items: [].
   * If the plate or table is empty (no food present), return empty items: [].
+  * If the input (text or image) does not contain, describe, or reference any real edible food, meal, ingredient, or beverage (e.g. casual conversation, greetings like "naber", "merhaba", "hello", "hi", questions, random letters, gibberish, or non-food objects), do NOT guess, hallucinate, or invent food items (e.g. do not return latte, coffee, bread, tea, or water). Return empty items: [].
 - Counting precision rules:
   * For individually countable food items that are clearly and distinctly visible as single standalone items (e.g. a single whole simit on a plate, one apple, one boiled egg, a standalone whole pastry, or a single glass of drink), return \`count: 1\`.
   * For multiple countable items where each instance is distinctly separated and completely visible, return the exact integer count (e.g. \`count: 2\`).
