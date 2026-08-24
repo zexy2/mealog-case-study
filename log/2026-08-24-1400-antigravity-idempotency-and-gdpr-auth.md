@@ -14,3 +14,4 @@
 
 ## Traps
 - When storing cached results for idempotency replay, always persist the request fingerprint alongside the response so conflicting subsequent payloads are immediately rejected with 409 Conflict.
+- All changes must arrive via PR to satisfy main-arrived-via-pull-request gate.
