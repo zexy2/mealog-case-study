@@ -259,8 +259,7 @@ export function ReviewScreen({
 
               {clarification?.kind === "count" ? (
                 <View style={styles.questionCard}>
-                  <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
-                  <Text style={styles.questionText}>{clarificationPrompt(item, clarification, selected)}</Text>
+                  <Text style={styles.questionText}>Adet / Miktar Seçimi</Text>
                   <View style={styles.countChoices}>
                     {clarification.options.map((option) => {
                       const isSelected = quantity === option;
@@ -282,7 +281,7 @@ export function ReviewScreen({
                   </View>
 
                   <View style={styles.customCountRow}>
-                    <Text style={styles.customCountLabel}>Özel adet girin:</Text>
+                    <Text style={styles.customCountLabel}>Özel adet:</Text>
                     <View style={styles.stepperWrap}>
                       <Pressable
                         style={styles.stepperButton}
@@ -330,13 +329,6 @@ export function ReviewScreen({
                       </Pressable>
                     </View>
                   </View>
-                  <Text style={styles.clarificationHint}>
-                    {isCountAnswerPending
-                      ? t("countAnswerRequired")
-                      : typeof quantity === "number"
-                        ? t("countRecalculationPending")
-                        : t("countUnknownAccepted")}
-                  </Text>
                 </View>
               ) : null}
 
@@ -644,17 +636,17 @@ const styles = StyleSheet.create({
   portionDone: { backgroundColor: colors.mossSoft },
   portionPending: { backgroundColor: "#FBF1D8" },
   portionStatusText: { fontSize: 10, fontWeight: "700", color: colors.ink },
-  questionCard: { backgroundColor: "#FBF1D8", borderRadius: 15, padding: 13, marginTop: 17 },
+  questionCard: { backgroundColor: colors.paper, borderRadius: 16, padding: 13, marginTop: 14, borderWidth: 1, borderColor: colors.line },
   portionQuestionCard: { backgroundColor: "#F4F7F4", borderRadius: 15, padding: 13, marginTop: 15, borderWidth: 1, borderColor: colors.line },
   portionQuickChoices: { flexDirection: "row", gap: 8, marginTop: 10 },
   portionQuickChoice: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, paddingHorizontal: 6 },
   portionQuickChoiceSelected: { backgroundColor: colors.moss, borderColor: colors.moss },
   portionQuickChoiceText: { color: colors.ink, fontSize: 11, fontWeight: "700", textAlign: "center" },
   portionQuickChoiceTextSelected: { color: colors.white },
-  questionLabel: { color: "#8D641C", fontSize: 9, fontWeight: "800", letterSpacing: 1.3 },
-  questionText: { color: colors.ink, fontSize: 15, lineHeight: 21, fontWeight: "700", marginTop: 5 },
-  countChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
-  countChoice: { minHeight: 44, borderWidth: 1, borderColor: "#D9C58E", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.card, justifyContent: "center" },
+  questionLabel: { color: colors.moss, fontSize: 9, fontWeight: "800", letterSpacing: 1.2 },
+  questionText: { color: colors.ink, fontSize: 13, fontWeight: "800" },
+  countChoices: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
+  countChoice: { minHeight: 38, borderWidth: 1, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 8, backgroundColor: colors.card, justifyContent: "center" },
   countChoiceSelected: { backgroundColor: colors.terracotta, borderColor: colors.terracotta },
   countChoiceText: { color: colors.ink, fontSize: 11, fontWeight: "700" },
   countChoiceTextSelected: { color: colors.white },
@@ -662,70 +654,70 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 12,
-    paddingTop: 10,
+    marginTop: 10,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "rgba(217, 197, 142, 0.4)",
+    borderTopColor: colors.line,
   },
   customCountLabel: {
-    color: colors.ink,
-    fontSize: 12,
+    color: colors.muted,
+    fontSize: 11,
     fontWeight: "700",
   },
   stepperWrap: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#D9C58E",
-    paddingHorizontal: 4,
+    borderColor: colors.line,
+    paddingHorizontal: 3,
     paddingVertical: 2,
   },
   stepperButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 7,
     backgroundColor: colors.paper,
     alignItems: "center",
     justifyContent: "center",
   },
   stepperInput: {
-    minWidth: 44,
-    height: 32,
+    minWidth: 38,
+    height: 28,
     textAlign: "center",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800",
     color: colors.ink,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   stepperUnit: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     color: colors.muted,
-    marginRight: 6,
+    marginRight: 4,
   },
-  portionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginTop: 22 },
+  portionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginTop: 18 },
   sectionLabel: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
-  gramsValue: { color: colors.terracotta, fontSize: 18, fontWeight: "800" },
+  gramsValue: { color: colors.terracotta, fontSize: 17, fontWeight: "800" },
   rangeLabels: { flexDirection: "row", justifyContent: "space-between", marginTop: -2 },
   rangeText: { color: colors.muted, fontSize: 10 },
   mutedNote: { color: colors.muted, fontSize: 12, marginTop: 13 },
   clarificationHint: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 9 },
-  deferredValuesCard: { marginTop: 22, padding: 13, borderRadius: 14, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
+  deferredValuesCard: { marginTop: 18, padding: 13, borderRadius: 14, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
   deferredValuesText: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
   chipsRow: { gap: 8, paddingTop: 11, paddingBottom: 2 },
   chip: { minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8, minWidth: 100, justifyContent: "center" },
-  chipSelected: { backgroundColor: colors.terracotta, borderColor: colors.terracotta },
-  chipText: { color: colors.ink, fontSize: 11, fontWeight: "700" },
-  chipTextSelected: { color: colors.white },
+  chipSelected: { borderColor: colors.moss, backgroundColor: colors.mossSoft },
+  chipText: { color: colors.ink, fontSize: 12, fontWeight: "800" },
+  chipTextSelected: { color: colors.moss },
   chipScore: { color: colors.muted, fontSize: 10, marginTop: 3 },
-  whyRow: { minHeight: 44, flexDirection: "row", alignItems: "center", marginTop: 20, paddingTop: 15, borderTopWidth: 1, borderTopColor: colors.line },
-  whyIcon: { width: 32, height: 32, borderRadius: 12, backgroundColor: colors.mossSoft, alignItems: "center", justifyContent: "center" },
-  whyCopy: { flex: 1, marginLeft: 10 },
-  whyTitle: { color: colors.ink, fontSize: 13, fontWeight: "800" },
-  whySubtitle: { color: colors.muted, fontSize: 11, marginTop: 2 },
-  auditBox: { backgroundColor: colors.paper, borderRadius: 15, padding: 12, marginTop: 12, gap: 9 },
+  whyRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.line },
+  whyIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center" },
+  whyCopy: { flex: 1 },
+  whyTitle: { color: colors.muted, fontSize: 11, fontWeight: "700" },
+  whySubtitle: { color: colors.muted, fontSize: 10, marginTop: 1 },
+  auditBox: { marginTop: 10, padding: 12, borderRadius: 14, backgroundColor: colors.paper, gap: 8, borderWidth: 1, borderColor: colors.line },
   primaryButton: { minHeight: 54, borderRadius: 18, backgroundColor: colors.terracotta, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 10, paddingHorizontal: 18, marginTop: 8 },
   primaryButtonDisabled: { opacity: 0.55 },
   primaryButtonText: { color: colors.white, fontSize: 14, fontWeight: "800" },

@@ -334,7 +334,7 @@ export const tr: Dictionary = {
   portionPending: "Porsiyon, yanıtını bekliyor.",
   alternates: "DEĞERLENDİRİLEN ALTERNATİFLER",
   whyResult: "Nasıl bulundu?",
-  traceDecision: "Besin Şeffaflığı ve Doğrulama Kararı",
+  traceDecision: "İsteğe bağlı teknik kaynak ve doğrulama detayı",
   matchedFoodId: "Katalog eşleşmesi",
 
 
@@ -551,7 +551,7 @@ export const en: Dictionary = {
   portionPending: "Portion waits for your answer.",
   alternates: "ALTERNATES CONSIDERED",
   whyResult: "Why this result?",
-  traceDecision: "Trace the decision",
+  traceDecision: "Optional technical verification details",
   matchedFoodId: "Matched food_id",
   sourceDatabase: "Source database",
   catalogueProvenance: "Catalogue provenance",
