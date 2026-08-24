@@ -607,8 +607,13 @@ export function computeLocalVariance(
 }
 
 /**
- * Universal image privacy sanitizer.
- * Strips all metadata, GPS tags, camera details, and non-visual user information.
+ * Universal binary image metadata sanitizer.
+ * - JPEG: Strips APP1 EXIF/GPS, APP2, IPTC, and Comment markers.
+ * - PNG: Strips eXIf, tEXt, zTXt, iTXt, and tIME ancillary chunks.
+ * - WebP: Strips EXIF and XMP RIFF chunks.
+ * - GIF: Strips Comment (0x21, 0xFE) and XMP Application (0x21, 0xFF) extensions.
+ * - ISOBMFF (AVIF, HEIC, HEIF): Passed through without in-memory EXIF item stripping
+ *   (requires full ISOBMFF item repacking and is documented as a known edge limitation).
  */
 export function sanitizeImageBuffer(buffer: Uint8Array): Uint8Array {
   if (!buffer || buffer.length === 0) return buffer;

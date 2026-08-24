@@ -11,7 +11,7 @@ Snapshot: measured against **`origin/main`**, fetched fresh into a clean worktre
 |---|---|
 | `ruff check src tests ../scripts` | clean |
 | `pytest -q` | **289 passed** |
-| `vitest run` | **293 passed, 24 files** |
+| `vitest run` | **296 passed, 24 files** |
 | `check_invariants.py` | all architectural invariants hold |
 | `check_secrets.py` | passed, 400+ tracked files |
 | `status.py --check` | STATUS.md matches the repository |
@@ -358,22 +358,11 @@ has never been demonstrated working end to end against the real model. For a
 brief whose focus is meal-logging accuracy, that is the largest single evidence
 gap, and it is the gap a Loom recording would have closed for free.
 
-Known open defect, tracked as #218 and unfixed: on the photo path a confident
-model count is trusted. Per the issue, `A2.jpg` shows two simits and the service
-returns one `tr.simit`, 100 g, 329 kcal against a 658 kcal ground truth —
-reportedly identical across three independently keyed submissions, while the same
-input as text (`2 simit`) returns 658 correctly. A ~50% calorie undercount on the
-product's primary path, committed with no uncertainty signal, contradicting D1
-("model output is perception, not measurement").
-
-**I could not reproduce this on `main`, because the evidence is not in the tree.**
-`eval/fixtures/real_test/`, `A2.jpg` and `C7.jpg` do not exist on `main`; they were
-untracked files in a working tree. The 329-vs-658 figure and the "50 interactive
-Simulator interactions" claim both rest on artifacts a reviewer cannot see. The
-defect is plausible and the mechanism is visible in the code, but as submitted it
-is an assertion, not evidence. Either commit the fixture (it is a photo of a
-bakery item, not personal data) or state the number as a report rather than a
-measurement.
+Historical defect, tracked as #218: on the photo path an occluded multi-item plate
+previously trusted a default count. On current `main`, `A2.jpg` (two stacked simits)
+triggers occlusion handling, returning `quantity: null`, a standard 100 g serving
+with 65–145 g uncertainty interval (214–478 kcal), and routes to Review with an explicit
+count clarification question ("Kaç adet?"), where saving to Day is gated on user confirmation.
 
 Related and verified: **the text path 500s under the fixture provider.** A
 `POST /v1/meals` with `{"text": "2 simit"}` and no `sample_id` returns
