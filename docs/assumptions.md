@@ -178,3 +178,11 @@ traces, metrics, or a production observability backend. These are known referenc
 implementation limits, not deployment guarantees. The current live smoke did not
 encounter a degraded/retry response; the rule above is verified by focused adapter,
 pipeline, API, and mobile tests, not by that smoke.
+
+---
+
+## A10 — Turkish pack provenance and commercial mode enforcement
+
+**Checked.** Four foods in `locale_packs/tr/foods.jsonl` (`tr.kofte_izgara`, `tr.coban_salatasi`, `tr.pizza`, `tr.bulgur_pilavi`) were briefly removed under the assumption that they lacked provenance sources. That rationale contradicted the data: two of the four carried official TURKOMP food codes (`03.02.0012` and `08.02.0035`), while the other two carried bare `'TURKOMP'` tags identical to the eight original baseline foods (`tr.mercimek_corbasi`, `tr.kuru_fasulye`, etc.) used across golden evaluation fixtures.
+
+**Decision.** The four rows are retained in the Turkish locale pack (total count: 57). TURKOMP rows vary between explicit food codes and bare catalogue tags; this is an accepted provenance asymmetry across the reference dataset. The Turkish pack is explicitly licensed under `restricted-noncommercial` (see `locale_packs/tr/pack.yaml`), and `test_locale_packs.py` strictly enforces that the pack refuses to load when `MEALOG_COMMERCIAL_MODE` is enabled. Commercial deployments require replacing the pack with permissively licensed regional compositional or first-party laboratory data.
