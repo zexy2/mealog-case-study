@@ -10,7 +10,8 @@ import { Settings } from '../src/config';
 import { makePerceivedItem } from '../src/domain/models';
 import { configureBodyParsers } from '../src/main';
 import { VisionProviderError } from '../src/adapters/vision.gemini';
-import { VISION_PORT } from '../src/app/meals.service';
+import { MealsService, VISION_PORT } from '../src/app/meals.service';
+import { VisionInput } from '../src/pipeline/ports';
 
 describe('POST /v1/meals', () => {
   let app: NestExpressApplication;
@@ -438,5 +439,38 @@ describe('POST /v1/meals', () => {
 
     const statuses = [resA.status, resB.status].sort();
     expect(statuses).toEqual([200, 409]);
+  });
+
+  it('GDPR delete during an in-flight request does not re-insert the purged meal into completed cache', async () => {
+    const mealsService = app.get(MealsService);
+    const key = `gdpr-inflight-key-${Date.now()}`;
+    const userId = `gdpr-race-user-${Date.now()}`;
+
+    const requestA = {
+      idempotency_key: key,
+      sample_id: 'tr_0001',
+      locale: 'tr',
+      config: 'V3',
+    };
+    const inputA = new VisionInput({ sampleId: 'tr_0001' });
+
+    // Start request A and purge user immediately while it is in-flight
+    const mealPromise = mealsService.logMeal(requestA, inputA, userId);
+    mealsService.purgeUserData(userId);
+
+    const mealResult = await mealPromise;
+    expect(mealResult.items[0]?.food_id).toBe('tr.kuru_fasulye');
+
+    // Request B with same key but different payload should process fresh and return tr.simit (not 409 and not tr.kuru_fasulye)
+    const requestB = {
+      idempotency_key: key,
+      sample_id: 'tr_0002',
+      locale: 'tr',
+      config: 'V3',
+    };
+    const inputB = new VisionInput({ sampleId: 'tr_0002' });
+
+    const secondResult = await mealsService.logMeal(requestB, inputB, userId);
+    expect(secondResult.items[0]?.food_id).toBe('tr.simit');
   });
 });
