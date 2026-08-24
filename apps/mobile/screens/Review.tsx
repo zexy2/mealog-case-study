@@ -5,6 +5,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 
 import { Candidate, CaptureMedium, ItemClarification, MealLog } from "../src/types";
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
+import { computedValuesNeedServerRefresh, countAnswerPending } from "../src/reviewState";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -96,9 +97,8 @@ export function ReviewScreen({
   const [portionConfirmed, setPortionConfirmed] = useState<Record<number, boolean>>({});
 
   const hasUnansweredCountClarification = meal.items.some((item, index) => {
-    const clarification = item.clarification ?? null;
     const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
-    return clarification?.kind === "count" && !hasQuantityEdit && item.quantity === null;
+    return countAnswerPending(item, hasQuantityEdit);
   });
 
   const needsPortionConfirmation = meal.action === "review" && meal.items.some((item, index) => {
@@ -110,6 +110,11 @@ export function ReviewScreen({
   });
 
   const isSaveDisabled = Boolean(saving || hasUnansweredCountClarification || needsPortionConfirmation);
+  const footerHint = hasUnansweredCountClarification
+    ? t("saveBlockedCountHint")
+    : needsPortionConfirmation
+      ? t("confirmPortionRequired")
+      : null;
 
   function handleSave() {
     if (hasUnansweredCountClarification) {
@@ -181,6 +186,14 @@ export function ReviewScreen({
           const hasPortionBand = grams > 0 && item.grams_p90 >= item.grams_p10 && item.grams_p90 > 0;
           const hasRange = item.grams_p90 > item.grams_p10;
           const isPortionDone = Object.prototype.hasOwnProperty.call(portionEdits, index) || Boolean(portionConfirmed[index]);
+          const isCountAnswerPending = countAnswerPending(item, hasQuantityEdit);
+          const computedValuesDeferred = computedValuesNeedServerRefresh(item, hasQuantityEdit, quantity);
+          const computedValuesHint = isCountAnswerPending
+            ? t("countAnswerRequired")
+            : t("countRecalculationPending");
+          const displayedQuantity = isCountAnswerPending
+            ? t("quantityPending")
+            : quantityLabel(item, quantity, quantityUnit);
 
           return (
             <View key={`${item.query}-${index}`} style={styles.itemCard}>
@@ -189,13 +202,13 @@ export function ReviewScreen({
                 <View style={styles.itemNameWrap}>
                   <Text style={styles.itemQuery}>{item.query}</Text>
                   <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? t("needsMatch") : selectedName(item, selected)}</Text>
-                  <Text style={styles.quantityText}>{quantityLabel(item, quantity, quantityUnit)}</Text>
+                  <Text style={styles.quantityText}>{displayedQuantity}</Text>
                 </View>
                 <View style={styles.statusBadgesCol}>
                   <View style={[styles.confidencePill, item.confidence >= 0.85 ? styles.confidenceHigh : styles.confidenceMed]}>
                     <Text style={styles.confidenceText}>{item.confidence >= 0.85 ? t("matchConfidenceHigh") : t("matchConfidenceMed")} (%{Math.round(item.confidence * 100)})</Text>
                   </View>
-                  {hasRange ? (
+                  {hasRange && clarification?.kind !== "count" ? (
                     <View style={[styles.portionStatusPill, isPortionDone ? styles.portionDone : styles.portionPending]}>
                       <Text style={styles.portionStatusText}>{isPortionDone ? t("portionStatusConfirmed") : t("portionStatusVerify")}</Text>
                     </View>
@@ -203,7 +216,7 @@ export function ReviewScreen({
                 </View>
               </View>
 
-              {item.nutrients && (item.nutrients.kcal > 0 || item.nutrients.protein_g > 0) ? (
+              {!computedValuesDeferred && item.nutrients && (item.nutrients.kcal > 0 || item.nutrients.protein_g > 0) ? (
                 <View style={styles.macroStrip}>
                   <View style={styles.macroPill}>
                     <Text style={styles.macroPillEmoji}>⚡</Text>
@@ -297,6 +310,13 @@ export function ReviewScreen({
                       </Pressable>
                     </View>
                   </View>
+                  <Text style={styles.clarificationHint}>
+                    {isCountAnswerPending
+                      ? t("countAnswerRequired")
+                      : typeof quantity === "number"
+                        ? t("countRecalculationPending")
+                        : t("countUnknownAccepted")}
+                  </Text>
                 </View>
               ) : null}
 
@@ -389,31 +409,40 @@ export function ReviewScreen({
                 </View>
               ) : null}
 
-              <View style={styles.portionHeader}>
-                <Text style={styles.sectionLabel}>{t("portion")}</Text>
-                <Text style={styles.gramsValue}>{hasPortionBand ? t("portionBand", { grams: Math.round(grams), low: Math.round(item.grams_p10), high: Math.round(item.grams_p90) }) : t("notEstimated")}</Text>
-              </View>
-              {hasRange ? (
+              {computedValuesDeferred ? (
+                <View style={styles.deferredValuesCard}>
+                  <Text style={styles.sectionLabel}>{t("portion")}</Text>
+                  <Text style={styles.deferredValuesText}>{computedValuesHint}</Text>
+                </View>
+              ) : (
                 <>
-                  <PortionSlider
-                    minimumValue={item.grams_p10}
-                    maximumValue={item.grams_p90}
-                    value={grams}
-                    minimumTrackTintColor={colors.terracotta}
-                    maximumTrackTintColor={colors.line}
-                    thumbTintColor={colors.terracotta}
-                    onValueChange={(value) => {
-                      setPortionEdits((current) => ({ ...current, [index]: value }));
-                      setPortionConfirmed((current) => ({ ...current, [index]: true }));
-                    }}
-                    accessibilityLabel={t("portionFor", { query: item.query })}
-                  />
-                  <View style={styles.rangeLabels}>
-                    <Text style={styles.rangeText}>{t("portionLow", { grams: Math.round(item.grams_p10) })}</Text>
-                    <Text style={styles.rangeText}>{t("portionHigh", { grams: Math.round(item.grams_p90) })}</Text>
+                  <View style={styles.portionHeader}>
+                    <Text style={styles.sectionLabel}>{t("portion")}</Text>
+                    <Text style={styles.gramsValue}>{hasPortionBand ? t("portionBand", { grams: Math.round(grams), low: Math.round(item.grams_p10), high: Math.round(item.grams_p90) }) : t("notEstimated")}</Text>
                   </View>
+                  {hasRange ? (
+                    <>
+                      <PortionSlider
+                        minimumValue={item.grams_p10}
+                        maximumValue={item.grams_p90}
+                        value={grams}
+                        minimumTrackTintColor={colors.terracotta}
+                        maximumTrackTintColor={colors.line}
+                        thumbTintColor={colors.terracotta}
+                        onValueChange={(value) => {
+                          setPortionEdits((current) => ({ ...current, [index]: value }));
+                          setPortionConfirmed((current) => ({ ...current, [index]: true }));
+                        }}
+                        accessibilityLabel={t("portionFor", { query: item.query })}
+                      />
+                      <View style={styles.rangeLabels}>
+                        <Text style={styles.rangeText}>{t("portionLow", { grams: Math.round(item.grams_p10) })}</Text>
+                        <Text style={styles.rangeText}>{t("portionHigh", { grams: Math.round(item.grams_p90) })}</Text>
+                      </View>
+                    </>
+                  ) : <Text style={styles.mutedNote}>{t("portionPending")}</Text>}
                 </>
-              ) : <Text style={styles.mutedNote}>{t("portionPending")}</Text>}
+              )}
 
               {item.candidates.length > 1 ? (
                 <>
@@ -453,20 +482,26 @@ export function ReviewScreen({
                     <AuditRow label={t("captureMedium")} value={item.capture_medium} />
                   ) : null}
 
-                  <AuditRow label={t("quantity")} value={quantityLabel(item, quantity, quantityUnit)} />
-                  <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
-                  <AuditRow
-                    label={t("portionSource")}
-                    value={formatLocalizedProvenance(item.portion_source)}
-                  />
-                  <AuditRow
-                    label={t("portionProvenance")}
-                    value={item.portion_provenance?.includes("default_serving") ? `Katalog tanımı (${Math.round(grams)} g)` : item.portion_provenance ?? t("pending")}
-                  />
-                  <AuditRow
-                    label={t("macrosTitle")}
-                    value={`${Math.round(item.nutrients.kcal)} kcal · ${Math.round(item.nutrients.protein_g)}g protein · ${Math.round(item.nutrients.carb_g)}g karb · ${Math.round(item.nutrients.fat_g)}g yağ`}
-                  />
+                  <AuditRow label={t("quantity")} value={displayedQuantity} />
+                  {computedValuesDeferred ? (
+                    <AuditRow label={t("portion")} value={computedValuesHint} />
+                  ) : (
+                    <>
+                      <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
+                      <AuditRow
+                        label={t("portionSource")}
+                        value={formatLocalizedProvenance(item.portion_source)}
+                      />
+                      <AuditRow
+                        label={t("portionProvenance")}
+                        value={item.portion_provenance?.includes("default_serving") ? `Katalog tanımı (${Math.round(grams)} g)` : item.portion_provenance ?? t("pending")}
+                      />
+                      <AuditRow
+                        label={t("macrosTitle")}
+                        value={`${Math.round(item.nutrients.kcal)} kcal · ${Math.round(item.nutrients.protein_g)}g protein · ${Math.round(item.nutrients.carb_g)}g karb · ${Math.round(item.nutrients.fat_g)}g yağ`}
+                      />
+                    </>
+                  )}
                 </View>
               ) : null}
 
@@ -478,6 +513,7 @@ export function ReviewScreen({
       </ScrollView>
 
       <View style={styles.stickyFooter}>
+        {footerHint ? <Text style={styles.footerHint}>{footerHint}</Text> : null}
         <Pressable
           style={[styles.primaryButton, isSaveDisabled && styles.primaryButtonDisabled]}
           onPress={handleSave}
@@ -488,10 +524,6 @@ export function ReviewScreen({
           <Text style={styles.primaryButtonText}>
             {saving
               ? t("saving")
-              : hasUnansweredCountClarification
-              ? t("clarifyCountRequired")
-              : needsPortionConfirmation
-              ? t("confirmPortionRequired")
               : isSaved
               ? t("saveCorrection")
               : meal.action === "ask"
@@ -506,7 +538,7 @@ export function ReviewScreen({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.paper },
+  screen: { flex: 1, backgroundColor: colors.paper, overflow: "hidden" },
   scroll: { flex: 1 },
   content: { padding: 22, paddingBottom: 24 },
   stickyFooter: {
@@ -657,6 +689,8 @@ const styles = StyleSheet.create({
   rangeText: { color: colors.muted, fontSize: 10 },
   mutedNote: { color: colors.muted, fontSize: 12, marginTop: 13 },
   clarificationHint: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 9 },
+  deferredValuesCard: { marginTop: 22, padding: 13, borderRadius: 14, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
+  deferredValuesText: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
   chipsRow: { gap: 8, paddingTop: 11, paddingBottom: 2 },
   chip: { minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8, minWidth: 100, justifyContent: "center" },
   chipSelected: { backgroundColor: colors.terracotta, borderColor: colors.terracotta },
@@ -672,6 +706,7 @@ const styles = StyleSheet.create({
   primaryButton: { minHeight: 54, borderRadius: 18, backgroundColor: colors.terracotta, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 10, paddingHorizontal: 18, marginTop: 8 },
   primaryButtonDisabled: { opacity: 0.55 },
   primaryButtonText: { color: colors.white, fontSize: 14, fontWeight: "800" },
+  footerHint: { color: colors.muted, fontSize: 12, lineHeight: 17, fontWeight: "600", marginBottom: 8, textAlign: "center" },
   textButton: { minHeight: 44, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
   textButtonLabel: { color: colors.muted, fontSize: 12, fontWeight: "700" },
 });
