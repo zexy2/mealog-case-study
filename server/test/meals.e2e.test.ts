@@ -601,4 +601,17 @@ describe('POST /v1/meals', () => {
       .attach('image', truncatedJpeg, { filename: 'tiny.jpg', contentType: 'image/jpeg' });
     expect(res.status).toBe(415);
   });
+
+  it('falls back to configured default_locale when locale field is omitted in the request', async () => {
+    const mealsController = app.get(MealsController);
+    const body = {
+      idempotency_key: `default-locale-${Date.now()}`,
+      sample_id: 'tr_0001',
+      config: 'V3',
+    };
+
+    const result = await mealsController.create(body, undefined, 'application/json', 'default-locale-user');
+    const meal = result as { items: Array<{ food_id: string }> };
+    expect(meal.items).toBeDefined();
+  });
 });

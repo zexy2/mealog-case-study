@@ -91,4 +91,36 @@ describe('Privacy & Image Metadata Sanitizer', () => {
     const clean = sanitizeImageBuffer(dummyBytes);
     expect(clean).toEqual(dummyBytes);
   });
+
+  it('strips WebP EXIF/XMP chunks while preserving VP8 visual payload', () => {
+    const ascii = (s: string) => [...s].map((c) => c.charCodeAt(0));
+    const riffHeader = [...ascii('RIFF'), 30, 0, 0, 0, ...ascii('WEBP')];
+    const vp8Chunk = [...ascii('VP8 '), 4, 0, 0, 0, 1, 2, 3, 4];
+    const exifChunk = [...ascii('EXIF'), 6, 0, 0, 0, ...ascii('secret')];
+
+    const rawWebp = new Uint8Array([...riffHeader, ...vp8Chunk, ...exifChunk]);
+    const sanitized = sanitizeImageBuffer(rawWebp);
+
+    const str = String.fromCharCode(...sanitized);
+    expect(str).toContain('RIFF');
+    expect(str).toContain('WEBP');
+    expect(str).toContain('VP8 ');
+    expect(str).not.toContain('EXIF');
+    expect(str).not.toContain('secret');
+  });
+
+  it('strips GIF comment extension while preserving GIF structure', () => {
+    const ascii = (s: string) => [...s].map((c) => c.charCodeAt(0));
+    const header = [...ascii('GIF89a'), 10, 0, 10, 0, 0, 0, 0];
+    const comment = [0x21, 0xfe, 4, ...ascii('test'), 0x00];
+    const trailer = [0x3b];
+
+    const rawGif = new Uint8Array([...header, ...comment, ...trailer]);
+    const sanitized = sanitizeImageBuffer(rawGif);
+
+    const str = String.fromCharCode(...sanitized);
+    expect(str).toContain('GIF89a');
+    expect(str).not.toContain('test');
+    expect(sanitized[sanitized.length - 1]).toBe(0x3b);
+  });
 });

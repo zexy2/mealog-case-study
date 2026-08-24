@@ -125,12 +125,12 @@ not zero-percent error.
 
 | Cuisine | n | Coverage | Eligible/scored | Item F1 | kcal MAPE | FP rate |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| western | 12 | 33% | 2/2 | 0.41 | 12.7% | 69.2% |
-| mediterranean | 12 | 25% | 0/0 | 0.19 | — | 78.9% |
-| east_asian | 16 | 6% | 0/0 | 0.11 | — | 89.3% |
+| western | 12 | 33% | 2/2 | 0.43 | 12.7% | 66.7% |
+| mediterranean | 12 | 25% | 0/0 | 0.22 | — | 71.4% |
+| east_asian | 16 | 6% | 0/0 | 0.10 | — | 90.0% |
 | other_mixed | 8 | 0% | 0/0 | 0.08 | — | 91.7% |
 | south_asian | 16 | 0% | 0/0 | 0.00 | — | 100.0% |
-| latin_american | 16 | 12% | 0/0 | 0.08 | — | 93.5% |
+| latin_american | 16 | 12% | 0/0 | 0.06 | — | 95.7% |
 | **overall** | **80** | **12%** | **2/2** | **0.15** | **12.7%** | **86.0%** |
 
 Measured repository inventory: **3 locale packs**, **103 canonical foods** (en_US 38, tr 57, ja_JP 8), and

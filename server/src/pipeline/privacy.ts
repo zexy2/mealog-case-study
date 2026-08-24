@@ -178,6 +178,172 @@ export function stripMetadataPng(buffer: Uint8Array): Uint8Array {
 }
 
 /**
+ * Strips EXIF and XMP metadata chunks from a WebP buffer.
+ * Preserves VP8, VP8L, VP8X, ANIM, ANMF, and ICCP chunks.
+ */
+export function stripMetadataWebp(buffer: Uint8Array): Uint8Array {
+  if (buffer.length < 12) return buffer;
+  const isWebp =
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && // 'RIFF'
+    buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50; // 'WEBP'
+  if (!isWebp) return buffer;
+
+  const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+  const chunks: Uint8Array[] = [buffer.subarray(0, 12)]; // RIFF header placeholder
+  const metadataChunkFourCCs = new Set(['EXIF', 'XMP ']);
+
+  let offset = 12;
+  while (offset + 8 <= buffer.length) {
+    const fourCC = String.fromCharCode(
+      buffer[offset],
+      buffer[offset + 1],
+      buffer[offset + 2],
+      buffer[offset + 3],
+    );
+    const chunkSize = view.getUint32(offset + 4, true); // Little endian
+    const totalChunkBytes = 8 + chunkSize + (chunkSize % 2 === 1 ? 1 : 0); // Include padding if odd
+
+    if (offset + totalChunkBytes > buffer.length) {
+      chunks.push(buffer.subarray(offset));
+      break;
+    }
+
+    if (!metadataChunkFourCCs.has(fourCC)) {
+      chunks.push(buffer.subarray(offset, offset + totalChunkBytes));
+    }
+
+    offset += totalChunkBytes;
+  }
+
+  const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
+  const result = new Uint8Array(totalLength);
+  let writeOffset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, writeOffset);
+    writeOffset += chunk.length;
+  }
+
+  // Update RIFF total length (total bytes - 8)
+  const resultView = new DataView(result.buffer, result.byteOffset, result.byteLength);
+  resultView.setUint32(4, totalLength - 8, true);
+
+  return result;
+}
+
+/**
+ * Strips Comment Extensions (0x21, 0xFE) and XMP Application Extensions (0x21, 0xFF) from GIF.
+ */
+export function stripMetadataGif(buffer: Uint8Array): Uint8Array {
+  if (buffer.length < 13) return buffer;
+  const isGif =
+    buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && // 'GIF'
+    (buffer[3] === 0x38 && (buffer[4] === 0x37 || buffer[4] === 0x39) && buffer[5] === 0x61); // '87a' or '89a'
+  if (!isGif) return buffer;
+
+  const chunks: Uint8Array[] = [];
+  const packedField = buffer[10];
+  const hasGct = (packedField & 0x80) !== 0;
+  const gctSize = hasGct ? 3 * Math.pow(2, (packedField & 0x07) + 1) : 0;
+  const headerLength = 13 + gctSize;
+
+  if (buffer.length < headerLength) return buffer;
+  chunks.push(buffer.subarray(0, headerLength));
+
+  let offset = headerLength;
+  while (offset < buffer.length) {
+    const blockType = buffer[offset];
+
+    if (blockType === 0x3b) {
+      // Trailer (End of GIF)
+      chunks.push(buffer.subarray(offset, offset + 1));
+      break;
+    }
+
+    if (blockType === 0x21) {
+      // Extension block
+      const extType = buffer[offset + 1];
+      if (extType === 0xfe) {
+        // Comment extension -> skip
+        let cur = offset + 2;
+        while (cur < buffer.length) {
+          const subBlockSize = buffer[cur];
+          if (subBlockSize === 0) {
+            cur += 1;
+            break;
+          }
+          cur += 1 + subBlockSize;
+        }
+        offset = cur;
+        continue;
+      }
+
+      // Check for XMP Application Extension
+      if (extType === 0xff && offset + 14 <= buffer.length) {
+        const appLabel = String.fromCharCode(...buffer.subarray(offset + 3, offset + 14));
+        if (appLabel.startsWith('XMP Data')) {
+          let cur = offset + 14;
+          while (cur < buffer.length) {
+            const subBlockSize = buffer[cur];
+            if (subBlockSize === 0) {
+              cur += 1;
+              break;
+            }
+            cur += 1 + subBlockSize;
+          }
+          offset = cur;
+          continue;
+        }
+      }
+    }
+
+    // Default: keep block
+    if (blockType === 0x2c) {
+      // Image descriptor
+      if (offset + 10 > buffer.length) break;
+      const imgPacked = buffer[offset + 9];
+      const hasLct = (imgPacked & 0x80) !== 0;
+      const lctSize = hasLct ? 3 * Math.pow(2, (imgPacked & 0x07) + 1) : 0;
+      const imgHeaderLength = 10 + lctSize;
+      let cur = offset + imgHeaderLength + 1; // +1 for LZW min code size
+      while (cur < buffer.length) {
+        const subBlockSize = buffer[cur];
+        if (subBlockSize === 0) {
+          cur += 1;
+          break;
+        }
+        cur += 1 + subBlockSize;
+      }
+      chunks.push(buffer.subarray(offset, Math.min(buffer.length, cur)));
+      offset = cur;
+    } else if (blockType === 0x21) {
+      // Keep other extensions (e.g. Graphics Control 0xF9, Netscape loop 0xFF)
+      let cur = offset + 2;
+      while (cur < buffer.length) {
+        const subBlockSize = buffer[cur];
+        if (subBlockSize === 0) {
+          cur += 1;
+          break;
+        }
+        cur += 1 + subBlockSize;
+      }
+      chunks.push(buffer.subarray(offset, Math.min(buffer.length, cur)));
+      offset = cur;
+    } else {
+      offset++;
+    }
+  }
+
+  const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
+  const result = new Uint8Array(totalLength);
+  let writeOffset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, writeOffset);
+    writeOffset += chunk.length;
+  }
+  return result;
+}
+
+/**
  * Checks whether an RGB pixel falls into human skin chrominance range (YCbCr space).
  * Standard bounds: Y > 40, 77 <= Cb <= 127, 133 <= Cr <= 173.
  */
@@ -455,6 +621,23 @@ export function sanitizeImageBuffer(buffer: Uint8Array): Uint8Array {
   // PNG check (Signature 0x89 'PNG')
   if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
     return stripMetadataPng(buffer);
+  }
+
+  // WebP check (RIFF....WEBP)
+  if (
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+    buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+  ) {
+    return stripMetadataWebp(buffer);
+  }
+
+  // GIF check (GIF87a / GIF89a)
+  if (
+    buffer.length >= 6 &&
+    buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46
+  ) {
+    return stripMetadataGif(buffer);
   }
 
   return buffer;
