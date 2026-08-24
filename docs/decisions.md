@@ -324,3 +324,18 @@ the measured numbers do not move.
 **Constraint.** GDPR and KVKK compliance require minimizing personal identifiable information (PII). Photos containing dining companions, restaurant staff, or background documents must not leak identifiable biometrics to third-party LLM providers.
 
 **Cost.** Face blurring and EXIF sanitization introduce a lightweight pre-processing step (~10-20ms) and require privacy invariants to be verified in pipeline tests (`test/face_blurring.test.ts`, `test/pipeline.privacy.test.ts`).
+
+---
+
+## D14 — Privacy Pipeline Boundary: Deterministic Edge EXIF Sanitization vs. Standalone RGBA Face Blurring
+
+**Decision.** The edge service's active HTTP ingestion pipeline deterministically executes byte-level EXIF/GPS/metadata stripping (`sanitizeImageBuffer()`), text PII redaction (`sanitizePiiText()`), and adversarial prompt injection filtering (`sanitizePromptInput()`). Pixel-level face detection and mosaic blurring (`blurFacesInPixelArray`) is maintained and tested as a pure-TypeScript algorithm operating on raw RGBA pixel arrays, decoupled from the live edge controller.
+
+**Supersedes.** Clarifies the execution boundary stated in [D13](#d13--privacy-by-design-edgeserver-side-exif-scrubbing-face-blurring-and-ephemeral-retention).
+
+**Rejected.** Ingesting native C++ image decoding/encoding bindings (e.g. `sharp`, `libvips`, `canvas`) into the edge server container. While native libraries would enable on-the-fly JPEG decoding/re-encoding for face blurring in the HTTP thread, they introduce significant Docker image bloat, compilation friction on Alpine Linux, and CPU latency spikes under high request concurrency.
+
+**Constraint.** The edge container must install and build cleanly with zero native compilation dependencies across macOS, Linux, and Alpine Docker.
+
+**Cost.** Compressed image payloads sent to the live vision provider have EXIF/GPS stripped but rely on upstream provider privacy commitments or client-side camera canvas blurring for uncompressed biometric masking.
+
