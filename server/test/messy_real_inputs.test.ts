@@ -26,15 +26,16 @@ describe('Messy Real-World Multi-Item Food Tests', () => {
   it('properly resolves multi-item text and calculates accurate un-hallucinated nutrition', async () => {
     const fakeVision: VisionPort = {
       name: 'fake_vision',
-      perceive: async () => ({
-        observations: [
-          makePerceivedItem({ surface_form: 'kuru fasulye', cooking_method: 'stewed', portion_hint: '1 kase', count: 1, confidence: 0.95 }),
-          makePerceivedItem({ surface_form: 'pirinc pilavi', cooking_method: 'boiled', portion_hint: '1 porsiyon', count: 1, confidence: 0.92 }),
-          makePerceivedItem({ surface_form: 'yogurt', cooking_method: 'plain', portion_hint: '1 kase', count: 1, confidence: 0.90 }),
-          makePerceivedItem({ surface_form: 'ekmek', cooking_method: 'baked', portion_hint: '2 dilim', count: 2, confidence: 0.96 }),
-        ],
-        degraded: false,
-      }),
+      perceive: () =>
+        Promise.resolve({
+          observations: [
+            makePerceivedItem({ surface_form: 'kuru fasulye', cooking_method: 'stewed', portion_hint: '1 kase', count: 1, confidence: 0.95 }),
+            makePerceivedItem({ surface_form: 'pirinc pilavi', cooking_method: 'boiled', portion_hint: '1 porsiyon', count: 1, confidence: 0.92 }),
+            makePerceivedItem({ surface_form: 'yogurt', cooking_method: 'plain', portion_hint: '1 kase', count: 1, confidence: 0.9 }),
+            makePerceivedItem({ surface_form: 'ekmek', cooking_method: 'baked', portion_hint: '2 dilim', count: 2, confidence: 0.96 }),
+          ],
+          degraded: false,
+        }),
     };
 
     const meal = await run(fakeVision, new VisionInput({ text: 'kuru fasulye pilav yogurt ekmek' }), 'tr', CONFIGS.V3, 'test-messy-lunch');
@@ -44,7 +45,7 @@ describe('Messy Real-World Multi-Item Food Tests', () => {
     expect(meal.items[1].food_id).toBe('tr.pilav');
     expect(meal.items[2].food_id).toBe('tr.yogurt_tam_yagli');
     expect(meal.items[3].food_id).toBe('tr.ekmek_beyaz');
-    
+
     // Nutrition must be computed exclusively from ground-truth catalogue
     expect(meal.totals.kcal).toBeGreaterThan(500);
     expect(meal.totals.protein_g).toBeGreaterThan(20);
@@ -54,17 +55,19 @@ describe('Messy Real-World Multi-Item Food Tests', () => {
   it('evaluates multi-item breakfast perception and abstains on out-of-catalog items gracefully', async () => {
     const fakeVision: VisionPort = {
       name: 'fake_vision',
-      perceive: async () => ({
-        observations: [
-          makePerceivedItem({ surface_form: 'menemen', cooking_method: 'pan-fried', portion_hint: '1 porsiyon', count: 1, confidence: 0.95 }),
-          makePerceivedItem({ surface_form: 'beyaz peynir', cooking_method: 'raw', portion_hint: '2 dilim', count: 2, confidence: 0.93 }),
-          makePerceivedItem({ surface_form: 'siyah zeytin', cooking_method: 'cured', portion_hint: '1 porsiyon', count: 1, confidence: 0.91 }),
-          makePerceivedItem({ surface_form: 'domates', cooking_method: 'raw', portion_hint: '1 adet', count: 1, confidence: 0.94 }),
-          makePerceivedItem({ surface_form: 'avokado tostu', cooking_method: 'toasted', portion_hint: '1 dilim', count: 1, confidence: 0.88 }),
-        ],
-        degraded: false,
-      }),
+      perceive: () =>
+        Promise.resolve({
+          observations: [
+            makePerceivedItem({ surface_form: 'menemen', cooking_method: 'pan-fried', portion_hint: '1 porsiyon', count: 1, confidence: 0.95 }),
+            makePerceivedItem({ surface_form: 'beyaz peynir', cooking_method: 'raw', portion_hint: '2 dilim', count: 2, confidence: 0.93 }),
+            makePerceivedItem({ surface_form: 'siyah zeytin', cooking_method: 'cured', portion_hint: '1 porsiyon', count: 1, confidence: 0.91 }),
+            makePerceivedItem({ surface_form: 'domates', cooking_method: 'raw', portion_hint: '1 adet', count: 1, confidence: 0.94 }),
+            makePerceivedItem({ surface_form: 'avokado tostu', cooking_method: 'toasted', portion_hint: '1 dilim', count: 1, confidence: 0.88 }),
+          ],
+          degraded: false,
+        }),
     };
+
 
 
     const meal = await run(fakeVision, new VisionInput({ text: 'serpme kahvalti' }), 'tr', CONFIGS.V3, 'test-messy-breakfast');
