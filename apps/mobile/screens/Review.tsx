@@ -5,7 +5,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 
 import { Candidate, CaptureMedium, ItemClarification, MealLog } from "../src/types";
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
-import { computedValuesNeedServerRefresh, countAnswerPending } from "../src/reviewState";
+import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity } from "../src/reviewState";
 import { nutritionPresentationForItem } from "../src/nutritionPresentation";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
@@ -118,10 +118,11 @@ export function ReviewScreen({
       : null;
 
   function handleSave() {
-    if (hasUnansweredCountClarification) {
-      Alert.alert(t("oneQuestion"), t("clarifyCountRequired"));
-      return;
-    }
+    meal.items.forEach((item, index) => {
+      if (item.clarification?.kind === "count" && !Object.prototype.hasOwnProperty.call(quantityEdits, index)) {
+        setQuantityEdits((current) => ({ ...current, [index]: 1 }));
+      }
+    });
     if (needsPortionConfirmation) {
       Alert.alert(t("portion"), t("confirmPortionRequired"));
       return;
@@ -182,7 +183,7 @@ export function ReviewScreen({
           const grams = portionEdits[index] ?? item.grams;
           const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
           const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
-          const quantity = hasQuantityEdit ? quantityEdits[index] : item.quantity;
+          const quantity = getEffectiveQuantity(item, hasQuantityEdit, quantityEdits[index]);
           const clarification = item.clarification ?? null;
           const quantityUnit = clarification?.kind === "count" ? clarification.unit ?? item.unit : item.unit;
           const hasPortionBand = grams > 0 && item.grams_p90 >= item.grams_p10 && item.grams_p90 > 0;

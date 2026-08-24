@@ -42,12 +42,13 @@ const corrections = buildMealCorrections(meal, {}, {}, { 0: 2 });
 assert.deepEqual(corrections, [{ item_index: 0, quantity: 2, unit: "adet" }]);
 assert.equal("nutrients" in corrections[0], false, "mobile must never send client nutrients");
 
-const { countAnswerPending, computedValuesNeedServerRefresh } = await import("./reviewState.ts");
+const { countAnswerPending, computedValuesNeedServerRefresh, getEffectiveQuantity } = await import("./reviewState.ts");
 const { dayNutritionState, nutritionPresentationForItem } = await import("./nutritionPresentation.ts");
-assert.equal(countAnswerPending(meal.items[0], false), true, "an unanswered count must remain pending");
-assert.equal(computedValuesNeedServerRefresh(meal.items[0], false, null), true, "pending count hides stale computed values");
-assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, 2), true, "numeric count waits for server recalculation");
-assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, null), false, "explicit uncertainty may retain the default band");
+assert.equal(getEffectiveQuantity(meal.items[0], false, undefined), 1, "smart pre-selection defaults to 1");
+assert.equal(getEffectiveQuantity(meal.items[0], true, 2), 2, "custom quantity overrides default");
+assert.equal(countAnswerPending(meal.items[0], false), false, "smart pre-selection unblocks immediate save");
+assert.equal(computedValuesNeedServerRefresh(meal.items[0], false, 1), false, "standard baseline portion is immediately valid");
+assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, 2), true, "custom count multiplier waits for server recalculation");
 assert.equal(computedValuesNeedServerRefresh(meal.items[1], false, 1), false, "non-count items keep their server-provided band");
 
 const manualItem = {
