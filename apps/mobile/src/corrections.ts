@@ -14,7 +14,9 @@ export function buildMealCorrections(
     const correction: MealCorrection = { item_index: index };
     let changed = false;
 
-    if (hasOwn(quantityEdits, String(index)) && quantityEdits[index] !== (item.quantity ?? null)) {
+    const quantityChanged = hasOwn(quantityEdits, String(index)) && quantityEdits[index] !== (item.quantity ?? null);
+
+    if (quantityChanged) {
       correction.quantity = quantityEdits[index];
       if (item.clarification?.kind === "count" && item.clarification.unit) {
         correction.unit = item.clarification.unit;
@@ -26,8 +28,10 @@ export function buildMealCorrections(
       changed = true;
     }
     if (hasOwn(portionEdits, String(index)) && portionEdits[index] !== item.grams) {
-      correction.grams = portionEdits[index];
-      changed = true;
+      if (!quantityChanged || quantityEdits[index] === null) {
+        correction.grams = portionEdits[index];
+        changed = true;
+      }
     }
 
     return changed ? [correction] : [];
