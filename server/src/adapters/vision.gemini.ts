@@ -195,24 +195,27 @@ function hasFileTypeBrand(bytes: Uint8Array, brands: ReadonlySet<string>): boole
   return false;
 }
 
-/** Validate content signatures after the transport's declared MIME allow-list. */
+/** Validate content signatures and length integrity after the transport's declared MIME allow-list. */
 export function isSupportedImageBytes(mediaType: string, bytes: Uint8Array): boolean {
+  if (!bytes || bytes.length < 4) {
+    return false;
+  }
   switch (mediaType.toLowerCase()) {
     case 'image/jpeg':
     case 'image/jpg':
-      return startsWithBytes(bytes, [0xff, 0xd8, 0xff]);
+      return bytes.length >= 4 && startsWithBytes(bytes, [0xff, 0xd8, 0xff]);
     case 'image/png':
-      return startsWithBytes(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      return bytes.length >= 8 && startsWithBytes(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     case 'image/gif':
-      return ascii(bytes, 0, 6) === 'GIF87a' || ascii(bytes, 0, 6) === 'GIF89a';
+      return bytes.length >= 6 && (ascii(bytes, 0, 6) === 'GIF87a' || ascii(bytes, 0, 6) === 'GIF89a');
     case 'image/webp':
-      return ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 4) === 'WEBP';
+      return bytes.length >= 12 && ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 4) === 'WEBP';
     case 'image/avif':
-      return hasFileTypeBrand(bytes, AVIF_BRANDS);
+      return bytes.length >= 12 && hasFileTypeBrand(bytes, AVIF_BRANDS);
     case 'image/heic':
-      return hasFileTypeBrand(bytes, HEIC_BRANDS);
+      return bytes.length >= 12 && hasFileTypeBrand(bytes, HEIC_BRANDS);
     case 'image/heif':
-      return hasFileTypeBrand(bytes, HEIF_BRANDS);
+      return bytes.length >= 12 && hasFileTypeBrand(bytes, HEIF_BRANDS);
     default:
       return false;
   }
