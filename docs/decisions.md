@@ -315,9 +315,9 @@ the measured numbers do not move.
 
 ---
 
-## D13 — Privacy-by-Design: Client-side EXIF stripping, face blurring, and ephemeral retention
+## D13 — Privacy-by-Design: Edge/Server-side EXIF scrubbing, face blurring, and ephemeral retention
 
-**Decision.** All images processed by MeaLog undergo client-side EXIF/geotag stripping before network transmission, automatic face/PII detection & blurring before vision model ingestion, and strict ephemeral in-memory processing with zero persistent photo retention.
+**Decision.** All images processed by MeaLog undergo Edge/Server-side EXIF/geotag scrubbing and sanitization before vision model ingestion (`sanitizeImageBuffer()`), automatic face/PII detection & blurring, and strict ephemeral in-memory processing with zero persistent photo retention.
 
 **Rejected.** Storing user meal photos on disk/cloud for training or fine-tuning without explicit opt-in consent. Passing raw device EXIF headers (timestamp, GPS coordinates, camera serial) to external vision providers.
 

@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { buildDemoMeal } from "./demoData";
 import { demoScenarioFor } from "./demoScenarios";
 import { t } from "./strings";
@@ -50,10 +51,20 @@ export async function submitMeal(capture: PendingCapture, options: SubmitOptions
   return response.json() as Promise<MealLog>;
 }
 
+const CLIENT_USER_ID_KEY = "@mealog/client-user-id";
 let clientUserId: string | null = null;
+
+// Eagerly restore persistent client user ID
+AsyncStorage.getItem(CLIENT_USER_ID_KEY)
+  .then((saved) => {
+    if (saved) clientUserId = saved;
+  })
+  .catch(() => undefined);
+
 export function getClientUserId(): string {
   if (!clientUserId) {
     clientUserId = `client-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    AsyncStorage.setItem(CLIENT_USER_ID_KEY, clientUserId).catch(() => undefined);
   }
   return clientUserId;
 }

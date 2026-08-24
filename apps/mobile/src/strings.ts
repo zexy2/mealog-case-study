@@ -61,6 +61,24 @@ export type StringKey =
   | "abstainCandidates"
   | "abstainCode"
   | "abstainNoCandidates"
+  | "emptyPlateEyebrow"
+  | "emptyPlateTitle"
+  | "emptyPlateSubtitle"
+  | "emptyPlateCopy"
+  | "uploadedPhotoBadge"
+  | "mealPhotoBadge"
+  | "privacyBadgeSafe"
+  | "confirmModelDetectionTitle"
+  | "confirmObservedPrefix"
+  | "confirmObservedSuffix"
+  | "confirmYesLabel"
+  | "confirmNoLabel"
+  | "correctThisFood"
+  | "cancelEdit"
+  | "editFoodPrompt"
+  | "editFoodPlaceholder"
+  | "updateAndMatch"
+  | "chooseAndSave"
   | "describeMeal"
   | "chooseManually"
   | "retakePhoto"
@@ -204,6 +222,24 @@ export const tr: Dictionary = {
   abstainCandidates: "YAKIN ADAYLAR · HİÇBİRİ KABUL EDİLMEDİ",
   abstainCode: "GÜVENLİ EŞLEŞME YOK · TAHMİN YAPILMADI",
   abstainNoCandidates: "Bu öğün için aday bulunamadı.",
+  emptyPlateEyebrow: "YEMEK BULUNAMADI",
+  emptyPlateTitle: "Tabakta Yemek Görünmüyor.",
+  emptyPlateSubtitle: "Boş tabak veya yiyecek dışı görüntü",
+  emptyPlateCopy: "Bu fotoğrafta yenilebilir bir yemek tespit edilemedi (boş tabak veya yiyecek dışı görüntü). Lütfen ne yediğini kendin yaz veya yeni bir fotoğraf çek.",
+  uploadedPhotoBadge: "Yüklenen Fotoğraf",
+  mealPhotoBadge: "Öğün Fotoğrafı",
+  privacyBadgeSafe: "EXIF & PII Güvende",
+  confirmModelDetectionTitle: "Modelin Tespiti Doğru mu?",
+  confirmObservedPrefix: "Yapay zeka bu fotoğrafta: ",
+  confirmObservedSuffix: " gördü.",
+  confirmYesLabel: "Evet, Doğru ({names})",
+  confirmNoLabel: "Hayır, Farklı Bir Yemek Yaz",
+  correctThisFood: "Bu Yemeği Düzelt",
+  cancelEdit: "Vazgeç",
+  editFoodPrompt: "Doğru yemek ismini veya tarifini yazın:",
+  editFoodPlaceholder: "Örn: Kıymalı makarna, salata...",
+  updateAndMatch: "Güncelle & Eşleştir",
+  chooseAndSave: "Seç & Kaydet",
 
   describeMeal: "Yemeği kendim yazacağım",
   chooseManually: "Katalogdan kendim seç",
@@ -348,6 +384,24 @@ export const en: Dictionary = {
   abstainCandidates: "NEARBY CANDIDATES · NONE ACCEPTED",
   abstainCode: "ABSTAIN · NO GUESS",
   abstainNoCandidates: "No candidates were found for this meal.",
+  emptyPlateEyebrow: "NO FOOD DETECTED",
+  emptyPlateTitle: "No Food Visible on Plate.",
+  emptyPlateSubtitle: "Empty plate or non-food image",
+  emptyPlateCopy: "No edible food could be detected in this photo (empty plate or non-food image). Please type what you ate or take a new photo.",
+  uploadedPhotoBadge: "Uploaded Photo",
+  mealPhotoBadge: "Meal Photo",
+  privacyBadgeSafe: "EXIF & PII Protected",
+  confirmModelDetectionTitle: "Is the Detection Correct?",
+  confirmObservedPrefix: "The vision model detected: ",
+  confirmObservedSuffix: " in this photo.",
+  confirmYesLabel: "Yes, Correct ({names})",
+  confirmNoLabel: "No, Type a Different Food",
+  correctThisFood: "Correct This Item",
+  cancelEdit: "Cancel",
+  editFoodPrompt: "Type the correct food name or recipe:",
+  editFoodPlaceholder: "e.g. Pasta with minced meat, salad...",
+  updateAndMatch: "Update & Match",
+  chooseAndSave: "Select & Save",
   describeMeal: "I will describe the meal",
   chooseManually: "Choose from the catalogue",
   retakePhoto: "Retake the photo",

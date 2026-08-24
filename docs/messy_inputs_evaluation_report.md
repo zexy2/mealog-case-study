@@ -21,7 +21,7 @@ Kullanıcı geri bildirimi doğrultusunda yapılan 3 kritik mimari dönüşüm:
 ## 2. Oluşturulan ve Test Edilen 5 Karmaşık (Messy) Senaryo
 
 ### Senaryo 1: Dağınık Serpme Türk Kahvaltısı Masası 🍳🫒
-![Serpme Kahvaltı](/Users/mac/.gemini/antigravity-ide/brain/a6e212d7-658a-4bc3-9f7b-b2805db04244/messy_turkish_breakfast_1787542493486.jpg)
+> *Test Ortamı: Çoklu tabak ve kase içeren zengin serpme kahvaltı düzeni.*
 
 * **Görsel Özellikleri:** Bakır tavada menemen, beyaz peynir, siyah/yeşil zeytinler, dilimlenmiş domates ve salatalık, ekmek ve simit sepeti, sucuk ve Türk çayı.
 * **Model Algılama Sonucu:**
@@ -37,7 +37,7 @@ Kullanıcı geri bildirimi doğrultusunda yapılan 3 kritik mimari dönüşüm:
 ---
 
 ### Senaryo 2: Tavuk Şiş & Pirinç Pilavı & Garnitür Tabağı 🍗🍚
-![Kebab Tabağı](/Users/mac/.gemini/antigravity-ide/brain/a6e212d7-658a-4bc3-9f7b-b2805db04244/messy_kebab_platter_1787542522228.jpg)
+> *Test Ortamı: Tek porsiyonda birden fazla ana ve yan yemeğin bulunduğu tabak.*
 
 * **Görsel Özellikleri:** 2 şiş ızgara tavuk, tereyağlı pirinç pilavı, közlenmiş yeşil biber, közlenmiş domates, sumaklı soğan, lavaş ve köpüklü ayran.
 * **Model Algılama Sonucu:**
@@ -50,7 +50,7 @@ Kullanıcı geri bildirimi doğrultusunda yapılan 3 kritik mimari dönüşüm:
 ---
 
 ### Senaryo 3: Geleneksel Öğle Yemeği Masası (Kuru Fasulye, Pilav, Yoğurt, Ekmek, Turşu) 🍲
-![Kuru Fasulye & Pilav](/Users/mac/.gemini/antigravity-ide/brain/a6e212d7-658a-4bc3-9f7b-b2805db04244/messy_beans_pilaf_lunch_1787542549728.jpg)
+> *Test Ortamı: Birden fazla kap, yoğurt kasesi ve ekmek içeren geleneksel menü.*
 
 * **Görsel Özellikleri:** Güveçte etli kuru fasulye, şehriyeli pirinç pilavı, baharatlı kase yoğurt, salatalık turşusu, dilim ekmek.
 * **Model Algılama Sonucu:**
@@ -64,7 +64,7 @@ Kullanıcı geri bildirimi doğrultusunda yapılan 3 kritik mimari dönüşüm:
 ---
 
 ### Senaryo 4: Amerikan Diner Burger & Patates Menüsü 🍔🍟
-![Burger Menü](/Users/mac/.gemini/antigravity-ide/brain/a6e212d7-658a-4bc3-9f7b-b2805db04244/messy_burger_fries_1787542579148.jpg)
+> *Test Ortamı: Hızlı tüketim burger sepeti ve kızartma.*
 
 * **Görsel Özellikleri:** Pişmiş et burger, kağıt sepette patates kızartması, ketçap kabı, buzlu içecek.
 * **Model Algılama Sonucu:**
@@ -75,7 +75,7 @@ Kullanıcı geri bildirimi doğrultusunda yapılan 3 kritik mimari dönüşüm:
 ---
 
 ### Senaryo 5: İtalyan Restoranı Makarna & Akdeniz Salatası Masası 🍝🥗
-![Makarna ve Salata](/Users/mac/.gemini/antigravity-ide/brain/a6e212d7-658a-4bc3-9f7b-b2805db04244/messy_pasta_salad_spread_1787542607790.jpg)
+> *Test Ortamı: Makarna kasesi ve yan salata düzeni.*
 
 * **Görsel Özellikleri:** Büyük kase domatesli penne makarna, yanında zeytinli ve salatalıklı Akdeniz salatası, kumaş peçetede köy ekmeği.
 * **Model Algılama Sonucu:**
