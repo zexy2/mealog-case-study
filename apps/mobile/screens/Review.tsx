@@ -180,29 +180,31 @@ export function ReviewScreen({
 
         {meal.items.map((item, index) => {
           const selected = selectedCandidates[index] ?? item.food_id;
-          const grams = portionEdits[index] ?? item.grams;
           const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
           const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
           const quantity = getEffectiveQuantity(item, hasQuantityEdit, quantityEdits[index]);
+          const quantityMultiplier = (typeof quantity === "number" && quantity > 0) ? quantity : 1;
+          const effectiveGrams = hasPortionEdit ? portionEdits[index] : Math.round(item.grams * quantityMultiplier);
+          const effectiveLow = Math.round(item.grams_p10 * quantityMultiplier);
+          const effectiveHigh = Math.round(item.grams_p90 * quantityMultiplier);
+          const grams = effectiveGrams;
           const clarification = item.clarification ?? null;
           const quantityUnit = clarification?.kind === "count" ? clarification.unit ?? item.unit : item.unit;
-          const hasPortionBand = grams > 0 && item.grams_p90 >= item.grams_p10 && item.grams_p90 > 0;
-          const hasRange = item.grams_p90 > item.grams_p10;
+          const hasPortionBand = grams > 0 && effectiveHigh >= effectiveLow && effectiveHigh > 0;
+          const hasRange = effectiveHigh > effectiveLow;
           const isPortionDone = hasPortionEdit || Boolean(portionConfirmed[index]);
           const isCountAnswerPending = countAnswerPending(item, hasQuantityEdit);
-          const hasLocalNutritionEdit = hasPortionEdit
-            || selected !== item.food_id
-            || (clarification?.kind !== "count" && hasQuantityEdit && typeof quantity === "number");
-          const computedValuesDeferred = computedValuesNeedServerRefresh(item, hasQuantityEdit, quantity) || hasLocalNutritionEdit;
+          const hasLocalNutritionEdit = hasPortionEdit || selected !== item.food_id;
           const nutritionPresentation = nutritionPresentationForItem(item);
-          const computedValuesHint = isCountAnswerPending
-            ? t("countAnswerRequired")
-            : computedValuesDeferred
-              ? t("nutritionRecalculationPending")
-              : t("countRecalculationPending");
+          const computedValuesHint = isCountAnswerPending ? t("countAnswerRequired") : t("nutritionRecalculationPending");
           const displayedQuantity = isCountAnswerPending
             ? t("quantityPending")
             : quantityLabel(item, quantity, quantityUnit);
+
+          const previewKcal = Math.round(item.nutrients.kcal * quantityMultiplier);
+          const previewProtein = Math.round(item.nutrients.protein_g * quantityMultiplier);
+          const previewCarb = Math.round(item.nutrients.carb_g * quantityMultiplier);
+          const previewFat = Math.round(item.nutrients.fat_g * quantityMultiplier);
 
           return (
             <View key={`${item.query}-${index}`} style={styles.itemCard}>
@@ -225,32 +227,32 @@ export function ReviewScreen({
                 </View>
               </View>
 
-              {!computedValuesDeferred && nutritionPresentation === "verified" ? (
+              {nutritionPresentation === "verified" ? (
                 <View style={styles.nutritionCard}>
                   <Text style={styles.nutritionEyebrow}>{t("nutritionTitle")}</Text>
                   <Text style={styles.nutritionCopy}>{t("nutritionSummary")}</Text>
                   <View style={styles.nutritionGrid}>
                     <View style={[styles.nutritionMetric, styles.nutritionMetricEnergy]}>
-                      <Text style={styles.nutritionMetricValue}>≈ {Math.round(item.nutrients.kcal)} kcal</Text>
+                      <Text style={styles.nutritionMetricValue}>≈ {previewKcal} kcal</Text>
                       <Text style={styles.nutritionMetricLabel}>{t("calories")}</Text>
                     </View>
                     <View style={styles.nutritionMetric}>
-                      <Text style={styles.nutritionMetricValue}>≈ {Math.round(item.nutrients.protein_g)} g</Text>
+                      <Text style={styles.nutritionMetricValue}>≈ {previewProtein} g</Text>
                       <Text style={styles.nutritionMetricLabel}>{t("protein")}</Text>
                     </View>
                     <View style={styles.nutritionMetric}>
-                      <Text style={styles.nutritionMetricValue}>≈ {Math.round(item.nutrients.carb_g)} g</Text>
+                      <Text style={styles.nutritionMetricValue}>≈ {previewCarb} g</Text>
                       <Text style={styles.nutritionMetricLabel}>{t("carbs")}</Text>
                     </View>
                     <View style={styles.nutritionMetric}>
-                      <Text style={styles.nutritionMetricValue}>≈ {Math.round(item.nutrients.fat_g)} g</Text>
+                      <Text style={styles.nutritionMetricValue}>≈ {previewFat} g</Text>
                       <Text style={styles.nutritionMetricLabel}>{t("fat")}</Text>
                     </View>
                   </View>
                 </View>
               ) : null}
 
-              {!computedValuesDeferred && nutritionPresentation === "manual" ? (
+              {nutritionPresentation === "manual" ? (
                 <View style={styles.manualNutritionNotice}>
                   <Text style={styles.manualNutritionKcal}>{Math.round(item.nutrients.kcal)} kcal</Text>
                   <Text style={styles.manualNutritionCopy}>{t("manualCaloriesSummary")}</Text>
@@ -421,40 +423,31 @@ export function ReviewScreen({
                 </View>
               ) : null}
 
-              {computedValuesDeferred ? (
-                <View style={styles.deferredValuesCard}>
-                  <Text style={styles.sectionLabel}>{t("portion")}</Text>
-                  <Text style={styles.deferredValuesText}>{computedValuesHint}</Text>
-                </View>
-              ) : (
+              <View style={styles.portionHeader}>
+                <Text style={styles.sectionLabel}>{t("portion")}</Text>
+                <Text style={styles.gramsValue}>{hasPortionBand ? t("portionBand", { grams: Math.round(grams), low: effectiveLow, high: effectiveHigh }) : t("notEstimated")}</Text>
+              </View>
+              {hasRange ? (
                 <>
-                  <View style={styles.portionHeader}>
-                    <Text style={styles.sectionLabel}>{t("portion")}</Text>
-                    <Text style={styles.gramsValue}>{hasPortionBand ? t("portionBand", { grams: Math.round(grams), low: Math.round(item.grams_p10), high: Math.round(item.grams_p90) }) : t("notEstimated")}</Text>
+                  <PortionSlider
+                    minimumValue={effectiveLow}
+                    maximumValue={effectiveHigh}
+                    value={grams}
+                    minimumTrackTintColor={colors.terracotta}
+                    maximumTrackTintColor={colors.line}
+                    thumbTintColor={colors.terracotta}
+                    onValueChange={(value) => {
+                      setPortionEdits((current) => ({ ...current, [index]: Math.round(value) }));
+                      setPortionConfirmed((current) => ({ ...current, [index]: true }));
+                    }}
+                    accessibilityLabel={t("portionFor", { query: item.query })}
+                  />
+                  <View style={styles.rangeLabels}>
+                    <Text style={styles.rangeText}>{t("portionLow", { grams: effectiveLow })}</Text>
+                    <Text style={styles.rangeText}>{t("portionHigh", { grams: effectiveHigh })}</Text>
                   </View>
-                  {hasRange ? (
-                    <>
-                      <PortionSlider
-                        minimumValue={item.grams_p10}
-                        maximumValue={item.grams_p90}
-                        value={grams}
-                        minimumTrackTintColor={colors.terracotta}
-                        maximumTrackTintColor={colors.line}
-                        thumbTintColor={colors.terracotta}
-                        onValueChange={(value) => {
-                          setPortionEdits((current) => ({ ...current, [index]: value }));
-                          setPortionConfirmed((current) => ({ ...current, [index]: true }));
-                        }}
-                        accessibilityLabel={t("portionFor", { query: item.query })}
-                      />
-                      <View style={styles.rangeLabels}>
-                        <Text style={styles.rangeText}>{t("portionLow", { grams: Math.round(item.grams_p10) })}</Text>
-                        <Text style={styles.rangeText}>{t("portionHigh", { grams: Math.round(item.grams_p90) })}</Text>
-                      </View>
-                    </>
-                  ) : <Text style={styles.mutedNote}>{t("portionPending")}</Text>}
                 </>
-              )}
+              ) : <Text style={styles.mutedNote}>{t("portionPending")}</Text>}
 
               {item.candidates.length > 1 ? (
                 <>
@@ -495,21 +488,15 @@ export function ReviewScreen({
                   ) : null}
 
                   <AuditRow label={t("quantity")} value={displayedQuantity} />
-                  {computedValuesDeferred ? (
-                    <AuditRow label={t("portion")} value={computedValuesHint} />
-                  ) : (
-                    <>
-                      <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
-                      <AuditRow
-                        label={t("portionSource")}
-                        value={formatLocalizedProvenance(item.portion_source)}
-                      />
-                      <AuditRow
-                        label={t("portionProvenance")}
-                        value={item.portion_provenance?.includes("default_serving") ? `Katalog tanımı (${Math.round(grams)} g)` : item.portion_provenance ?? t("pending")}
-                      />
-                    </>
-                  )}
+                  <AuditRow label={t("exactGrams")} value={grams ? `${Math.round(grams)} g` : t("pending")} />
+                  <AuditRow
+                    label={t("portionSource")}
+                    value={formatLocalizedProvenance(item.portion_source)}
+                  />
+                  <AuditRow
+                    label={t("portionProvenance")}
+                    value={item.portion_provenance?.includes("default_serving") ? `Katalog tanımı (${Math.round(grams)} g)` : item.portion_provenance ?? t("pending")}
+                  />
                 </View>
               ) : null}
 

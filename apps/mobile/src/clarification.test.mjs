@@ -48,7 +48,7 @@ assert.equal(getEffectiveQuantity(meal.items[0], false, undefined), 1, "smart pr
 assert.equal(getEffectiveQuantity(meal.items[0], true, 2), 2, "custom quantity overrides default");
 assert.equal(countAnswerPending(meal.items[0], false), false, "smart pre-selection unblocks immediate save");
 assert.equal(computedValuesNeedServerRefresh(meal.items[0], false, 1), false, "standard baseline portion is immediately valid");
-assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, 2), true, "custom count multiplier waits for server recalculation");
+assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, 2), false, "slider and preview remain active on custom count");
 assert.equal(computedValuesNeedServerRefresh(meal.items[1], false, 1), false, "non-count items keep their server-provided band");
 
 const manualItem = {
