@@ -391,4 +391,52 @@ describe('POST /v1/meals', () => {
       expect(body.detail).toMatch(/invalid sample_id/);
     }
   });
+
+  it('returns 422 for unrecorded image upload in fixture mode instead of 500', async () => {
+    // 1x1 transparent PNG
+    const unrecordedPng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64',
+    );
+
+    const response = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .field('idempotency_key', 'unrecorded-img-key')
+      .field('locale', 'tr')
+      .field('config', 'V3')
+      .attach('image', unrecordedPng, { filename: 'test.png', contentType: 'image/png' });
+
+    expect(response.status).toBe(422);
+    const body = response.body as { detail?: string };
+    expect(body.detail).toMatch(/fixture replay has no recorded response for this image/);
+  });
+
+  it('rejects in-flight race with conflicting payloads with 409 Conflict', async () => {
+    const key = `inflight-race-${Date.now()}`;
+    const userId = 'race-user';
+
+    const [resA, resB] = await Promise.all([
+      request(app.getHttpServer())
+        .post('/v1/meals')
+        .set('x-user-id', userId)
+        .send({
+          idempotency_key: key,
+          sample_id: 'tr_0001',
+          locale: 'tr',
+          config: 'V3',
+        }),
+      request(app.getHttpServer())
+        .post('/v1/meals')
+        .set('x-user-id', userId)
+        .send({
+          idempotency_key: key,
+          sample_id: 'tr_0002',
+          locale: 'tr',
+          config: 'V3',
+        }),
+    ]);
+
+    const statuses = [resA.status, resB.status].sort();
+    expect(statuses).toEqual([200, 409]);
+  });
 });
