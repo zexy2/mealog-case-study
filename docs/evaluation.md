@@ -138,22 +138,24 @@ The current V3 cuisine slices are:
 
 | Cuisine | n | Coverage | Calorie eligible | Calorie scored | Item F1 | kcal MAPE | within +/-20% | FP rate |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| western | 12 | 42% | 2 | 2 | 0.41 | 12.7% | 50.0% | 69.2% |
-| mediterranean | 12 | 33% | 0 | 0 | 0.19 | — | — | 78.9% |
-| east_asian | 16 | 6% | 0 | 0 | 0.11 | — | — | 89.3% |
+| western | 12 | 33% | 2 | 2 | 0.43 | 12.7% | 50.0% | 66.7% |
+| mediterranean | 12 | 25% | 0 | 0 | 0.22 | — | — | 71.4% |
+| east_asian | 16 | 6% | 0 | 0 | 0.10 | — | — | 90.0% |
 | other_mixed | 8 | 0% | 0 | 0 | 0.08 | — | — | 91.7% |
 | south_asian | 16 | 0% | 0 | 0 | 0.00 | — | — | 100.0% |
-| latin_american | 16 | 12% | 0 | 0 | 0.08 | — | — | 93.5% |
-| **overall** | **80** | **15%** | **2** | **2** | **0.15** | **12.7%** | **50.0%** | **86.0%** |
+| latin_american | 16 | 12% | 0 | 0 | 0.06 | — | — | 95.7% |
+| **overall** | **80** | **12%** | **2** | **2** | **0.15** | **12.7%** | **50.0%** | **86.0%** |
 
 The same V3 calculations by conservative overall tier are:
 
 | Ground-truth tier | n | Coverage | Calorie eligible | Calorie scored | Item F1 | kcal MAPE | within +/-20% | FP rate |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| tier_1 | 74 | 11% | 1 | 1 | 0.12 | 25.4% | 0.0% | 89.1% |
+| tier_1 | 74 | 8% | 1 | 1 | 0.12 | 25.4% | 0.0% | 89.3% |
 | tier_2 | 1 | 100% | 1 | 1 | 1.00 | 0.0% | 100.0% | 0.0% |
 | tier_3 | 5 | 60% | 0 | 0 | 0.77 | — | — | 28.6% |
-| **overall** | **80** | **15%** | **2** | **2** | **0.15** | **12.7%** | **50.0%** | **86.0%** |
+| **overall** | **80** | **12%** | **2** | **2** | **0.15** | **12.7%** | **50.0%** | **86.0%** |
+
+> **Methodological Context on False Positive (FP) Rate:** The 86.0% FP rate is measured across all 80 samples and counts rejected/abstained samples. Importantly, 64.4% (87/135) of counted false positives arise from unmapped recipe ingredients (such as olive oil `us.olive_oil` or seasoning) in multi-dish reference recipes that the perception layer correctly observed but the canonical single-dish catalogue does not map. Furthermore, 70 of the 80 samples ended in safe `ask` (abstention), meaning ungrounded candidates were never committed to the user's log.
 
 `python eval/decompose_real_error.py` also replays all 80 committed fixtures
 without provider calls. Its raw mapped-total output has nine covered rows with

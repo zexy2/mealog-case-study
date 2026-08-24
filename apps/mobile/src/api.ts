@@ -52,21 +52,37 @@ export async function submitMeal(capture: PendingCapture, options: SubmitOptions
 }
 
 const CLIENT_USER_ID_KEY = "@mealog/client-user-id";
-let clientUserId: string | null = null;
+let clientUserIdPromise: Promise<string> | null = null;
+let resolvedClientUserId: string | null = null;
 
-// Eagerly restore persistent client user ID
-AsyncStorage.getItem(CLIENT_USER_ID_KEY)
-  .then((saved) => {
-    if (saved) clientUserId = saved;
-  })
-  .catch(() => undefined);
-
-export function getClientUserId(): string {
-  if (!clientUserId) {
-    clientUserId = `client-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    AsyncStorage.setItem(CLIENT_USER_ID_KEY, clientUserId).catch(() => undefined);
+export async function getClientUserId(): Promise<string> {
+  if (resolvedClientUserId) return resolvedClientUserId;
+  if (!clientUserIdPromise) {
+    clientUserIdPromise = (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(CLIENT_USER_ID_KEY);
+        if (saved) {
+          resolvedClientUserId = saved;
+          return saved;
+        }
+      } catch {
+        // Fallback if storage fails
+      }
+      const newId = `client-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      resolvedClientUserId = newId;
+      try {
+        await AsyncStorage.setItem(CLIENT_USER_ID_KEY, newId);
+      } catch {
+        // Ignore storage write error
+      }
+      return newId;
+    })();
   }
-  return clientUserId;
+  return clientUserIdPromise;
+}
+
+export function getSyncClientUserId(): string {
+  return resolvedClientUserId || "demo-user";
 }
 
 export async function correctMeal(meal: MealLog, corrections: MealCorrection[]): Promise<MealLog> {
@@ -74,11 +90,12 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
     throw new Error(t("correctionNeedsServer"));
   }
 
+  const userId = await getClientUserId();
   const response = await fetch(`${apiUrl}/v1/meals/correct`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": getClientUserId(),
+      "X-User-Id": userId,
     },
     body: JSON.stringify({ meal, corrections }),
   });
@@ -93,11 +110,12 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
 }
 
 async function submitText(capture: PendingCapture): Promise<Response> {
+  const userId = await getClientUserId();
   return fetch(`${apiUrl}/v1/meals`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": getClientUserId(),
+      "X-User-Id": userId,
     },
     body: JSON.stringify({
       idempotency_key: capture.idempotencyKey,
@@ -110,6 +128,7 @@ async function submitText(capture: PendingCapture): Promise<Response> {
 }
 
 async function submitPhoto(capture: PendingCapture): Promise<Response> {
+  const userId = await getClientUserId();
   const form = new FormData();
   form.append("idempotency_key", capture.idempotencyKey);
   form.append("locale", "tr");
@@ -123,7 +142,7 @@ async function submitPhoto(capture: PendingCapture): Promise<Response> {
   return fetch(`${apiUrl}/v1/meals`, {
     method: "POST",
     headers: {
-      "X-User-Id": getClientUserId(),
+      "X-User-Id": userId,
     },
     body: form,
   });
