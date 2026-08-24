@@ -115,6 +115,8 @@ export type StringKey =
   | "portionHigh"
   | "portionPending"
   | "alternates"
+  | "chooseAlternateCandidate"
+  | "unresolvedAbstainHint"
   | "whyResult"
   | "traceDecision"
   | "matchedFoodId"
@@ -332,7 +334,9 @@ export const tr: Dictionary = {
   portionLow: "{grams} g alt sınır",
   portionHigh: "{grams} g üst sınır",
   portionPending: "Porsiyon, yanıtını bekliyor.",
-  alternates: "DEĞERLENDİRİLEN ALTERNATİFLER",
+  alternates: "BU YEMEĞİ DÜZELT",
+  chooseAlternateCandidate: "Yemek bu değilse aşağıdaki katalog eşleşmesini seçin:",
+  unresolvedAbstainHint: "Çözülmemiş yemek eşleşmesi var; kaydetmeden önce aşağıdaki listeden eşleştirin.",
   whyResult: "Nasıl bulundu?",
   traceDecision: "İsteğe bağlı teknik kaynak ve doğrulama detayı",
   matchedFoodId: "Katalog eşleşmesi",
@@ -549,7 +553,9 @@ export const en: Dictionary = {
   portionLow: "{grams} g likely minimum",
   portionHigh: "{grams} g upper range",
   portionPending: "Portion waits for your answer.",
-  alternates: "ALTERNATES CONSIDERED",
+  alternates: "CORRECT THIS DISH",
+  chooseAlternateCandidate: "If this dish is different, pick a catalogue match below:",
+  unresolvedAbstainHint: "Unresolved dish match; pick a catalogue match below before saving.",
   whyResult: "Why this result?",
   traceDecision: "Optional technical verification details",
   matchedFoodId: "Matched food_id",

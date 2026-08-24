@@ -36,6 +36,7 @@ import {
   PROMPT_VERSION,
   REQUEST_INTERVAL_SECONDS,
   SECONDARY_MODEL,
+  SYSTEM_PROMPT,
   VisionProviderError,
   type Transport,
   type TransportResponse,
@@ -496,6 +497,10 @@ describe('Gemini adapter', () => {
       attempts: 2,
     });
     expect(JSON.stringify(exhausted?.fields)).not.toContain('provider timeout payload');
+  });
+
+  it('instructs model not to combine visible foods into one surface_form', () => {
+    expect(SYSTEM_PROMPT).toContain('Never combine multiple visible foods into one `surface_form`');
   });
 
   it('emits an event when it degrades', async () => {
