@@ -79,6 +79,10 @@ export type StringKey =
   | "emptyPlateTitle"
   | "emptyPlateSubtitle"
   | "emptyPlateCopy"
+  | "emptyPlateOverrideButton"
+  | "emptyPlateOverridePrompt"
+  | "emptyPlateOverridePlaceholder"
+  | "emptyPlateOverrideSubmit"
   | "uploadedPhotoBadge"
   | "mealPhotoBadge"
   | "privacyBadgeSafe"
@@ -272,6 +276,10 @@ export const tr: Dictionary = {
   emptyPlateTitle: "Tabakta Yemek Görünmüyor.",
   emptyPlateSubtitle: "Boş tabak veya yiyecek dışı görüntü",
   emptyPlateCopy: "Bu fotoğrafta yenilebilir bir yemek tespit edilemedi (boş tabak veya yiyecek dışı görüntü). Lütfen ne yediğini kendin yaz veya yeni bir fotoğraf çek.",
+  emptyPlateOverrideButton: "Tabakta Yemek Vardı, Kendim Yazayım",
+  emptyPlateOverridePrompt: "Fotoğrafta ne yediğini yaz (katalogda aranacak):",
+  emptyPlateOverridePlaceholder: "Örn: Hamburger, patates kızartması...",
+  emptyPlateOverrideSubmit: "Ara ve Eşleştir",
   uploadedPhotoBadge: "Yüklenen Fotoğraf",
   mealPhotoBadge: "Öğün Fotoğrafı",
   privacyBadgeSafe: "EXIF & Konum Temizlendi",
@@ -466,6 +474,10 @@ export const en: Dictionary = {
   emptyPlateTitle: "No Food Visible on Plate.",
   emptyPlateSubtitle: "Empty plate or non-food image",
   emptyPlateCopy: "No edible food could be detected in this photo (empty plate or non-food image). Please type what you ate or take a new photo.",
+  emptyPlateOverrideButton: "Food Was on Plate, I Will Type It",
+  emptyPlateOverridePrompt: "Type what you ate (will be searched in catalogue):",
+  emptyPlateOverridePlaceholder: "e.g. Hamburger, french fries...",
+  emptyPlateOverrideSubmit: "Search and Match",
   uploadedPhotoBadge: "Uploaded Photo",
   mealPhotoBadge: "Meal Photo",
   privacyBadgeSafe: "EXIF & Location Stripped",
