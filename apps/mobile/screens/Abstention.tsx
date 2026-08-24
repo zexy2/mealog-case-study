@@ -35,9 +35,11 @@ export function AbstentionScreen({
 
   // Extract human-readable observed name
   const rawDishName = meal.items.map((i) => i.query).filter(Boolean).join(", ");
-  const dishName = rawDishName ? rawDishName.charAt(0).toUpperCase() + rawDishName.slice(1) : "Yemek";
+  const dishName = rawDishName ? rawDishName.charAt(0).toUpperCase() + rawDishName.slice(1) : "Öğün";
 
   const [suggested, setSuggested] = useState(false);
+  const [showOverrideInput, setShowOverrideInput] = useState(false);
+  const [overrideFoodText, setOverrideFoodText] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualCalorieText, setManualCalorieText] = useState("");
 
@@ -54,17 +56,19 @@ export function AbstentionScreen({
   }
 
   function handleSaveNote() {
+    const finalName = (overrideFoodText.trim() || dishName);
     if (onSaveUncaloriedNote) {
-      onSaveUncaloriedNote(meal, dishName);
+      onSaveUncaloriedNote(meal, finalName);
     }
   }
 
   function handleSaveManual() {
     const clean = manualCalorieText.replace(/[^0-9]/g, "");
     const kcal = parseInt(clean, 10);
+    const finalName = (overrideFoodText.trim() || dishName);
     if (kcal > 0 && kcal <= 5000) {
       if (onSaveManualCalories) {
-        onSaveManualCalories(meal, dishName, kcal);
+        onSaveManualCalories(meal, finalName, kcal);
       }
     } else {
       Alert.alert("Geçersiz Kalori", "Lütfen 1 ile 5000 arasında geçerli bir kalori değeri girin.");
@@ -104,8 +108,53 @@ export function AbstentionScreen({
 
       {/* Action Suite */}
       <View style={styles.actionsContainer}>
-        {/* 1. Primary: Suggest Dish to Catalogue Feedback Queue */}
-        {!isEmptyPlate ? (
+        {/* 1. Primary: If Empty Plate, provide Manual Override; if out-of-catalogue food, provide Suggest Dish */}
+        {isEmptyPlate ? (
+          <View style={styles.overrideCard}>
+            {!showOverrideInput ? (
+              <Pressable
+                style={styles.primaryButton}
+                onPress={() => setShowOverrideInput(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t("emptyPlateOverrideButton")}
+              >
+                <Ionicons name="pencil-outline" size={18} color={colors.white} />
+                <Text style={styles.primaryButtonText}>{t("emptyPlateOverrideButton")}</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.overrideInputBox}>
+                <Text style={styles.overrideInputLabel}>{t("emptyPlateOverridePrompt")}</Text>
+                <View style={styles.overrideInputRow}>
+                  <TextInput
+                    style={styles.overrideTextInput}
+                    value={overrideFoodText}
+                    placeholder={t("emptyPlateOverridePlaceholder")}
+                    placeholderTextColor={colors.muted}
+                    onChangeText={setOverrideFoodText}
+                    autoFocus
+                  />
+                  <Pressable
+                    style={styles.overrideSubmitButton}
+                    onPress={() => {
+                      const trimmed = overrideFoodText.trim();
+                      if (trimmed) {
+                        if (onConfirmObserved) {
+                          onConfirmObserved(trimmed);
+                        }
+                      } else {
+                        Alert.alert("Yemek Adı Gerekli", "Lütfen aramak istediğiniz yemeği yazın.");
+                      }
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("emptyPlateOverrideSubmit")}
+                  >
+                    <Text style={styles.overrideSubmitText}>{t("emptyPlateOverrideSubmit")}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </View>
+        ) : (
           <Pressable
             style={[styles.primaryButton, suggested && styles.primaryButtonSuccess]}
             onPress={handleSuggest}
@@ -117,7 +166,7 @@ export function AbstentionScreen({
               {suggested ? "Geri Bildirim Sırasına Eklendi" : t("suggestDishButton")}
             </Text>
           </Pressable>
-        ) : null}
+        )}
 
         {/* 2. Secondary: Search Different Dish in Catalogue */}
         <Pressable
@@ -131,59 +180,55 @@ export function AbstentionScreen({
         </Pressable>
 
         {/* 3. Option: Save as Uncaloried Meal Note */}
-        {!isEmptyPlate ? (
-          <Pressable
-            style={styles.noteButton}
-            onPress={handleSaveNote}
-            accessibilityRole="button"
-            accessibilityLabel={t("saveAsUncaloriedNoteButton")}
-          >
-            <Ionicons name="document-text-outline" size={17} color={colors.terracotta} />
-            <Text style={styles.noteButtonText}>{t("saveAsUncaloriedNoteButton")}</Text>
-          </Pressable>
-        ) : null}
+        <Pressable
+          style={styles.noteButton}
+          onPress={handleSaveNote}
+          accessibilityRole="button"
+          accessibilityLabel={t("saveAsUncaloriedNoteButton")}
+        >
+          <Ionicons name="document-text-outline" size={17} color={colors.terracotta} />
+          <Text style={styles.noteButtonText}>{t("saveAsUncaloriedNoteButton")}</Text>
+        </Pressable>
 
         {/* 4. Option: Enter Calories Manually */}
-        {!isEmptyPlate ? (
-          <View style={styles.manualCard}>
-            {!showManualInput ? (
-              <Pressable
-                style={styles.manualToggleRow}
-                onPress={() => setShowManualInput(true)}
-                accessibilityRole="button"
-                accessibilityLabel={t("saveManualCaloriesButton")}
-              >
-                <Ionicons name="calculator-outline" size={17} color={colors.muted} />
-                <Text style={styles.manualToggleText}>{t("saveManualCaloriesButton")}</Text>
-                <Ionicons name="chevron-down" size={15} color={colors.muted} />
-              </Pressable>
-            ) : (
-              <View style={styles.manualInputBox}>
-                <Text style={styles.manualInputLabel}>{t("manualCaloriesPrompt")}</Text>
-                <View style={styles.manualInputRow}>
-                  <TextInput
-                    style={styles.manualTextInput}
-                    keyboardType="number-pad"
-                    value={manualCalorieText}
-                    placeholder="Örn: 350"
-                    placeholderTextColor={colors.muted}
-                    maxLength={4}
-                    onChangeText={setManualCalorieText}
-                  />
-                  <Text style={styles.manualUnitText}>kcal</Text>
-                  <Pressable
-                    style={styles.manualSaveButton}
-                    onPress={handleSaveManual}
-                    accessibilityRole="button"
-                    accessibilityLabel="Manuel Kaydet"
-                  >
-                    <Text style={styles.manualSaveButtonText}>Kaydet</Text>
-                  </Pressable>
-                </View>
+        <View style={styles.manualCard}>
+          {!showManualInput ? (
+            <Pressable
+              style={styles.manualToggleRow}
+              onPress={() => setShowManualInput(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t("saveManualCaloriesButton")}
+            >
+              <Ionicons name="calculator-outline" size={17} color={colors.muted} />
+              <Text style={styles.manualToggleText}>{t("saveManualCaloriesButton")}</Text>
+              <Ionicons name="chevron-down" size={15} color={colors.muted} />
+            </Pressable>
+          ) : (
+            <View style={styles.manualInputBox}>
+              <Text style={styles.manualInputLabel}>{t("manualCaloriesPrompt")}</Text>
+              <View style={styles.manualInputRow}>
+                <TextInput
+                  style={styles.manualTextInput}
+                  keyboardType="number-pad"
+                  value={manualCalorieText}
+                  placeholder="Örn: 350"
+                  placeholderTextColor={colors.muted}
+                  maxLength={4}
+                  onChangeText={setManualCalorieText}
+                />
+                <Text style={styles.manualUnitText}>kcal</Text>
+                <Pressable
+                  style={styles.manualSaveButton}
+                  onPress={handleSaveManual}
+                  accessibilityRole="button"
+                  accessibilityLabel="Manuel Kaydet"
+                >
+                  <Text style={styles.manualSaveButtonText}>Kaydet</Text>
+                </Pressable>
               </View>
-            )}
-          </View>
-        ) : null}
+            </View>
+          )}
+        </View>
 
         {/* 5. Retake Photo: ONLY shown when photo was blurry, degraded, or empty */}
         {isEmptyPlate || isDegraded ? (
@@ -286,6 +331,51 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     gap: 12,
+  },
+  overrideCard: {
+    width: "100%",
+  },
+  overrideInputBox: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: colors.terracotta,
+  },
+  overrideInputLabel: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  overrideInputRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  overrideTextInput: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.paper,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.ink,
+  },
+  overrideSubmitButton: {
+    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: colors.terracotta,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  overrideSubmitText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "800",
   },
   primaryButton: {
     minHeight: 52,

@@ -82,8 +82,8 @@ const abstainSource = readFileSync(new URL("../screens/Abstention.tsx", import.m
 assert.match(abstainSource, /suggestDishButton/);
 assert.match(abstainSource, /saveAsUncaloriedNoteButton/);
 assert.match(abstainSource, /saveManualCaloriesButton/);
-assert.match(abstainSource, /abstainOutOfCatalogueTitle/);
-assert.match(abstainSource, /guaranteeCard/);
+assert.match(abstainSource, /emptyPlateOverrideButton/);
+assert.match(abstainSource, /overrideSubmitButton/);
 
 const daySource = readFileSync(new URL("../screens/Day.tsx", import.meta.url), "utf8");
 assert.match(daySource, /macroCol/);
