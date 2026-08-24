@@ -61,6 +61,8 @@ assert.match(reviewSource, /hasUnansweredCountClarification/);
 assert.match(reviewSource, /needsPortionConfirmation/);
 assert.match(reviewSource, /isSaveDisabled/);
 assert.match(reviewSource, /stickyFooter/);
+assert.match(reviewSource, /stepperInput/);
+assert.match(reviewSource, /Math\.max\(1/);
 assert.match(apiSource, /\/v1\/meals\/correct/);
 assert.doesNotMatch(apiSource, /corrections\s*\}[\s\S]*nutrients/);
 

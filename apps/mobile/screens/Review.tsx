@@ -1,7 +1,7 @@
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Candidate, CaptureMedium, ItemClarification, MealLog } from "../src/types";
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
@@ -225,6 +225,56 @@ export function ReviewScreen({
                         </Pressable>
                       );
                     })}
+                  </View>
+
+                  <View style={styles.customCountRow}>
+                    <Text style={styles.customCountLabel}>Özel adet girin:</Text>
+                    <View style={styles.stepperWrap}>
+                      <Pressable
+                        style={styles.stepperButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Adet azalt"
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        onPress={() => {
+                          const currentVal = typeof quantity === "number" ? quantity : 1;
+                          const nextVal = Math.max(1, currentVal - 1);
+                          setQuantityEdits((current) => ({ ...current, [index]: nextVal }));
+                        }}
+                      >
+                        <Ionicons name="remove" size={16} color={colors.ink} />
+                      </Pressable>
+                      <TextInput
+                        style={styles.stepperInput}
+                        keyboardType="number-pad"
+                        value={typeof quantity === "number" ? String(quantity) : ""}
+                        placeholder="Örn. 4"
+                        placeholderTextColor={colors.muted}
+                        maxLength={2}
+                        onChangeText={(txt) => {
+                          const clean = txt.replace(/[^0-9]/g, "");
+                          const num = parseInt(clean, 10);
+                          if (num > 0 && num <= 99) {
+                            setQuantityEdits((current) => ({ ...current, [index]: num }));
+                          } else if (clean === "") {
+                            setQuantityEdits((current) => ({ ...current, [index]: null }));
+                          }
+                        }}
+                      />
+                      <Text style={styles.stepperUnit}>{formatLocalizedUnit(clarification.unit ?? "adet")}</Text>
+                      <Pressable
+                        style={styles.stepperButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Adet artır"
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        onPress={() => {
+                          const currentVal = typeof quantity === "number" ? quantity : 1;
+                          const nextVal = Math.min(99, currentVal + 1);
+                          setQuantityEdits((current) => ({ ...current, [index]: nextVal }));
+                        }}
+                      >
+                        <Ionicons name="add" size={16} color={colors.ink} />
+                      </Pressable>
+                    </View>
                   </View>
                 </View>
               ) : null}
@@ -471,6 +521,53 @@ const styles = StyleSheet.create({
   countChoiceSelected: { backgroundColor: colors.terracotta, borderColor: colors.terracotta },
   countChoiceText: { color: colors.ink, fontSize: 11, fontWeight: "700" },
   countChoiceTextSelected: { color: colors.white },
+  customCountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(217, 197, 142, 0.4)",
+  },
+  customCountLabel: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  stepperWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D9C58E",
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  stepperButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: colors.paper,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepperInput: {
+    minWidth: 44,
+    height: 32,
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.ink,
+    paddingHorizontal: 4,
+  },
+  stepperUnit: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.muted,
+    marginRight: 6,
+  },
   portionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginTop: 22 },
   sectionLabel: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
   gramsValue: { color: colors.terracotta, fontSize: 18, fontWeight: "800" },
