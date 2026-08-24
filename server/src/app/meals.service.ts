@@ -56,10 +56,10 @@ export class MealsService {
     @Inject(Settings) private readonly runtimeSettings: Settings = settings,
   ) {}
 
-  hasCompleted(userId: string | undefined, idempotencyKey: string): boolean {
+  hasPendingOrCompleted(userId: string | undefined, idempotencyKey: string): boolean {
     const normalizedUserId = userId?.trim() || DEMO_USER_ID;
     const cacheKey = `${normalizedUserId}\u0000${idempotencyKey}`;
-    return this.completed.has(cacheKey);
+    return this.completed.has(cacheKey) || this.inFlight.has(cacheKey);
   }
 
   async logMeal(
@@ -86,6 +86,9 @@ export class MealsService {
           'idempotency key reused with different request payload',
         );
       }
+      // True LRU: delete and re-set so the accessed entry moves to the end of insertion order
+      this.completed.delete(cacheKey);
+      this.completed.set(cacheKey, cached);
       // Replays are logged. A duplicate that silently returns the first answer
       // looks like a fresh success in metrics unless it is named.
       event('idempotent_replay', { config: request.config, source: 'completed' });

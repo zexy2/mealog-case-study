@@ -193,8 +193,8 @@ export class MealsController {
     const multipart = (contentType ?? '').toLowerCase().startsWith('multipart/form-data');
     const request = parseFields(body, multipart);
 
-    const isCompleted = this.meals.hasCompleted(userId, request.idempotency_key);
-    if (!isCompleted) {
+    const isPendingOrCompleted = this.meals.hasPendingOrCompleted(userId, request.idempotency_key);
+    if (!isPendingOrCompleted) {
       const rateKey = userId && userId.trim() ? userId.trim() : 'demo-user';
       const rate = defaultRateLimiter.check(rateKey);
       if (!rate.allowed) {

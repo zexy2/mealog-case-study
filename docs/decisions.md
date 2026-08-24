@@ -338,4 +338,3 @@ the measured numbers do not move.
 **Constraint.** The edge container must install and build cleanly with zero native compilation dependencies across macOS, Linux, and Alpine Docker.
 
 **Cost.** Compressed image payloads sent to the live vision provider have EXIF/GPS stripped but rely on upstream provider privacy commitments or client-side camera canvas blurring for uncompressed biometric masking.
-

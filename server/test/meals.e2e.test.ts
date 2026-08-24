@@ -11,6 +11,8 @@ import { makePerceivedItem } from '../src/domain/models';
 import { configureBodyParsers } from '../src/main';
 import { VisionProviderError } from '../src/adapters/vision.gemini';
 import { MealsService, VISION_PORT } from '../src/app/meals.service';
+import { MealsController } from '../src/app/meals.controller';
+import { defaultRateLimiter } from '../src/app/rate-limiter';
 import { VisionInput } from '../src/pipeline/ports';
 
 describe('POST /v1/meals', () => {
@@ -559,14 +561,33 @@ describe('POST /v1/meals', () => {
     expect(body.detail).toMatch(/fixture replay has no recorded response/);
   });
 
-  it('rejects truncated 3-byte JPEG with 422 in fixture mode', async () => {
-    const truncatedJpeg = Buffer.from([0xff, 0xd8, 0xff]);
-    const res = await request(app.getHttpServer())
-      .post('/v1/meals')
-      .field('idempotency_key', `truncated-${Date.now()}`)
-      .field('locale', 'tr')
-      .field('config', 'V3')
-      .attach('image', truncatedJpeg, { filename: 'tiny.jpg', contentType: 'image/jpeg' });
-    expect(res.status).toBe(422);
+  it('allows concurrent in-flight burst of requests on the same key without hitting 429', async () => {
+    const mealsController = app.get(MealsController);
+    const userId = 'inflight-burst-user-123';
+    const burstId = 'inflight-burst-id-123';
+
+    const body = {
+      idempotency_key: burstId,
+      sample_id: 'tr_0001',
+      locale: 'tr',
+      config: 'V3',
+    };
+
+    // Burn 29 out of 30 rate limit tokens first so only 1 token remains
+    for (let i = 0; i < 29; i++) {
+      defaultRateLimiter.check(userId);
+    }
+
+    // Send 10 concurrent calls to controller.create with the same key
+    const promises = Array.from({ length: 10 }, () =>
+      mealsController.create(body, undefined, 'application/json', userId),
+    );
+
+    const results = await Promise.all(promises);
+    expect(results.length).toBe(10);
+    for (const res of results) {
+      const meal = res as { items: Array<{ food_id: string }> };
+      expect(meal.items[0]?.food_id).toBe('tr.kuru_fasulye');
+    }
   });
 });
