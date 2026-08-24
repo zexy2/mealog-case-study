@@ -211,16 +211,16 @@ export function ReviewScreen({
                   <Text style={styles.itemQuery}>{item.query}</Text>
                   <Text style={styles.itemMatch}>{item.food_id === "ABSTAIN" ? t("needsMatch") : selectedName(item, selected)}</Text>
                   <Text style={styles.quantityText}>{displayedQuantity}</Text>
-                </View>
-                <View style={styles.statusBadgesCol}>
-                  <View style={[styles.confidencePill, item.confidence >= 0.85 ? styles.confidenceHigh : styles.confidenceMed]}>
-                    <Text style={styles.confidenceText}>{item.confidence >= 0.85 ? t("matchConfidenceHigh") : t("matchConfidenceMed")} (%{Math.round(item.confidence * 100)})</Text>
-                  </View>
-                  {hasRange && clarification?.kind !== "count" ? (
-                    <View style={[styles.portionStatusPill, isPortionDone ? styles.portionDone : styles.portionPending]}>
-                      <Text style={styles.portionStatusText}>{isPortionDone ? t("portionStatusConfirmed") : t("portionStatusVerify")}</Text>
+                  <View style={styles.statusBadgesRow}>
+                    <View style={[styles.confidencePill, item.confidence >= 0.85 ? styles.confidenceHigh : styles.confidenceMed]}>
+                      <Text style={styles.confidenceText}>{item.confidence >= 0.85 ? t("matchConfidenceHigh") : t("matchConfidenceMed")} (%{Math.round(item.confidence * 100)})</Text>
                     </View>
-                  ) : null}
+                    {hasRange && clarification?.kind !== "count" ? (
+                      <View style={[styles.portionStatusPill, isPortionDone ? styles.portionDone : styles.portionPending]}>
+                        <Text style={styles.portionStatusText}>{isPortionDone ? t("portionStatusConfirmed") : t("portionStatusVerify")}</Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
               </View>
 
@@ -616,14 +616,14 @@ const styles = StyleSheet.create({
   actionBannerTitle: { fontSize: 13, fontWeight: "800" },
   actionBannerText: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 3 },
   itemCard: { backgroundColor: colors.card, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 17, marginBottom: 16 },
-  itemTopRow: { flexDirection: "row", alignItems: "center" },
+  itemTopRow: { flexDirection: "row", alignItems: "flex-start" },
   itemIndex: { width: 35, height: 35, borderRadius: 13, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center" },
   itemIndexText: { color: colors.muted, fontSize: 11, fontWeight: "800" },
-  itemNameWrap: { flex: 1, marginLeft: 11 },
+  itemNameWrap: { flex: 1, minWidth: 0, marginLeft: 11 },
   itemQuery: { color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 },
   itemMatch: { color: colors.ink, fontSize: 16, fontWeight: "800", marginTop: 3 },
   quantityText: { color: colors.muted, fontSize: 11, marginTop: 5 },
-  statusBadgesCol: { alignItems: "flex-end", gap: 5 },
+  statusBadgesRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", gap: 5, marginTop: 10 },
   nutritionCard: { backgroundColor: colors.paper, borderRadius: 15, padding: 13, marginTop: 14 },
   nutritionEyebrow: { color: colors.moss, fontSize: 9, fontWeight: "800", letterSpacing: 1.2 },
   nutritionCopy: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },

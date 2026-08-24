@@ -130,5 +130,7 @@ assert.match(reviewSource, /hasLocalNutritionEdit/);
 assert.match(reviewSource, /nutritionRecalculationPending/);
 assert.doesNotMatch(reviewSource, /macroPillEmoji/);
 assert.doesNotMatch(reviewSource, /label=\{t\("macrosTitle"\)\}/);
+assert.match(reviewSource, /itemNameWrap[\s\S]*statusBadgesRow/, "item labels must take full width before status badges");
+assert.doesNotMatch(reviewSource, /statusBadgesCol/, "status badges must not squeeze the item title into a narrow side column");
 
 console.log("mobile item clarification checks passed");
