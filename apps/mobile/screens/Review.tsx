@@ -1,7 +1,7 @@
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Candidate, CaptureMedium, ItemClarification, MealLog } from "../src/types";
 import { StringKey, t } from "../src/strings";
@@ -92,6 +92,20 @@ export function ReviewScreen({
   const displayAction = meal.degraded ? "review" : meal.action;
   const tone = actionTone(displayAction);
   const flaggedMedium = meal.items.find((item) => (item.capture_medium ?? "real_plate") !== "real_plate")?.capture_medium ?? null;
+  const hasUnansweredCountClarification = meal.items.some((item, index) => {
+    const clarification = item.clarification ?? null;
+    const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
+    return clarification?.kind === "count" && !hasQuantityEdit && item.quantity === null;
+  });
+
+  function handleSave() {
+    if (hasUnansweredCountClarification) {
+      Alert.alert(t("oneQuestion"), t("clarifyCountRequired"));
+      return;
+    }
+    onSave();
+  }
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Header eyebrow={t("reviewEyebrow")} title={isSaved ? t("savedReviewTitle") : t("reviewTitle")} subtitle={isSaved ? t("savedReviewSubtitle") : t("reviewSubtitle")} />
@@ -266,8 +280,8 @@ export function ReviewScreen({
         );
       })}
 
-      <Pressable style={[styles.primaryButton, saving && styles.primaryButtonDisabled]} onPress={onSave} disabled={saving}>
-        <Text style={styles.primaryButtonText}>{saving ? t("saving") : isSaved ? t("saveCorrection") : meal.action === "ask" ? t("saveQuestion") : t("saveToday")}</Text>
+      <Pressable style={[styles.primaryButton, (saving || hasUnansweredCountClarification) && styles.primaryButtonDisabled]} onPress={handleSave} disabled={saving}>
+        <Text style={styles.primaryButtonText}>{saving ? t("saving") : hasUnansweredCountClarification ? t("clarifyCountRequired") : isSaved ? t("saveCorrection") : meal.action === "ask" ? t("saveQuestion") : t("saveToday")}</Text>
         <Ionicons name="arrow-forward" size={19} color={colors.white} />
       </Pressable>
       <Pressable style={styles.textButton} onPress={onBack}><Text style={styles.textButtonLabel}>{t("captureAnother")}</Text></Pressable>

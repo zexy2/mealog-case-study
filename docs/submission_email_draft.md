@@ -16,7 +16,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 ### 🔗 Submission Links
 * **GitHub Repository:** https://github.com/zexy2/mealog-case-study
 * **Loom Walkthrough Video (5–10 min):** [Loom Video Link Here]
-* **Architecture Decisions (D1–D13):** [docs/decisions.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/decisions.md)
+* **Architecture Decisions (D1–D14):** [docs/decisions.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/decisions.md)
 * **EatBetter Comparison & Benchmark:** [CASE-STUDY-GAP-REPORT.md](https://github.com/zexy2/mealog-case-study/blob/main/CASE-STUDY-GAP-REPORT.md) & [docs/comparison.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/comparison.md)
 * **Interview Questions & Direct Answers:** [docs/interview_questions_answers.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/interview_questions_answers.md)
 
@@ -27,15 +27,16 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
    - **Closed-Set Resolution (D1):** The model perceives food descriptions, but never produces a calorie number directly. All nutrition is computed deterministically from verified regional composition data (TÜRKOMP / USDA) across 103 canonical foods.
    - **Portion Uncertainty Intervals:** Returns explicit `grams_p10`–`grams_p90` bounds alongside provenance data rather than a hidden point estimate.
    - **Confidence Routing:** Routes items to `auto_accept`, `review`, or `ask` (abstention) with localized Turkish/English clarification questions.
-   - **Security & Privacy (D13, D14):** Edge/Server-side EXIF/GPS scrubbing, PII text redaction, rate limiting, and prompt-injection defense.
+   - **Security & Privacy (D13, D14):** Edge/Server-side EXIF/GPS scrubbing across JPEG/PNG/WebP/GIF, PII text redaction, rate limiting, and prompt-injection defense.
 
 2. **Mobile App (React Native / Expo):**
    - Implements Capture, Review, Day, and Abstention screens.
    - Supports interactive candidate selection ("Seç & Kaydet"), inline item editing/deletion, and dynamic portion adjustments.
+   - Enforces count clarification answering before saving to Day, and infers correct HEIC/PNG/JPEG MIME types on iOS gallery uploads.
    - Verified on iOS Simulator, Expo Go, and Android bundle exports.
 
 3. **Testing & CI Quality Gates:**
-   - **292 Node.js / Vitest tests** covering edge controllers, adapters, rate limiter, and privacy pipeline.
+   - **296 Node.js / Vitest tests** covering edge controllers, adapters, rate limiter, and privacy pipeline.
    - **289 Python parity tests** for reference normalization, retrieval, and nutrition arithmetic.
    - **80 recorded golden-set fixtures** with regression gate in GitHub Actions CI (`make check`).
 

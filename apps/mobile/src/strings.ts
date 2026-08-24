@@ -156,7 +156,12 @@ export type StringKey =
   | "savedQuestionOpen"
   | "saving"
   | "correctionNeedsServer"
-  | "correctionFailed";
+  | "correctionFailed"
+  | "clarifyCountRequired"
+  | "rateLimitExceeded"
+  | "unsupportedMediaType"
+  | "payloadTooLarge"
+  | "abstainUnmappedHelp";
 
 type Dictionary = Record<StringKey, string>;
 type Values = Record<string, number | string>;
@@ -321,6 +326,11 @@ export const tr: Dictionary = {
   saving: "Sunucu düzeltiyor…",
   correctionNeedsServer: "Düzeltmeyi kaydetmek için sunucu bağlantısı gerekli.",
   correctionFailed: "Düzeltme kaydedilemedi.",
+  clarifyCountRequired: "Lütfen adedi seçin veya 'Emin değilim' seçeneğine dokunun.",
+  rateLimitExceeded: "İstek limiti aşıldı. Lütfen kısa bir süre sonra tekrar deneyin.",
+  unsupportedMediaType: "Desteklenmeyen veya bozuk görsel formatı. Lütfen net bir fotoğraf çekin.",
+  payloadTooLarge: "Görsel boyutu çok büyük (10 MB üstü).",
+  abstainUnmappedHelp: "Bu yemek resmi katalogda bulunamadı. Lütfen listeden bir alternatif seçin veya farklı bir yemek yazın.",
 };
 
 export const en: Dictionary = {
@@ -408,7 +418,7 @@ export const en: Dictionary = {
   portion: "PORTION",
   notEstimated: "Not estimated",
   portionBand: "about {grams} g ({low}–{high} g)",
-  portionFor: "Portion for {query}",
+  portionFor: "{query} portion",
   portionLow: "{grams} g likely minimum",
   portionHigh: "{grams} g upper range",
   portionPending: "Portion waits for your answer.",
@@ -439,7 +449,7 @@ export const en: Dictionary = {
   protein: "protein",
   meals: "MEALS",
   loggedCount: "{count} logged",
-  itemCount: "{count} item{plural}",
+  itemCount: "{count} item",
   mealFallback: "Meal",
   dayNote: "Every match stays traceable. Tap Review to inspect the catalogue decision.",
   captureNext: "Capture next meal",
@@ -480,6 +490,11 @@ export const en: Dictionary = {
   saving: "Server is correcting…",
   correctionNeedsServer: "A server connection is required to save this correction.",
   correctionFailed: "The correction could not be saved.",
+  clarifyCountRequired: "Please select a count or tap 'Not sure'.",
+  rateLimitExceeded: "Rate limit exceeded. Please wait a moment.",
+  unsupportedMediaType: "Unsupported or corrupt image format. Please capture a clear photo.",
+  payloadTooLarge: "Image file is too large (over 10 MB).",
+  abstainUnmappedHelp: "This food is not in the canonical catalogue. Please choose an alternative or describe the meal.",
 };
 
 const dictionaries: Record<Locale, Dictionary> = { tr, en };

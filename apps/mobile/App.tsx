@@ -225,6 +225,15 @@ export default function App() {
 
   async function saveReview() {
     if (!meal) return;
+    const hasUnansweredCountClarification = meal.items.some((item, index) => {
+      const clarification = item.clarification ?? null;
+      const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
+      return clarification?.kind === "count" && !hasQuantityEdit && item.quantity === null;
+    });
+    if (hasUnansweredCountClarification) {
+      setBanner(t("clarifyCountRequired"));
+      return;
+    }
     const wasSaved = reviewingSavedMealKey !== null;
     const corrections = buildMealCorrections(meal, portionEdits, selectedCandidates, quantityEdits);
     setSaving(true);

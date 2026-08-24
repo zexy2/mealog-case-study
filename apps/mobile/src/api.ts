@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { buildDemoMeal } from "./demoData";
 import { demoScenarioFor } from "./demoScenarios";
+import { inferImageMimeAndName } from "./mime";
 import { t } from "./strings";
 import { MealCorrection, MealLog, PendingCapture } from "./types";
 
@@ -42,10 +43,29 @@ export async function submitMeal(capture: PendingCapture, options: SubmitOptions
     : await submitText(capture);
 
   if (!response.ok) {
-    const detail = await response.text();
-    const message = response.status === 503
-      ? t("providerUnavailable")
-      : detail || `${t("uploadFailed")} (${response.status})`;
+    const rawBody = await response.text();
+    let detail = rawBody;
+    try {
+      const parsed = JSON.parse(rawBody);
+      if (parsed && typeof parsed.detail === "string") {
+        detail = parsed.detail;
+      }
+    } catch {
+      // not JSON
+    }
+
+    let message = detail;
+    if (response.status === 503) {
+      message = t("providerUnavailable");
+    } else if (response.status === 429) {
+      message = t("rateLimitExceeded");
+    } else if (response.status === 415) {
+      message = t("unsupportedMediaType");
+    } else if (response.status === 413) {
+      message = t("payloadTooLarge");
+    } else if (!message || message.trim() === "") {
+      message = `${t("uploadFailed")} (${response.status})`;
+    }
     throw new MealApiError(response.status, message);
   }
   return response.json() as Promise<MealLog>;
@@ -133,10 +153,11 @@ async function submitPhoto(capture: PendingCapture): Promise<Response> {
   form.append("idempotency_key", capture.idempotencyKey);
   form.append("locale", "tr");
   form.append("config", "V3");
+  const { mimeType, fileName } = inferImageMimeAndName(capture.photo?.uri, capture.photo?.mimeType);
   form.append("image", {
     uri: capture.photo?.uri,
-    type: capture.photo?.mimeType || "image/jpeg",
-    name: "meal.jpg",
+    type: mimeType,
+    name: fileName,
   } as unknown as Blob);
 
   return fetch(`${apiUrl}/v1/meals`, {
