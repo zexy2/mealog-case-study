@@ -88,23 +88,24 @@ state, the result, and the expanded **“Nasıl bulundu?”** panel.
 **On-screen proof:** loading copy, one result with its portion band, the open
 audit panel, and the action transition. Do not show raw JSON.
 
-### 2:20–2:50 — Live out-of-catalogue abstention and the Audited Data Loop
+### 2:20–2:50 — Live out-of-catalogue abstention and fallback logging
 
 **Picture:** Mobile capture of an out-of-catalogue food (e.g. `karnıyarık` or `baked beans`).
 
 **Say:**
 
-> ABSTAIN is not an error screen; it is an Audited Data Loop. Here, the vision model
-> correctly perceives the dish, but because there is no verified laboratory row in
-> the current locale pack, Mealog refuses to hallucinate estimated calories.
+> When a food is outside the catalogue, Mealog refuses to hallucinate estimated calories.
+> The screen acknowledges the observation—for example, recognizing karnıyarık—without
+> assigning an unverified laboratory row.
 >
-> Instead of guessing, the app acknowledges the observation, queues the gap for
-> human nutrition curation and licensed pack release, and offers honest next steps:
-> suggest to catalogue, search another dish, save as an uncaloried note, or enter
-> calories manually with explicit user provenance.
+> For logging, the user has two honest local alternatives: saving as an uncaloried note,
+> or entering a manual calorie estimate tagged explicitly as user input. The “Suggest dish”
+> control demonstrates the product direction prototype; in production, this feeds an
+> anonymized, rate-limited server curation queue for nutritionist review and licensed
+> pack releases.
 
 **On-screen proof:** The out-of-catalogue screen with recognized dish name, zero
-hallucinated calories, the Audited Data Loop action suite, and uncaloried note logging. Keep this
+hallucinated calories, honest local logging alternatives, and prototype suggest control. Keep this
 segment; do not replace it with another success case.
 
 ### 2:50–4:00 — One architecture, and why the route is server-owned

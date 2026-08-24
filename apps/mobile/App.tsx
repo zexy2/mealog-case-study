@@ -363,8 +363,8 @@ export default function App() {
 
   function suggestDishToQueue(dishName: string) {
     Alert.alert(
-      "Geri Bildirim Alındı",
-      `"${dishName}" katalog inceleme kuyruğuna eklendi. Dilerseniz bu öğünü kalorisiz not veya manuel kaloriyle günlüğünüze ekleyebilirsiniz.`,
+      "Öneri Bildirildi (UI Prototipi)",
+      `"${dishName}" önerisi arayüz prototipinde işaretlendi. Production mimarisinde bu talep, kullanıcı onayıyla anonimleştirilmiş katalog geri bildirim kuyruğuna aktarılır.`,
     );
   }
 

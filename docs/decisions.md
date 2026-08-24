@@ -351,3 +351,24 @@ the measured numbers do not move.
 
 **Cost.** Expanding catalogue coverage requires a curated release cycle rather than instant automated ingestion. In exchange, the system guarantees 100% auditable provenance for every calorie presented to users.
 
+---
+
+## D16 — Implementation Boundary: Client-Side Fallback Logging vs. Production Curation Queue
+
+**Decision.** Clarify the implementation boundary of the Audited Data Loop stated in [D15](#d15--audited-data-loop-abstention-as-a-measurable-feedback-queue-over-unverifiable-self-training). In the delivered prototype:
+1. **Shipped Client Functionality:** Two honest local logging paths for out-of-catalogue dishes:
+   - Uncaloried meal notes stored in device storage (`portion_provenance: "uncaloried_note"`, displayed as `— kcal (Not)`, excluded from daily caloric totals).
+   - User-entered manual calorie logs stored in device storage (`portion_provenance: "manual_user_input"`, displayed with `(Manuel)` tag).
+   These records are strictly client-side device logs; they never claim server-side verified nutrition calculation.
+2. **Product Direction Prototype:** The "Yemeği Kataloğa Öner" UI control demonstrates the user experience flow for requesting catalogue additions. It is explicitly positioned as a product direction prototype, without claiming an active server-side telemetry aggregation database in this submission.
+3. **Production Architecture:** Production deployment specifies a rate-limited telemetry ingestion endpoint, anonymized frequency aggregation, a nutritionist curation portal, and regression-gated locale pack releases.
+
+**Supersedes.** Clarifies the shipped boundary of [D15](#d15--audited-data-loop-abstention-as-a-measurable-feedback-queue-over-unverifiable-self-training).
+
+**Rejected.** Claiming a live server-side curation queue exists when the current submission implements client-side state.
+
+**Constraint.** Total honesty and defensibility in case study presentation and walkthrough narrative.
+
+**Cost.** The boundary between prototype UX and production infrastructure is explicitly documented rather than left ambiguous.
+
+

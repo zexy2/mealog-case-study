@@ -49,8 +49,8 @@ export function AbstentionScreen({
       onSuggestDish(dishName);
     } else {
       Alert.alert(
-        "Geri Bildirim Alındı",
-        `"${dishName}" katalog inceleme kuyruğuna eklendi. Dilerseniz bu öğünü kalorisiz not veya manuel kaloriyle günlüğünüze ekleyebilirsiniz.`,
+        "Öneri Bildirildi (UI Prototipi)",
+        `"${dishName}" önerisi arayüz prototipinde işaretlendi. Production mimarisinde bu talep, kullanıcı onayıyla anonimleştirilmiş katalog geri bildirim kuyruğuna iletilecektir.`,
       );
     }
   }
@@ -163,7 +163,7 @@ export function AbstentionScreen({
           >
             <Ionicons name={suggested ? "checkmark-circle" : "bulb-outline"} size={18} color={colors.white} />
             <Text style={styles.primaryButtonText}>
-              {suggested ? "Geri Bildirim Sırasına Eklendi" : t("suggestDishButton")}
+              {suggested ? "Öneri Bildirildi (Prototip)" : t("suggestDishButton")}
             </Text>
           </Pressable>
         )}
