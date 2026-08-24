@@ -24,7 +24,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 
 ### 🛠️ What Was Built
 1. **Node.js / TypeScript Backend (NestJS):**
-   - **Closed-Set Resolution (D1):** The model perceives food descriptions, but never produces a calorie number directly. All nutrition is computed deterministically from verified regional composition data (TÜRKOMP / USDA).
+   - **Closed-Set Resolution (D1):** The model perceives food descriptions, but never produces a calorie number directly. All nutrition is computed deterministically from verified regional composition data (TÜRKOMP / USDA) across 103 canonical foods.
    - **Portion Uncertainty Intervals:** Returns explicit `grams_p10`–`grams_p90` bounds alongside provenance data rather than a hidden point estimate.
    - **Confidence Routing:** Routes items to `auto_accept`, `review`, or `ask` (abstention) with localized Turkish/English clarification questions.
    - **Security & Privacy (D13):** On-device EXIF/GPS scrubbing, rate limiting, and prompt-injection defense.
@@ -42,7 +42,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 ---
 
 ### ⚠️ Key Trade-Offs & Boundaries
-* **Precision over Recall:** When a dish is not in the regional catalogue or confidence is low, mealog safely returns `ABSTAIN` (68/80 golden samples) and asks the user rather than hallucinating wrong calories.
+* **Precision over Recall:** When a dish is not in the regional catalogue or confidence is low, mealog safely returns `ABSTAIN` (70/80 golden samples) and asks the user rather than hallucinating wrong calories.
 * **Process-Local Idempotency:** The MVP uses an in-memory idempotency cache suitable for single-instance review; production scaling requires distributed Redis locks.
 * **Evaluation Scope:** Focused on reproducible offline golden evaluation rather than unconstrained live API spend.
 
@@ -57,4 +57,5 @@ Thank you for reviewing my case study. I look forward to your feedback and discu
 
 Best regards,  
 **Zeki**
+
 
