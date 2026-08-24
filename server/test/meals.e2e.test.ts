@@ -449,8 +449,9 @@ describe('POST /v1/meals', () => {
     const requestA = {
       idempotency_key: key,
       sample_id: 'tr_0001',
+      text: null,
       locale: 'tr',
-      config: 'V3',
+      config: 'V3' as const,
     };
     const inputA = new VisionInput({ sampleId: 'tr_0001' });
 
@@ -465,8 +466,9 @@ describe('POST /v1/meals', () => {
     const requestB = {
       idempotency_key: key,
       sample_id: 'tr_0002',
+      text: null,
       locale: 'tr',
-      config: 'V3',
+      config: 'V3' as const,
     };
     const inputB = new VisionInput({ sampleId: 'tr_0002' });
 
