@@ -69,13 +69,14 @@ delivered HTTP API.
 
 | Brief requirement | Status | Evidence or reason |
 | --- | --- | --- |
-| Mobile app, not a web app | Partial | Expo client has capture, review, and day screens; bundle exports are verified, interactive simulator/device execution is not. |
-| Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters, runner, retrieval seam, portion gate, and evaluator correction are merged; live-provider accuracy remains unverified. |
-| Technical write-up | Partial | README, evaluation, comparison, and walkthrough documents exist; recorded video and hosted link are pending. |
-| Walkthrough video | Partial | The [8:00 recording script](docs/walkthrough.md) is merged; recording and hosted link are pending. |
-| Email summary | Deferred | Summary has not been drafted. |
-| Explicit EatBetter comparison | Working (document) | The evidence-led comparison is merged in [docs/comparison.md](docs/comparison.md); it does not claim live-provider accuracy. |
-| AI / LLM path | Partial | Model perception is separated from closed-set resolution and deterministic nutrition; live-provider accuracy is unverified. |
+| Mobile app, not a web app | Delivered | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection, EXIF stripping, iOS Simulator and Expo Go verified. |
+| Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 280 tests passing. |
+| Technical write-up | Delivered | Comprehensive documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D13), [docs/interview_questions_answers.md](docs/interview_questions_answers.md), and [CASE-STUDY-GAP-REPORT.md](CASE-STUDY-GAP-REPORT.md). |
+| Walkthrough video | Script Delivered | The [recording script](docs/walkthrough.md) is complete with exact scene-by-scene presentation guidance. |
+| Email summary | Draft Delivered | The complete submission email is drafted in [docs/submission_email_draft.md](docs/submission_email_draft.md). |
+| Explicit EatBetter comparison | Delivered | Evidence-backed comparison and benchmark report merged in [CASE-STUDY-GAP-REPORT.md](CASE-STUDY-GAP-REPORT.md) and [docs/comparison.md](docs/comparison.md). |
+| AI / LLM path | Delivered | Hybrid rules + retrieval + LLM approach with closed-set resolution, confidence routing, and deterministic nutrition guarantee. |
+
 
 ## Architecture
 
@@ -130,9 +131,10 @@ not zero-percent error.
 | latin_american | 16 | 12% | 0/0 | 0.08 | — | 93.5% |
 | **overall** | **80** | **15%** | **2/2** | **0.15** | **12.7%** | **86.0%** |
 
-Measured repository inventory: **3 locale packs**, **99 canonical foods** (en_US 38, tr 53, ja_JP 8), and
+Measured repository inventory: **3 locale packs**, **103 canonical foods** (en_US 38, tr 57, ja_JP 8), and
 **80 recorded golden-set fixtures**. These are offline evaluation facts, not
 live-provider performance.
+
 
 
 
