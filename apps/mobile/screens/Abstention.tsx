@@ -87,7 +87,7 @@ export function AbstentionScreen({
 
       {imageUri ? (
         <View style={styles.imageContainer}>
-          <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
+          <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
           <View style={styles.imageBadge}>
             <Ionicons name="image-outline" size={13} color={colors.white} />
             <Text style={styles.imageBadgeText}>{t("uploadedPhotoBadge")}</Text>
@@ -241,13 +241,16 @@ const styles = StyleSheet.create({
   itemAbstainBlock: { marginBottom: 8 },
   imageContainer: {
     width: "100%",
-    height: 180,
+    height: 220,
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.line,
+    backgroundColor: "#1C211E",
     position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
   },
   previewImage: {
     width: "100%",
