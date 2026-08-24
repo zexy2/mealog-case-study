@@ -57,6 +57,20 @@ export type StringKey =
   | "abstainEyebrow"
   | "abstainTitle"
   | "abstainCopy"
+  | "abstainOutOfCatalogueEyebrow"
+  | "abstainOutOfCatalogueTitle"
+  | "abstainOutOfCatalogueSubtitle"
+  | "abstainHonestGuarantee"
+  | "suggestDishButton"
+  | "suggestDishSuccess"
+  | "searchCatalogueButton"
+  | "saveAsUncaloriedNoteButton"
+  | "saveManualCaloriesButton"
+  | "manualCaloriesPrompt"
+  | "manualCaloriesProvenance"
+  | "uncaloriedNoteProvenance"
+  | "uncaloriedBadge"
+  | "manualBadge"
   | "abstainObserved"
   | "abstainCandidates"
   | "abstainCode"
@@ -233,6 +247,20 @@ export const tr: Dictionary = {
   abstainEyebrow: "GÜVENLİ EŞLEŞME YOK",
   abstainTitle: "Tanıyamadım.",
   abstainCopy: "Bu yiyecek kataloğumuzun dışında olabilir. Yakın bir tahminle kaydetmek yerine senden tarif etmeni istiyoruz.",
+  abstainOutOfCatalogueEyebrow: "KATALOG KAPSAMI DIŞINDA",
+  abstainOutOfCatalogueTitle: "{dish} Katalogda Yok",
+  abstainOutOfCatalogueSubtitle: "Fotoğrafta {dish} tespit edildi. Resmi laboratuvar besin verisi olmadığı için tahmini kalori eklemedik.",
+  abstainHonestGuarantee: "Mealog yalnızca resmi laboratuvar (TÜRKOMP) verisiyle çalışır; katalog dışı yemeklere tahmini/sahte kalori atamaz.",
+  suggestDishButton: "Yemeği Kataloğa Öner",
+  suggestDishSuccess: "Geri bildirim kuyruğuna eklendi! {dish} uzman incelemesi ve lisanslı besin eşleştirmesi için sıraya alındı.",
+  searchCatalogueButton: "Katalogda Başka Yemek Ara",
+  saveAsUncaloriedNoteButton: "Kalorisiz Not Olarak Kaydet",
+  saveManualCaloriesButton: "Kaloriyi Kendim Gir",
+  manualCaloriesPrompt: "Bu öğün için tahmin ettiğin kaloriyi gir (Kullanıcı Girişi olarak işaretlenir):",
+  manualCaloriesProvenance: "Kullanıcı manuel girişi",
+  uncaloriedNoteProvenance: "Kalorisiz öğün notu",
+  uncaloriedBadge: "Kalorisiz not",
+  manualBadge: "Manuel",
   abstainObserved: "GÖRÜLEN",
   abstainCandidates: "YAKIN ADAYLAR · HİÇBİRİ KABUL EDİLMEDİ",
   abstainCode: "GÜVENLİ EŞLEŞME YOK · TAHMİN YAPILMADI",
@@ -410,6 +438,20 @@ export const en: Dictionary = {
   abstainEyebrow: "NO SAFE MATCH",
   abstainTitle: "I could not identify it.",
   abstainCopy: "This food may be outside our catalogue. Instead of saving a nearby guess, tell us what it was.",
+  abstainOutOfCatalogueEyebrow: "OUT OF CATALOGUE SCOPE",
+  abstainOutOfCatalogueTitle: "{dish} Not in Catalogue",
+  abstainOutOfCatalogueSubtitle: "Detected {dish} in photo. No estimated calories were added due to lack of verified laboratory data.",
+  abstainHonestGuarantee: "Mealog strictly relies on verified laboratory data (TÜRKOMP/USDA); no hallucinated calories are ever assigned.",
+  suggestDishButton: "Suggest Dish to Catalogue",
+  suggestDishSuccess: "Added to feedback queue! {dish} queued for expert nutrition review.",
+  searchCatalogueButton: "Search Different Food in Catalogue",
+  saveAsUncaloriedNoteButton: "Save as Meal Note (No Calories)",
+  saveManualCaloriesButton: "Enter Calories Manually",
+  manualCaloriesPrompt: "Enter your estimated calories (will be logged as Manual User Entry):",
+  manualCaloriesProvenance: "User manual entry",
+  uncaloriedNoteProvenance: "Meal note (no calories)",
+  uncaloriedBadge: "Meal note",
+  manualBadge: "Manual",
   abstainObserved: "OBSERVED",
   abstainCandidates: "NEARBY CANDIDATES · NONE ACCEPTED",
   abstainCode: "ABSTAIN · NO GUESS",

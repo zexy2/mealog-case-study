@@ -104,7 +104,13 @@ export function DayScreen({ meals, totalCalories, totalProtein, highlightedMealK
                     </Pressable>
                   ) : null}
                 </View>
-                <Text style={styles.mealKcal}>≈ {Math.round(item.totals.kcal)} kcal</Text>
+                {item.items.some((i) => i.portion_provenance === "uncaloried_note" || i.food_id === "ABSTAIN") && item.totals.kcal === 0 ? (
+                  <Text style={styles.mealKcalNote}>— kcal (Not)</Text>
+                ) : item.items.some((i) => i.portion_provenance === "manual_user_input" || i.food_id === "USER_CUSTOM") ? (
+                  <Text style={styles.mealKcal}>{Math.round(item.totals.kcal)} kcal <Text style={styles.manualTag}>(Manuel)</Text></Text>
+                ) : (
+                  <Text style={styles.mealKcal}>≈ {Math.round(item.totals.kcal)} kcal</Text>
+                )}
                 <Ionicons name="chevron-forward" size={17} color={colors.muted} />
               </Pressable>
               <Pressable
@@ -167,6 +173,8 @@ const styles = StyleSheet.create({
   undoButton: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
   undoButtonText: { color: colors.terracotta, fontSize: 11, fontWeight: "800" },
   mealKcal: { color: colors.ink, fontSize: 12, fontWeight: "800" },
+  mealKcalNote: { color: colors.terracotta, fontSize: 11, fontWeight: "700" },
+  manualTag: { color: colors.muted, fontSize: 10, fontWeight: "600" },
   removeButton: { width: 34, minHeight: 36, alignItems: "center", justifyContent: "center", marginLeft: 7 },
   dayNote: { flexDirection: "row", gap: 9, backgroundColor: colors.terracottaSoft, borderRadius: 17, padding: 13, marginTop: 21 },
   dayNoteText: { flex: 1, color: colors.muted, fontSize: 11, lineHeight: 16 },

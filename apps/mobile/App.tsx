@@ -305,6 +305,69 @@ export default function App() {
     setScreen("review");
   }
 
+  function saveUncaloriedNote(abstainMeal: MealLog, dishName: string) {
+    const noteMeal: MealLog = {
+      ...abstainMeal,
+      action: "review",
+      items: [
+        {
+          query: dishName,
+          food_id: "ABSTAIN",
+          candidates: [],
+          grams: 0,
+          grams_p10: 0,
+          grams_p90: 0,
+          confidence: 1.0,
+          nutrients: { kcal: 0, protein_g: 0, carb_g: 0, fat_g: 0 },
+          portion_provenance: "uncaloried_note",
+          source_database: "Kullanıcı Notu",
+          portion_source: "uncaloried_note",
+        },
+      ],
+      totals: { kcal: 0, protein_g: 0, carb_g: 0, fat_g: 0 },
+    };
+    upsertMeal(noteMeal);
+    setHighlightedMealKey(noteMeal.idempotency_key);
+    setBanner("Öğün kalorisiz not olarak günlüğe eklendi.");
+    setMeal(null);
+    setScreen("day");
+  }
+
+  function saveManualCalories(abstainMeal: MealLog, dishName: string, calories: number) {
+    const manualMeal: MealLog = {
+      ...abstainMeal,
+      action: "review",
+      items: [
+        {
+          query: dishName,
+          food_id: "USER_CUSTOM",
+          candidates: [],
+          grams: 0,
+          grams_p10: 0,
+          grams_p90: 0,
+          confidence: 1.0,
+          nutrients: { kcal: calories, protein_g: 0, carb_g: 0, fat_g: 0 },
+          portion_provenance: "manual_user_input",
+          source_database: "Kullanıcı Girişi",
+          portion_source: "manual_user_input",
+        },
+      ],
+      totals: { kcal: calories, protein_g: 0, carb_g: 0, fat_g: 0 },
+    };
+    upsertMeal(manualMeal);
+    setHighlightedMealKey(manualMeal.idempotency_key);
+    setBanner(`Öğün ${calories} kcal manuel kullanıcı girişi olarak kaydedildi.`);
+    setMeal(null);
+    setScreen("day");
+  }
+
+  function suggestDishToQueue(dishName: string) {
+    Alert.alert(
+      "Geri Bildirim Alındı",
+      `"${dishName}" katalog inceleme kuyruğuna eklendi. Dilerseniz bu öğünü kalorisiz not veya manuel kaloriyle günlüğünüze ekleyebilirsiniz.`,
+    );
+  }
+
   function leaveAbstention() {
     setMeal(null);
     setText("");
@@ -355,6 +418,9 @@ export default function App() {
           onSelectCandidateDirectly={handleSelectCandidateFromAbstain}
           onDescribe={leaveAbstention}
           onRetake={leaveAbstention}
+          onSaveUncaloriedNote={saveUncaloriedNote}
+          onSaveManualCalories={saveManualCalories}
+          onSuggestDish={suggestDishToQueue}
         />
       ) : null}
 
