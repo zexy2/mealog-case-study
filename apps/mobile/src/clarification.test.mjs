@@ -43,11 +43,30 @@ assert.deepEqual(corrections, [{ item_index: 0, quantity: 2, unit: "adet" }]);
 assert.equal("nutrients" in corrections[0], false, "mobile must never send client nutrients");
 
 const { countAnswerPending, computedValuesNeedServerRefresh } = await import("./reviewState.ts");
+const { dayNutritionState, nutritionPresentationForItem } = await import("./nutritionPresentation.ts");
 assert.equal(countAnswerPending(meal.items[0], false), true, "an unanswered count must remain pending");
 assert.equal(computedValuesNeedServerRefresh(meal.items[0], false, null), true, "pending count hides stale computed values");
 assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, 2), true, "numeric count waits for server recalculation");
 assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, null), false, "explicit uncertainty may retain the default band");
 assert.equal(computedValuesNeedServerRefresh(meal.items[1], false, 1), false, "non-count items keep their server-provided band");
+
+const manualItem = {
+  ...meal.items[1],
+  food_id: "USER_CUSTOM",
+  portion_provenance: "manual_user_input",
+  nutrients: { kcal: 350, protein_g: 0, carb_g: 0, fat_g: 0 },
+};
+const noteItem = {
+  ...meal.items[1],
+  food_id: "ABSTAIN",
+  portion_provenance: "uncaloried_note",
+  nutrients: { kcal: 0, protein_g: 0, carb_g: 0, fat_g: 0 },
+};
+assert.equal(nutritionPresentationForItem(meal.items[1]), "verified");
+assert.equal(nutritionPresentationForItem(manualItem), "manual");
+assert.equal(nutritionPresentationForItem(noteItem), "unavailable");
+assert.deepEqual(dayNutritionState([{ ...meal, items: [manualItem] }]), { hasVerifiedMacros: false, hasLocalFallback: true });
+assert.deepEqual(dayNutritionState([{ ...meal, items: [meal.items[1], manualItem] }]), { hasVerifiedMacros: true, hasLocalFallback: true });
 
 const knownQuantityMeal = { ...meal, items: [{ ...meal.items[0], quantity: 1 }, meal.items[1]] };
 const changed = buildMealCorrections(knownQuantityMeal, { 0: 120 }, { 0: "tr.simit" }, { 0: null });
@@ -100,10 +119,16 @@ assert.match(abstainSource, /abstainGenericMealName/);
 assert.doesNotMatch(abstainSource, /rawDishName/);
 
 const daySource = readFileSync(new URL("../screens/Day.tsx", import.meta.url), "utf8");
-assert.match(daySource, /macroCol/);
 assert.match(daySource, /totalCarbs/);
 assert.match(daySource, /totalFat/);
-assert.match(reviewSource, /macroStrip/);
-assert.match(reviewSource, /macroPill/);
+assert.match(daySource, /dayNutritionState/);
+assert.match(daySource, /macroSummary/);
+assert.match(daySource, /macrosPartial/);
+assert.match(reviewSource, /nutritionPresentationForItem/);
+assert.match(reviewSource, /nutritionCard/);
+assert.match(reviewSource, /hasLocalNutritionEdit/);
+assert.match(reviewSource, /nutritionRecalculationPending/);
+assert.doesNotMatch(reviewSource, /macroPillEmoji/);
+assert.doesNotMatch(reviewSource, /label=\{t\("macrosTitle"\)\}/);
 
 console.log("mobile item clarification checks passed");

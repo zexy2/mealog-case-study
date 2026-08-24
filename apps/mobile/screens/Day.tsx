@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { MealLog } from "../src/types";
 import { formatLocalizedUnit, t } from "../src/strings";
+import { dayNutritionState } from "../src/nutritionPresentation";
 import { Header } from "../components/Header";
 import { actionLabel, formatDate, formatTime } from "../components/meal";
 import { colors } from "../components/theme";
@@ -59,6 +60,8 @@ export function DayScreen({ meals, totalCalories, totalProtein, totalCarbs, tota
   const portions = portionTotals(meals);
   const carbs = totalCarbs ?? meals.reduce((sum, m) => sum + (m.totals.carb_g ?? 0), 0);
   const fat = totalFat ?? meals.reduce((sum, m) => sum + (m.totals.fat_g ?? 0), 0);
+  const nutritionState = dayNutritionState(meals);
+  const hasMeasuredPortion = portions.midpoint > 0 || portions.p10 > 0 || portions.p90 > 0;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -73,25 +76,39 @@ export function DayScreen({ meals, totalCalories, totalProtein, totalCarbs, tota
       ) : (
         <>
           <View style={styles.totalCard}>
-            <View style={styles.totalMain}>
-              <Text style={styles.totalEyebrow}>{t("loggedSoFar")}</Text>
-              <Text style={styles.totalNumber}><Text style={styles.totalApprox}>≈ </Text>{Math.round(totalCalories)}<Text style={styles.totalUnit}> kcal</Text></Text>
-              <Text style={styles.totalRange}>{t("dayPortionRange", { midpoint: Math.round(portions.midpoint), low: Math.round(portions.p10), high: Math.round(portions.p90) })}</Text>
-            </View>
-            <View style={styles.macroCol}>
-              <View style={styles.macroItem}>
-                <Text style={styles.macroVal}>≈ {Math.round(totalProtein)}g</Text>
-                <Text style={styles.macroLbl}>{t("protein")}</Text>
-              </View>
-              <View style={styles.macroItem}>
-                <Text style={styles.macroVal}>≈ {Math.round(carbs)}g</Text>
-                <Text style={styles.macroLbl}>{t("carbs")}</Text>
-              </View>
-              <View style={styles.macroItem}>
-                <Text style={styles.macroVal}>≈ {Math.round(fat)}g</Text>
-                <Text style={styles.macroLbl}>{t("fat")}</Text>
+            <View style={styles.totalTop}>
+              <View style={styles.totalMain}>
+                <Text style={styles.totalEyebrow}>{t("loggedSoFar")}</Text>
+                <Text style={styles.totalNumber}>{nutritionState.hasVerifiedMacros ? <Text style={styles.totalApprox}>≈ </Text> : null}{Math.round(totalCalories)}<Text style={styles.totalUnit}> kcal</Text></Text>
+                <Text style={styles.totalRange}>
+                  {hasMeasuredPortion
+                    ? t("dayPortionRange", { midpoint: Math.round(portions.midpoint), low: Math.round(portions.p10), high: Math.round(portions.p90) })
+                    : t("dayPortionUnavailable")}
+                </Text>
               </View>
             </View>
+            {nutritionState.hasVerifiedMacros ? (
+              <View style={styles.macroSummary}>
+                <Text style={styles.macroEyebrow}>{t("nutritionTitle")}</Text>
+                <View style={styles.macroGrid}>
+                  <View style={styles.macroItem}>
+                    <Text style={styles.macroVal}>≈ {Math.round(totalProtein)} g</Text>
+                    <Text style={styles.macroLbl}>{t("protein")}</Text>
+                  </View>
+                  <View style={styles.macroItem}>
+                    <Text style={styles.macroVal}>≈ {Math.round(carbs)} g</Text>
+                    <Text style={styles.macroLbl}>{t("carbs")}</Text>
+                  </View>
+                  <View style={styles.macroItem}>
+                    <Text style={styles.macroVal}>≈ {Math.round(fat)} g</Text>
+                    <Text style={styles.macroLbl}>{t("fat")}</Text>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.macroUnavailable}>{t("macrosUnavailable")}</Text>
+            )}
+            {nutritionState.hasVerifiedMacros && nutritionState.hasLocalFallback ? <Text style={styles.macroBoundary}>{t("macrosPartial")}</Text> : null}
           </View>
 
           <View style={styles.listHeader}>
@@ -157,7 +174,8 @@ export function DayScreen({ meals, totalCalories, totalProtein, totalCarbs, tota
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 22, paddingBottom: 34 },
-  totalCard: { backgroundColor: colors.ink, borderRadius: 25, padding: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  totalCard: { backgroundColor: colors.ink, borderRadius: 25, padding: 20 },
+  totalTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
   totalMain: { flex: 1, paddingRight: 10 },
   emptyCard: { backgroundColor: colors.card, borderRadius: 25, borderWidth: 1, borderColor: colors.line, padding: 24, minHeight: 260, justifyContent: "center" },
   emptyIcon: { width: 56, height: 56, borderRadius: 19, backgroundColor: colors.terracottaSoft, alignItems: "center", justifyContent: "center", marginBottom: 20 },
@@ -169,10 +187,14 @@ const styles = StyleSheet.create({
   totalApprox: { color: "#AAB5A7", fontSize: 22, letterSpacing: -0.5 },
   totalUnit: { color: "#AAB5A7", fontSize: 17, letterSpacing: 0, fontWeight: "600" },
   totalRange: { color: "#E7C57C", fontSize: 11, lineHeight: 16, marginTop: 6 },
-  macroCol: { alignItems: "flex-end", gap: 3 },
-  macroItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
-  macroVal: { color: "#E7C57C", fontSize: 13, fontWeight: "800" },
+  macroSummary: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.13)", marginTop: 17, paddingTop: 13 },
+  macroEyebrow: { color: "#AAB5A7", fontSize: 9, letterSpacing: 1.3, fontWeight: "800" },
+  macroGrid: { flexDirection: "row", marginTop: 10 },
+  macroItem: { flex: 1, gap: 3 },
+  macroVal: { color: "#E7C57C", fontSize: 14, fontWeight: "800" },
   macroLbl: { color: "#AAB5A7", fontSize: 10, fontWeight: "700" },
+  macroUnavailable: { color: "#AAB5A7", fontSize: 12, lineHeight: 17, marginTop: 16 },
+  macroBoundary: { color: "#E7C57C", fontSize: 10, lineHeight: 15, marginTop: 12 },
   listHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 27, marginBottom: 10 },
   sectionLabel: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.4 },
   listCount: { color: colors.muted, fontSize: 11 },
