@@ -65,7 +65,7 @@ assert.match(
 );
 assert.match(
   appSource,
-  /result\.action === "ask" && \(result\.items\.length === 0 \|\| result\.items\.some\(\(item\) => item\.food_id === "ABSTAIN"\)\)/,
+  /result\.action === "ask" && \(result\.items\.length === 0 \|\| hasOnlyAbstainedItems\)/,
   "abstention routing must use the server item sentinel or empty plate",
 );
 

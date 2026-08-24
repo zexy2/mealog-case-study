@@ -110,12 +110,19 @@ export function ReviewScreen({
     return hasRange && !hasPortionEdit && !portionConfirmed[index];
   });
 
-  const isSaveDisabled = Boolean(saving || hasUnansweredCountClarification || needsPortionConfirmation);
-  const footerHint = hasUnansweredCountClarification
-    ? t("saveBlockedCountHint")
-    : needsPortionConfirmation
-      ? t("confirmPortionRequired")
-      : null;
+  const hasUnresolvedAbstain = meal.items.some((item, index) => {
+    const selected = selectedCandidates[index] ?? item.food_id;
+    return selected === "ABSTAIN";
+  });
+
+  const isSaveDisabled = Boolean(saving || hasUnansweredCountClarification || needsPortionConfirmation || hasUnresolvedAbstain);
+  const footerHint = hasUnresolvedAbstain
+    ? t("unresolvedAbstainHint")
+    : hasUnansweredCountClarification
+      ? t("saveBlockedCountHint")
+      : needsPortionConfirmation
+        ? t("confirmPortionRequired")
+        : null;
 
   function handleSave() {
     meal.items.forEach((item, index) => {
@@ -451,7 +458,8 @@ export function ReviewScreen({
 
               {item.candidates.length > 1 ? (
                 <>
-                  <Text style={[styles.sectionLabel, { marginTop: 22 }]}>{t("alternates")}</Text>
+                  <Text style={[styles.sectionLabel, { marginTop: 20 }]}>{t("alternates")}</Text>
+                  <Text style={styles.candidateHelpText}>{t("chooseAlternateCandidate")}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
                     {item.candidates.map((candidate) => {
                       const isSelected = selected === candidate.food_id;
@@ -693,7 +701,8 @@ const styles = StyleSheet.create({
   clarificationHint: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: 9 },
   deferredValuesCard: { marginTop: 18, padding: 13, borderRadius: 14, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
   deferredValuesText: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
-  chipsRow: { gap: 8, paddingTop: 11, paddingBottom: 2 },
+  candidateHelpText: { color: colors.muted, fontSize: 11, marginTop: 4, marginBottom: 2 },
+  chipsRow: { gap: 8, paddingTop: 6, paddingBottom: 2 },
   chip: { minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8, minWidth: 100, justifyContent: "center" },
   chipSelected: { borderColor: colors.moss, backgroundColor: colors.mossSoft },
   chipText: { color: colors.ink, fontSize: 12, fontWeight: "800" },
