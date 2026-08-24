@@ -58,10 +58,10 @@ Rules:
   * If the image shows plastic toy food, fake miniature models, decorative replicas, or inedible synthetic items, do NOT treat them as food. Return empty items: [].
   * If the image depicts a smartphone/digital screen, laptop monitor, or printed photograph displaying a picture of food rather than real food in person, do NOT extract the meal on the screen. Return empty items: [].
   * If the plate or table is empty (no food present), return empty items: [].
-- Set \`count\` only when items are individually countable and every instance is
-  distinctly visible. Overlapping, stacked, cropped, or occluded instances must
-  return \`count: null\`; never guess. Two stacked simit rings are an occluded
-  arrangement: return \`count: null\` even if two rings appear recognisable.
+- Counting precision rules:
+  * For individually countable food items that are clearly and distinctly visible as single standalone items (e.g. a single whole simit on a plate, one apple, one boiled egg, a standalone whole pastry, or a single glass of drink), return \`count: 1\`.
+  * For multiple countable items where each instance is distinctly separated and completely visible, return the exact integer count (e.g. \`count: 2\`).
+  * Only when instances are overlapping, stacked, cropped, occluded, or when the exact total quantity is genuinely ambiguous, return \`count: null\`; never guess. Two stacked simit rings are an occluded arrangement: return \`count: null\` even if two rings appear recognisable.
 - Never count liquid volume, pixels, or a serving container as multiple food instances. Do not report non-food objects (cutlery, wallet, receipt, table), inedible garnish, decorative leaves, lemon wedges, herbs/seasoning, or unidentifiable background as separate food items. Return only the primary prepared food dishes and distinct edible side dishes. Do not add ABSTAIN or other placeholder items.
 
 
