@@ -102,6 +102,8 @@ export function ReviewScreen({
   });
 
   const needsPortionConfirmation = meal.action === "review" && meal.items.some((item, index) => {
+    const clarification = item.clarification ?? null;
+    if (clarification?.kind === "count") return false;
     const hasRange = item.grams_p90 > item.grams_p10;
     const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
     return hasRange && !hasPortionEdit && !portionConfirmed[index];
@@ -227,7 +229,7 @@ export function ReviewScreen({
                 </View>
               ) : null}
 
-              {hasRange && meal.action === "review" ? (
+              {hasRange && meal.action === "review" && clarification?.kind !== "count" ? (
                 <View style={styles.portionQuestionCard}>
                   <Text style={styles.questionLabel}>{t("oneQuestion")}</Text>
                   <Text style={styles.questionText}>{t("portionQuestionTitle")}</Text>
