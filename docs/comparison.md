@@ -257,7 +257,8 @@ case abstains rather than charging brewed tea against dry-leaf nutrition.
 
 All repository measurements above are offline and reproducible with `make eval`
 or `python eval/retrieval_eval.py` against committed fixtures and labels. Fresh
-replay at current main `4bcbfa3` reports V3 **12/80 committed**, **68/80 ask**,
+replay at current main `b645b95` reports V3 **12/80 committed**, **68/80 ask**,
+
 Item F1 **0.15**, FP rate **86.0%**, and **12.7% MAPE over 2/2
 calorie-eligible/scored rows**; 72 partial-truth rows remain outside that
 denominator. Retrieval replay reports Recall@1 **100.0%**, Accept@1 **99.2%**,
