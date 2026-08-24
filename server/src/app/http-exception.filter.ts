@@ -57,16 +57,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       // Express's JSON parser reports malformed JSON as a 400 before the
       // controller runs; FastAPI exposes that boundary as a 422.
-      const contentType = request.headers['content-type'];
+      const contentType = (request.headers?.['content-type'] ?? request.headers?.['Content-Type']) as string | undefined;
+      const combinedError = `${text} ${exception.message || ''}`;
       if (
         status === 400
-        && typeof contentType === 'string'
-        && contentType.toLowerCase().startsWith('application/json')
-        && /unexpected|json parse|invalid json/i.test(text)
+        && (
+          (typeof contentType === 'string' && contentType.toLowerCase().includes('application/json'))
+          || /unexpected|json|syntaxerror/i.test(combinedError)
+        )
+        && /unexpected|json parse|invalid json|syntaxerror/i.test(combinedError)
       ) {
         response.status(422).json({ detail: 'invalid JSON request' });
         return;
       }
+
 
       if (typeof payload === 'object' && payload !== null) {
         response.status(status).json(payload);
