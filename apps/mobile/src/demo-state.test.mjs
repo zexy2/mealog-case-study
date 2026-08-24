@@ -22,6 +22,11 @@ const abstainSource = readFileSync(join(here, "../screens/Abstention.tsx"), "utf
 const captureSource = readFileSync(join(here, "../screens/Capture.tsx"), "utf8");
 const appSource = readFileSync(join(here, "../App.tsx"), "utf8");
 const apiSource = readFileSync(join(here, "./api.ts"), "utf8");
+const demoDataSource = readFileSync(join(here, "./demoData.ts"), "utf8");
+
+assert.match(demoDataSource, /const reviewItem:[\s\S]*food_id: "tr\.pilav"/, "the review demo must stay on the pilav fixture");
+assert.match(demoDataSource, /items: \[reviewItem\],[\s\S]*totals: nutrients\(272, 5\.4, 50\.4, 5\.6\)/, "the review demo must preserve pilav's server-shaped macro values");
+assert.doesNotMatch(demoDataSource, /items: \[reviewCountItem\]/, "the review demo must not enter the unrelated count-pending state");
 
 assert.match(daySource, /meal\.items\.map\(itemName\)/, "Day title must derive from every meal item");
 assert.match(daySource, /names\.join\(" · "\)/, "Day title must keep deterministic item order");

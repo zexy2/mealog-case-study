@@ -39,13 +39,6 @@ const autoItem: ResolvedItem = {
   source_database: sourceDatabase,
 };
 
-const reviewCountItem: ResolvedItem = {
-  ...autoItem,
-  quantity: null,
-  unit: "several",
-  clarification: { kind: "count", unit: "adet", options: [1, 2, 3, null] },
-};
-
 const askItem: ResolvedItem = {
   query: "baked beans",
   food_id: "ABSTAIN",
@@ -92,8 +85,8 @@ export function buildDemoMeal(text: string | undefined, idempotencyKey: string):
   const review: MealLog = {
     idempotency_key: idempotencyKey,
     locale: "tr",
-    items: [reviewCountItem],
-    totals: nutrients(329, 9.5, 57, 6.6),
+    items: [reviewItem],
+    totals: nutrients(272, 5.4, 50.4, 5.6),
     action: "review",
     question: null,
     config: "V3",
