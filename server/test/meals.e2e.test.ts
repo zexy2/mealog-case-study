@@ -590,4 +590,15 @@ describe('POST /v1/meals', () => {
       expect(meal.items[0]?.food_id).toBe('tr.kuru_fasulye');
     }
   });
+
+  it('rejects truncated 3-byte JPEG with 415 Unsupported Media Type before provider ingestion', async () => {
+    const truncatedJpeg = Buffer.from([0xff, 0xd8, 0xff]);
+    const res = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .field('idempotency_key', `truncated-${Date.now()}`)
+      .field('locale', 'tr')
+      .field('config', 'V3')
+      .attach('image', truncatedJpeg, { filename: 'tiny.jpg', contentType: 'image/jpeg' });
+    expect(res.status).toBe(415);
+  });
 });
