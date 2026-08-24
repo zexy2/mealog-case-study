@@ -69,6 +69,7 @@ export type ReviewScreenProps = {
   setQuantityEdits: React.Dispatch<React.SetStateAction<Record<number, number | null>>>;
   selectedCandidates: Record<number, string>;
   onChooseCandidate: (index: number, candidate: Candidate) => void;
+  onRemoveItem?: (index: number) => void;
   onSave: () => void;
   isSaved?: boolean;
   saving?: boolean;
@@ -86,6 +87,7 @@ export function ReviewScreen({
   setQuantityEdits,
   selectedCandidates,
   onChooseCandidate,
+  onRemoveItem,
   onSave,
   isSaved = false,
   saving = false,
@@ -233,6 +235,21 @@ export function ReviewScreen({
                   </View>
                 </View>
               </View>
+
+              {selected === "ABSTAIN" ? (
+                <View style={styles.abstainCardNotice}>
+                  <Text style={styles.abstainCardText}>{t("needsMatch")}</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("removeItem")}
+                    style={styles.removeItemBtn}
+                    onPress={() => onRemoveItem?.(index)}
+                  >
+                    <Ionicons name="trash-outline" size={13} color={colors.terracotta} />
+                    <Text style={styles.removeItemBtnText}>{t("removeItem")}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
 
               {nutritionPresentation === "verified" ? (
                 <View style={styles.nutritionCard}>
@@ -708,6 +725,39 @@ const styles = StyleSheet.create({
   chipText: { color: colors.ink, fontSize: 12, fontWeight: "800" },
   chipTextSelected: { color: colors.moss },
   chipScore: { color: colors.muted, fontSize: 10, marginTop: 3 },
+  abstainCardNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FBF1D8",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginTop: 12,
+  },
+  abstainCardText: {
+    color: "#8D641C",
+    fontSize: 11,
+    fontWeight: "700",
+    flex: 1,
+  },
+  removeItemBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.terracotta,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginLeft: 8,
+  },
+  removeItemBtnText: {
+    color: colors.terracotta,
+    fontSize: 10,
+    fontWeight: "700",
+  },
   whyRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.line },
   whyIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center" },
   whyCopy: { flex: 1 },
