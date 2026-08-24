@@ -1,5 +1,6 @@
 import { Inject, Injectable, HttpException, HttpStatus } from '@nestjs/common';
 
+import { FixtureVision } from '../adapters/vision.fixture';
 import { settings, Settings } from '../config';
 import { event, stageAsync } from '../obs';
 import { CONFIGS, run, type Config } from '../pipeline/runner';
@@ -69,6 +70,13 @@ export class MealsService {
       );
     }
 
+    if (this.vision instanceof FixtureVision && !input.sampleId && input.imageBytes === null) {
+      error(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'fixture replay needs image bytes or a sample_id; for free-text logging configure VISION_PROVIDER=gemini',
+      );
+    }
+
     const result = this.runOnce(cacheKey, request, input, config);
     this.inFlight.set(cacheKey, result);
     return result;
@@ -82,6 +90,24 @@ export class MealsService {
         error(HttpStatus.UNPROCESSABLE_ENTITY, caught.message);
       }
       error(HttpStatus.UNPROCESSABLE_ENTITY, 'invalid correction request');
+    }
+  }
+
+  /**
+   * Purges all completed and in-flight meal records associated with a specific user.
+   */
+  purgeUserData(userId: string): void {
+    const normalizedUserId = userId?.trim() || DEMO_USER_ID;
+    const prefix = `${normalizedUserId}\u0000`;
+    for (const key of this.completed.keys()) {
+      if (key.startsWith(prefix)) {
+        this.completed.delete(key);
+      }
+    }
+    for (const key of this.inFlight.keys()) {
+      if (key.startsWith(prefix)) {
+        this.inFlight.delete(key);
+      }
     }
   }
 

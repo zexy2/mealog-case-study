@@ -50,6 +50,14 @@ export async function submitMeal(capture: PendingCapture, options: SubmitOptions
   return response.json() as Promise<MealLog>;
 }
 
+let clientUserId: string | null = null;
+export function getClientUserId(): string {
+  if (!clientUserId) {
+    clientUserId = `client-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  return clientUserId;
+}
+
 export async function correctMeal(meal: MealLog, corrections: MealCorrection[]): Promise<MealLog> {
   if (demoMode) {
     throw new Error(t("correctionNeedsServer"));
@@ -57,7 +65,10 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
 
   const response = await fetch(`${apiUrl}/v1/meals/correct`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": getClientUserId(),
+    },
     body: JSON.stringify({ meal, corrections }),
   });
   if (!response.ok) {
@@ -73,7 +84,10 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
 async function submitText(capture: PendingCapture): Promise<Response> {
   return fetch(`${apiUrl}/v1/meals`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": getClientUserId(),
+    },
     body: JSON.stringify({
       idempotency_key: capture.idempotencyKey,
       locale: "tr",
@@ -97,6 +111,9 @@ async function submitPhoto(capture: PendingCapture): Promise<Response> {
 
   return fetch(`${apiUrl}/v1/meals`, {
     method: "POST",
+    headers: {
+      "X-User-Id": getClientUserId(),
+    },
     body: form,
   });
 }

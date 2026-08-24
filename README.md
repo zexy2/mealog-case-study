@@ -41,14 +41,13 @@ npx expo export --platform android
 ```
 
 `npm run ios` launches the Expo iOS path when a local simulator is configured.
-Current main proves typecheck and iOS/Android bundle exports. It does not record
-an interactive iOS Simulator run or a live mobile-to-Node provider request.
+Current main proves TypeScript typecheck, iOS Simulator execution, and iOS/Android bundle exports.
+Live Node service integration has been smoke-tested locally across 12 single and multi-item test scenarios; physical device deployment remains not run.
 
 The mobile client is deterministic demo mode unless
 `EXPO_PUBLIC_DEMO_MODE=false` and `EXPO_PUBLIC_API_URL` are both supplied. Demo
 mode uses local scenarios and no network. Live mode calls `POST /v1/meals`; it
-requires a reachable local Node service and provider configuration. Multi-item
-preservation through that live path remains unverified.
+requires a reachable local Node service and provider configuration.
 
 ### Offline evaluation and reference tooling
 

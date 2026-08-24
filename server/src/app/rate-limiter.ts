@@ -55,9 +55,13 @@ export class InMemoryRateLimiter {
     };
   }
 
-  /** Clears all rate limit memory (useful for testing) */
-  reset(): void {
-    this.hits.clear();
+  /** Clears rate limit memory for a specific key, or all keys if none provided */
+  reset(key?: string): void {
+    if (key) {
+      this.hits.delete(key);
+    } else {
+      this.hits.clear();
+    }
   }
 }
 

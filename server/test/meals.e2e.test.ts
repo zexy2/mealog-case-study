@@ -269,4 +269,56 @@ describe('POST /v1/meals', () => {
     expect(malformed.status).toBe(422);
     expect(malformed.body).toEqual({ detail: 'invalid JSON request' });
   });
+
+  it('returns typed 422 for text-only inputs in fixture mode instead of unhandled 500', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .send({
+        idempotency_key: 'http-text-only-fixture-test',
+        text: 'kuru fasulye',
+        locale: 'tr',
+        config: 'V3',
+      });
+
+    expect(response.status).toBe(422);
+    const body = response.body as { detail?: string };
+    expect(body.detail).toMatch(/fixture replay needs image bytes or a sample_id/);
+  });
+
+  it('GDPR delete purges user meal cache and resets user rate limiter', async () => {
+    const userId = 'gdpr-e2e-user';
+    const key = 'gdpr-purge-key';
+
+    // 1. Initial meal
+    const res1 = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .set('x-user-id', userId)
+      .send({
+        idempotency_key: key,
+        sample_id: 'tr_0001',
+        locale: 'tr',
+        config: 'V3',
+      });
+    expect(res1.status).toBe(200);
+    const body1 = res1.body as { items: Array<{ food_id: string }> };
+    expect(body1.items[0]?.food_id).toBe('tr.kuru_fasulye');
+
+    // 2. Delete user data
+    const delRes = await request(app.getHttpServer()).delete(`/v1/users/${userId}/data`);
+    expect(delRes.status).toBe(204);
+
+    // 3. Subsequent meal with same key but different payload returns the new calculation
+    const res2 = await request(app.getHttpServer())
+      .post('/v1/meals')
+      .set('x-user-id', userId)
+      .send({
+        idempotency_key: key,
+        sample_id: 'tr_0002',
+        locale: 'tr',
+        config: 'V3',
+      });
+    expect(res2.status).toBe(200);
+    const body2 = res2.body as { items: Array<{ food_id: string }> };
+    expect(body2.items[0]?.food_id).toBe('tr.simit');
+  });
 });

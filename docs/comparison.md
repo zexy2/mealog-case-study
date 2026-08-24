@@ -151,7 +151,7 @@ scan-and-feedback positioning, not its internal result schema.
 **How it is measured.** The fields are defined in `ResolvedItem` and rendered
 by the mobile review path. `server/tests/test_portion.py` checks that portion
 provenance reaches the resolved item, while `server/tests/test_retrieval_eval.py`
-checks candidate ranking and abstention. The current tree has **99/99** food
+checks candidate ranking and abstention. The current tree has **103/103** food
 rows with a non-empty food source across **3** locale packs.
 
 **Example.** The current `pkg_0001` trace is:
@@ -225,12 +225,12 @@ this provenance and licence boundary.
 ## Where EatBetter is better: catalogue coverage and long-tail breadth
 
 **What is observed.** EatBetter's public surface depicts a general photo-
-logging workflow, while mealog can accept only the **99 canonical foods** in its
+logging workflow, while mealog can accept only the **103 canonical foods** in its
 **3** locale packs and must ask or abstain outside them. This identifies
 mealog's measured coverage limit; it does not claim an EatBetter catalogue
 count or internal matching policy.
 
-The Turkish pack contains **53 foods**. Direct inspection of
+The Turkish pack contains **57 foods**. Direct inspection of
 `locale_packs/tr/foods.jsonl` found no entry for **döner**, **poğaça**,
 **börek** (including **su böreği**), **köfte**, **pide**, or **kebap**. In the
 **2026-08-22** probe of ten out-of-catalogue images, all ten abstained correctly
@@ -257,7 +257,7 @@ case abstains rather than charging brewed tea against dry-leaf nutrition.
 
 All repository measurements above are offline and reproducible with `make eval`
 or `python eval/retrieval_eval.py` against committed fixtures and labels. Fresh
-replay at current main `b645b95` reports V3 **12/80 committed**, **68/80 ask**,
+replay at current main `fcb53d4` reports V3 **10/80 committed**, **70/80 ask**,
 
 Item F1 **0.15**, FP rate **86.0%**, and **12.7% MAPE over 2/2
 calorie-eligible/scored rows**; 72 partial-truth rows remain outside that

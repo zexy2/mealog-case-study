@@ -193,6 +193,8 @@ export class MealsController {
     if (!id || id.trim() === '') {
       invalid(HttpStatus.BAD_REQUEST, 'invalid user id');
     }
-    defaultRateLimiter.reset();
+    const cleanId = id.trim();
+    this.meals.purgeUserData(cleanId);
+    defaultRateLimiter.reset(cleanId);
   }
 }

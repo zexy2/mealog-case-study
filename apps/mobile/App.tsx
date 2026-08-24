@@ -22,6 +22,7 @@ import { t } from "./src/strings";
 import { Candidate, DemoScenario, MealLog, PendingCapture } from "./src/types";
 
 const PENDING_KEY = "@mealog/pending-capture";
+const DAY_MEALS_KEY = "@mealog/day-meals";
 
 function newIdempotencyKey() {
   return `meal-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -59,6 +60,14 @@ export default function App() {
         if (raw) setPending(JSON.parse(raw) as PendingCapture);
       })
       .catch(() => undefined);
+
+    if (!isDemoMode) {
+      AsyncStorage.getItem(DAY_MEALS_KEY)
+        .then((raw) => {
+          if (raw) setDayMeals(JSON.parse(raw) as MealLog[]);
+        })
+        .catch(() => undefined);
+    }
   }, []);
 
   useEffect(() => {
@@ -170,6 +179,10 @@ export default function App() {
       const existingIndex = current.findIndex((item) => item.idempotency_key === next.idempotency_key);
       const existing = existingIndex >= 0 ? current[existingIndex] : undefined;
       const saved = { ...next, createdAt: next.createdAt ?? existing?.createdAt ?? new Date().toISOString() };
+      if (!isDemoMode) {
+        const nextState = existingIndex < 0 ? [saved, ...current] : current.map((item, index) => (index === existingIndex ? saved : item));
+        AsyncStorage.setItem(DAY_MEALS_KEY, JSON.stringify(nextState)).catch(() => undefined);
+      }
       if (existingIndex < 0) return [saved, ...current];
       return current.map((item, index) => (index === existingIndex ? saved : item));
     });
@@ -195,7 +208,13 @@ export default function App() {
           text: t("removeMealConfirm"),
           style: "destructive",
           onPress: () => {
-            setDayMeals((current) => removeSavedMeal(current, savedMeal.idempotency_key));
+            setDayMeals((current) => {
+              const updated = removeSavedMeal(current, savedMeal.idempotency_key);
+              if (!isDemoMode) {
+                AsyncStorage.setItem(DAY_MEALS_KEY, JSON.stringify(updated)).catch(() => undefined);
+              }
+              return updated;
+            });
             setHighlightedMealKey((current) => current === savedMeal.idempotency_key ? null : current);
             setBanner(t("mealRemoved"));
           },
@@ -243,7 +262,13 @@ export default function App() {
   }
 
   function undoAutoAcceptedMeal(savedMeal: MealLog) {
-    setDayMeals((current) => removeSavedMeal(current, savedMeal.idempotency_key));
+    setDayMeals((current) => {
+      const updated = removeSavedMeal(current, savedMeal.idempotency_key);
+      if (!isDemoMode) {
+        AsyncStorage.setItem(DAY_MEALS_KEY, JSON.stringify(updated)).catch(() => undefined);
+      }
+      return updated;
+    });
     setMeal(null);
     setReviewingSavedMealKey(null);
     setHighlightedMealKey(null);
@@ -269,7 +294,6 @@ export default function App() {
     setMeal(updatedMeal);
     setSelectedCandidates((curr) => ({ ...curr, [itemIndex]: candidate.food_id }));
     setScreen("review");
-    setBanner(t("mealAdded"));
   }
 
   function leaveAbstention() {
