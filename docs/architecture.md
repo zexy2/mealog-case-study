@@ -101,7 +101,56 @@ sequenceDiagram
 
 ---
 
-## 3. Edge Privacy & Security Architecture
+## 3. Robustness to Messy Real-World Inputs & Ambiguity (Core AI Focus)
+
+The primary engineering challenge of meal logging is converting noisy, ambiguous, and multi-component inputs into **verified canonical foods + portions + nutrition**.
+
+Mealog solves ambiguity across 5 concrete architectural layers:
+
+```mermaid
+flowchart TD
+    subgraph MessyInputs["Messy Real-World Input Types"]
+        M1["1. Composite Plates: 'kuru fasulye pilav yogurt'"]
+        M2["2. Slang & Typos: 'mercımek corba', '2 buyuk dilim'"]
+        M3["3. Occlusion & Stacking: 2 stacked simits on plate"]
+        M4["4. Cooking State Ambiguity: 'haşlanmış makarna' vs dry"]
+        M5["5. Adversarial / Non-Food: toy food, napkins, 'naber'"]
+    end
+
+    subgraph DefensePipeline["Mealog Ambiguity Resolution Engine"]
+        D1["Atomic Plate Disaggregation (runner.ts)"]
+        D2["Diacritic & Unit Normalizer (normalize.ts)"]
+        D3["Portion Uncertainty Bands & Count Gate (portion.ts & clarification.ts)"]
+        D4["Negative Aliasing Engine (aliases.jsonl)"]
+        D5["Closed-Set Resolution & Honest Abstention (resolve.ts)"]
+    end
+
+    subgraph GroundTruthOutput["Verified Ground Truth Output"]
+        Out1["[tr.kuru_fasulye, tr.pilav, tr.yogurt]"]
+        Out2["Canonical tr.mercimek_corbasi (Exact TÜRKOMP values)"]
+        Out3["Explicit p10-p90 band + 'Kaç adet?' question"]
+        Out4["Safe ABSTAIN / Review (No dry-weight calorie inflation)"]
+        Out5["Honest Abstention (0 kcal hallucination)"]
+    end
+
+    M1 --> D1 --> Out1
+    M2 --> D2 --> Out2
+    M3 --> D3 --> Out3
+    M4 --> D4 --> Out4
+    M5 --> D5 --> Out5
+```
+
+### The 5 Ambiguity Handling Mechanisms:
+
+1. **Multi-Component Dish Disaggregation:** Complex dining spreads (e.g. Turkish breakfast or lunch plates) are segmented into individual items, each evaluated with its own confidence, portion distribution, and candidate alternatives.
+2. **Diacritic & Typo Resilience:** Free-form text (`normalize.ts`) strips Turkish diacritics (`ç`, `ğ`, `ı`, `ö`, `ş`, `ü`), standardizes informal quantities (`"1.5 porsiyon"`, `"2 dilim"`), and extracts cooking attributes (`stewed`, `boiled`, `grilled`).
+3. **Occlusion & Stacked Item Uncertainty:** When items are stacked (e.g. `A2.jpg` two stacked simits), the vision adapter flags occlusion and returns `quantity: null` with an explicit `grams_p10`–`grams_p90` interval, triggering a discrete count clarification question (`"Kaç adet?"`) rather than undercounting.
+4. **Cooked vs. Raw / Dry Ingredient Segregation:** Negative aliases prevent cooked dishes (e.g. `"haşlanmış makarna"`, `"haşlanmış bulgur"`) from silently inheriting dry raw ingredient nutrition (which would cause a +300% calorie error).
+5. **Non-Food & Out-of-Catalogue Containment (D1):** Non-food items (e.g. `"naber"`, `"lego"`, empty plates) or unmapped dishes safely resolve to `ABSTAIN` with confidence routing rather than hallucinating plausible numbers.
+
+---
+
+## 4. Edge Privacy & Security Architecture
 
 Mealog enforces enterprise **Privacy by Design** across every network boundary:
 
@@ -139,7 +188,7 @@ flowchart LR
 
 ---
 
-## 4. Human-in-the-Loop (HITL) & Continuous Learning Flywheel
+## 5. Human-in-the-Loop (HITL) & Continuous Learning Flywheel
 
 Mealog implements an active learning flywheel that turns user interactions into verified training datasets:
 
@@ -171,7 +220,7 @@ flowchart TD
 
 ---
 
-## 5. Confidence Routing & Decision State Machine
+## 6. Confidence Routing & Decision State Machine
 
 ```mermaid
 stateDiagram-v2
@@ -204,7 +253,7 @@ stateDiagram-v2
 
 ---
 
-## 6. Technology Stack & Key Specifications
+## 7. Technology Stack & Key Specifications
 
 | Subsystem | Technology | Purpose & Rationale |
 |---|---|---|
@@ -217,7 +266,7 @@ stateDiagram-v2
 
 ---
 
-## 7. Architectural Decisions Index (D1–D17)
+## 8. Architectural Decisions Index (D1–D17)
 
 All system constraints are formally recorded in [docs/decisions.md](decisions.md):
 
