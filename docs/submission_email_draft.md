@@ -1,8 +1,7 @@
 # Case Study submission email draft
 
-> **Pre-send checklist:** upload the completed 9:07 walkthrough, replace the
-> single `[LOOM_URL]` placeholder below, verify the link in a private window,
-> confirm repository access for the reviewers, and confirm the previously
+> **Pre-send checklist:** verify the Loom link in a private window, confirm
+> repository access for the reviewers, and confirm the previously
 > exposed provider credential has been revoked. Hosted CI is currently blocked
 > before execution; preserve the disclosure below unless a later run is green.
 
@@ -21,7 +20,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 
 ### 🔗 Submission Links
 * **GitHub Repository:** https://github.com/zexy2/mealog-case-study
-* **Loom Walkthrough Video (9:07):** [LOOM_URL]
+* **Loom Walkthrough Video (9:07):** https://www.loom.com/share/8a1ad6fea24e401eaf52788d72d5a0fd
 * **Architecture Decisions (D1–D20):** [docs/decisions.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/decisions.md)
 * **Correction Telemetry & Proposed HITL Loop:** [docs/data_flywheel_and_hitl_architecture.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/data_flywheel_and_hitl_architecture.md)
 * **EatBetter Comparison & Benchmark:** [docs/comparison.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/comparison.md)

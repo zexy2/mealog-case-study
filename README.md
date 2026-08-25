@@ -14,8 +14,8 @@ user acceptance before save, and is excluded from grounded evaluation.
 
 > [!IMPORTANT]
 > **Submission state:** the app, Node service, offline evaluation, technical
-> write-up, email draft, and 9:07 walkthrough recording are present. The
-> recording must be uploaded to Loom and its share URL inserted before sending.
+> write-up, email draft, and [9:07 Loom walkthrough](https://www.loom.com/share/8a1ad6fea24e401eaf52788d72d5a0fd)
+> are present. Recipient access to the recording must be verified before sending.
 > The latest hosted GitHub jobs were blocked before executing by the account's
 > billing/spending state; local checks are reported separately and are not
 > presented as hosted-CI evidence.
@@ -27,7 +27,7 @@ user acceptance before save, and is excluded from grounded evaluation.
 | 2 minutes | [Product and measured result](#product-and-measured-result), then [EatBetter comparison](#compared-with-eatbetter) |
 | 5 minutes | [Architecture](#architecture), [Known failures](#known-failures-measured), and [Trade-offs](#key-trade-offs) |
 | 10 minutes | Run the [keyless mobile demo](#1-keyless-mobile-demo), then inspect [evaluation](docs/evaluation.md) and [decisions](docs/decisions.md) |
-| Walkthrough | 9:07 recording complete; [timed script](docs/walkthrough.md); Loom share URL supplied with the submission email |
+| Walkthrough | [9:07 Loom recording](https://www.loom.com/share/8a1ad6fea24e401eaf52788d72d5a0fd) and [timed script](docs/walkthrough.md) |
 
 Deep dives: [architecture](docs/architecture.md), [evaluation](docs/evaluation.md),
 [EatBetter comparison](docs/comparison.md), [decisions D1–D20](docs/decisions.md),
@@ -96,8 +96,8 @@ not establish that mealog beats EatBetter overall.
 | Accuracy evaluation | Delivered | 80-sample offline replay, cuisine/tier slices, error taxonomy, regression gate |
 | Technical write-up | Delivered | README and linked architecture/evaluation/decision documents |
 | EatBetter comparison | Delivered | Concise table above and full evidence document |
-| Loom walkthrough | Recorded; upload pending | 9:07 H.264/AAC recording; [timed script](docs/walkthrough.md); share URL must be inserted before sending |
-| Email summary | Draft ready | [docs/submission_email_draft.md](docs/submission_email_draft.md), with one explicit Loom URL placeholder |
+| Loom walkthrough | Delivered | [9:07 recording](https://www.loom.com/share/8a1ad6fea24e401eaf52788d72d5a0fd) and [timed script](docs/walkthrough.md); recipient access must still be checked |
+| Email summary | Ready after access check | [docs/submission_email_draft.md](docs/submission_email_draft.md) |
 
 ## Run locally
 
@@ -292,8 +292,8 @@ and the full [error taxonomy](docs/error_taxonomy.md).
 
 - No public deployment URL and no current-release simulator or physical-device
   end-to-end claim. Existing simulator logs are historical smoke evidence.
-- The 9:07 walkthrough is recorded locally, but the final Loom share URL and
-  recipient access still need to be verified before sending.
+- The 9:07 Loom walkthrough is linked, but recipient access still needs to be
+  verified in a signed-out/private browser window before sending.
 - Latest hosted Actions jobs executed zero steps because of account
   billing/spending state. Local green checks do not substitute for hosted CI.
 - Live-provider accuracy is unmeasured; the scorecard replays fixtures recorded
