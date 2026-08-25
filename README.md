@@ -2,6 +2,8 @@
 
 mealog is a mobile-first meal logging case study: the model sees food, but never produces a calorie number.
 
+> **Core Focus (AI Accuracy):** Converting noisy, ambiguous, multi-component dining photos and informal text into **verified canonical foods + portion uncertainty intervals + un-hallucinated nutrition** ([Deep Dive in System Architecture](docs/architecture.md#3-robustness-to-messy-real-world-inputs--ambiguity-core-ai-focus)).
+
 * **System Architecture & Design:** [docs/architecture.md](docs/architecture.md)
 * **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D17)
 * **EatBetter Comparison & Benchmark:** [docs/comparison.md](docs/comparison.md)
