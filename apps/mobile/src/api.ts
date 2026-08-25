@@ -7,8 +7,8 @@ import { t } from "./strings";
 import { MealCorrection, MealLog, PendingCapture } from "./types";
 
 const defaultLocalApiUrl = Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
-const apiUrl = (process.env.EXPO_PUBLIC_API_URL || defaultLocalApiUrl).replace(/\/$/, "");
-const demoMode = process.env.EXPO_PUBLIC_DEMO_MODE === "true";
+export const apiBaseUrl = (process.env.EXPO_PUBLIC_API_URL || defaultLocalApiUrl).replace(/\/$/, "");
+const demoMode = process.env.EXPO_PUBLIC_DEMO_MODE !== "false";
 const fixtureSampleId = process.env.EXPO_PUBLIC_FIXTURE_SAMPLE_ID;
 
 export const isDemoMode = demoMode;
@@ -36,7 +36,7 @@ export async function submitMeal(capture: PendingCapture, options: SubmitOptions
     return buildDemoMeal(options.demoRetry ? "pilav" : capture.text, capture.idempotencyKey);
   }
 
-  if (!apiUrl) {
+  if (!apiBaseUrl) {
     throw new Error(t("apiUrlMissing"));
   }
 
@@ -113,7 +113,7 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
   }
 
   const userId = await getClientUserId();
-  const response = await fetch(`${apiUrl}/v1/meals/correct`, {
+  const response = await fetch(`${apiBaseUrl}/v1/meals/correct`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -133,7 +133,7 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
 
 async function submitText(capture: PendingCapture): Promise<Response> {
   const userId = await getClientUserId();
-  return fetch(`${apiUrl}/v1/meals`, {
+  return fetch(`${apiBaseUrl}/v1/meals`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -162,7 +162,7 @@ async function submitPhoto(capture: PendingCapture): Promise<Response> {
     name: fileName,
   } as unknown as Blob);
 
-  return fetch(`${apiUrl}/v1/meals`, {
+  return fetch(`${apiBaseUrl}/v1/meals`, {
     method: "POST",
     headers: {
       "X-User-Id": userId,

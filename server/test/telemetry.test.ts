@@ -15,12 +15,12 @@ describe('Telemetry & Continuous Learning Pipeline', () => {
     const event = recordTelemetryEvent(
       {
         locale: 'tr',
-        idempotency_key: 'test_idemp_swap',
+        idempotency_key: 'test-key',
         event_type: 'CANDIDATE_SWAPPED',
         input_mode: 'image',
         items: [
           {
-            original_query: 'pilav',
+            original_query: 'pilav secret@example.com 4532 1234 5678 9010',
             predicted_food_id: 'tr.pilav',
             selected_food_id: 'tr.bulgur_pilavi',
             predicted_grams: 180,
@@ -40,7 +40,9 @@ describe('Telemetry & Continuous Learning Pipeline', () => {
 
     const content = readFileSync(testTelemetryFile, 'utf8');
     const parsed = JSON.parse(content.trim()) as TelemetryEvent;
-    expect(parsed.idempotency_key).toBe('test_idemp_swap');
+    expect(parsed.request_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect('idempotency_key' in parsed).toBe(false);
+    expect(parsed.items[0].original_query).toBe('pilav [REDACTED_EMAIL] [REDACTED_CARD]');
     expect(parsed.items[0].predicted_food_id).toBe('tr.pilav');
     expect(parsed.items[0].selected_food_id).toBe('tr.bulgur_pilavi');
 

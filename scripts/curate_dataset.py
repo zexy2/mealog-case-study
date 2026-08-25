@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
-"""
-scripts/curate_dataset.py — Human-in-the-Loop (HITL) dataset curation and active learning pipeline.
+"""Prepare privacy-minimized telemetry for human review.
 
-Reads anonymized telemetry event logs (corrections, swaps, portion adjustments),
-filters noise/spam, verifies against canonical locale packs (D1/D8), and exports
-curated training sets for:
-  - FT-2 Visual Projection Adapter (Contrastive candidate pairs)
-  - FT-1 Portion Quantile Regressor (Mass distribution targets)
-  - Locale Pack Vocabulary Expansion (Discovered aliases)
+Reads local telemetry event logs, verifies selected food IDs against a locale
+pack, and emits candidate records. These outputs are not labels, training sets,
+or approved catalogue changes. A human must review them before any later use.
 
 Usage:
   python3 scripts/curate_dataset.py --input data/telemetry/events.jsonl --out-dir data/curated --report
@@ -15,8 +11,6 @@ Usage:
 
 import argparse
 import json
-import os
-import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -41,8 +35,13 @@ def load_canonical_foods(locale: str = "tr") -> set[str]:
 
 
 def curate_events(events_path: Path, out_dir: Path, locale: str = "tr") -> dict:
-    """Process raw telemetry events into curated fine-tuning datasets."""
+    """Prepare telemetry events as human-review candidates."""
+    if not events_path.is_file():
+        raise FileNotFoundError(f"telemetry input does not exist: {events_path}")
+
     valid_food_ids = load_canonical_foods(locale)
+    if not valid_food_ids:
+        raise ValueError(f"locale pack has no canonical foods: {locale}")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     ft2_path = out_dir / "ft2_vision_alignment.jsonl"
@@ -62,64 +61,19 @@ def curate_events(events_path: Path, out_dir: Path, locale: str = "tr") -> dict:
     ft1_rows = []
     discovered_aliases = defaultdict(int)
 
-    if not events_path.exists():
-        # Generate representative bootstrap events if file is empty
-        events_path.parent.mkdir(parents=True, exist_ok=True)
-        sample_events = [
-            {
-                "event_id": "evt_sample_01",
-                "timestamp": "2026-08-25T00:00:00Z",
-                "locale": "tr",
-                "idempotency_key": "sample_idemp_01",
-                "event_type": "CANDIDATE_SWAPPED",
-                "input_mode": "image",
-                "items": [
-                    {
-                        "original_query": "pilav",
-                        "predicted_food_id": "tr.pilav",
-                        "selected_food_id": "tr.bulgur_pilavi",
-                        "predicted_grams": 180,
-                        "selected_grams": 180,
-                        "delta_reason": "user_correction",
-                    }
-                ],
-                "total_kcal_before": 272,
-                "total_kcal_after": 268,
-            },
-            {
-                "event_id": "evt_sample_02",
-                "timestamp": "2026-08-25T00:01:00Z",
-                "locale": "tr",
-                "idempotency_key": "sample_idemp_02",
-                "event_type": "PORTION_ADJUSTED",
-                "input_mode": "image",
-                "items": [
-                    {
-                        "original_query": "izgara kofte",
-                        "predicted_food_id": "tr.kofte_izgara",
-                        "selected_food_id": "tr.kofte_izgara",
-                        "predicted_grams": 150,
-                        "selected_grams": 225,
-                        "delta_reason": "user_portion_increase",
-                    }
-                ],
-                "total_kcal_before": 327,
-                "total_kcal_after": 490,
-            },
-        ]
-        with open(events_path, "w", encoding="utf-8") as f:
-            for ev in sample_events:
-                f.write(json.dumps(ev) + "\n")
-
     with open(events_path, "r", encoding="utf-8") as f:
-        for line in f:
+        for line_number, line in enumerate(f, start=1):
             line = line.strip()
             if not line:
                 continue
             try:
                 event = json.loads(line)
-            except Exception:
-                continue
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"invalid JSON on telemetry line {line_number}") from exc
+
+            request_hash = event.get("request_hash")
+            if not isinstance(request_hash, str) or len(request_hash) != 64:
+                raise ValueError(f"missing or invalid request_hash on telemetry line {line_number}")
 
             stats["total_events"] += 1
             items = event.get("items", [])
@@ -142,7 +96,7 @@ def curate_events(events_path: Path, out_dir: Path, locale: str = "tr") -> dict:
                         stats["confusion_pairs"][(pred_id, sel_id)] += 1
                         ft2_rows.append(
                             {
-                                "idempotency_key": event.get("idempotency_key"),
+                                "request_hash": request_hash,
                                 "positive_food_id": sel_id,
                                 "hard_negative_food_id": pred_id,
                                 "query": query,
@@ -156,7 +110,7 @@ def curate_events(events_path: Path, out_dir: Path, locale: str = "tr") -> dict:
                         stats["portion_adjustments"] += 1
                         ft1_rows.append(
                             {
-                                "idempotency_key": event.get("idempotency_key"),
+                                "request_hash": request_hash,
                                 "food_id": sel_id,
                                 "baseline_grams": pred_g,
                                 "target_grams": sel_g,
@@ -184,16 +138,12 @@ def curate_events(events_path: Path, out_dir: Path, locale: str = "tr") -> dict:
         for q, count in sorted(discovered_aliases.items(), key=lambda x: x[1], reverse=True):
             f.write(json.dumps({"query": q, "frequency": count}, ensure_ascii=False) + "\n")
 
-    staging_photos_dir = ROOT / "data" / "telemetry" / "staging_photos"
-    staging_photos_count = len(list(staging_photos_dir.glob("*.jpg"))) if staging_photos_dir.exists() else 0
-    stats["staging_photos_count"] = staging_photos_count
-
     return stats
 
 
 def print_report(stats: dict):
     print("=" * 60)
-    print("🎯 MEALOG HITL DATASET CURATION & FLYWHEEL REPORT")
+    print("MEALOG TELEMETRY HUMAN-REVIEW CANDIDATES")
     print("=" * 60)
     print(f"Total Telemetry Events Logged : {stats['total_events']}")
     print(f"Valid Structured Events       : {stats['valid_events']}")
@@ -201,17 +151,17 @@ def print_report(stats: dict):
     print(f"Portion Adjustments (FT-1)    : {stats['portion_adjustments']}")
     print(f"Discovered Query Slang        : {stats['discovered_queries']}")
     print("-" * 60)
-    print("Top Confused Candidate Pairs (Model Predicted ➔ User Swapped):")
+    print("Top confused candidate pairs (model predicted, user selected):")
     if stats["confusion_pairs"]:
         for (pred, sel), count in stats["confusion_pairs"].most_common(5):
-            print(f"  • {pred}  ➔  {sel}  ({count} times)")
+            print(f"  {pred} -> {sel} ({count} times)")
     else:
         print("  (No confusion pairs yet)")
     print("=" * 60)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Mealog HITL Curation Pipeline")
+    parser = argparse.ArgumentParser(description="Prepare Mealog telemetry for human review")
     parser.add_argument(
         "--input",
         type=Path,
@@ -222,7 +172,7 @@ def main():
         "--out-dir",
         type=Path,
         default=ROOT / "data" / "curated",
-        help="Output directory for curated datasets",
+        help="Output directory for review candidates",
     )
     parser.add_argument("--locale", type=str, default="tr", help="Locale code")
     parser.add_argument("--report", action="store_true", help="Print report to console")

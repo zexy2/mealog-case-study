@@ -1,16 +1,20 @@
 /**
- * Telemetry and continuous learning event ingestion.
+ * Correction telemetry event ingestion.
  *
- * Captures anonymized user interactions (confirmations, candidate swaps,
- * portion edits, item deletions, and custom entries) to feed the
- * Human-in-the-Loop (HITL) curation queue and active learning flywheel.
+ * Captures privacy-minimized user interactions (confirmations, candidate
+ * swaps, portion edits, item deletions, and custom entries) for later human
+ * curation. This prototype appends local JSONL; it does not train or promote
+ * a model automatically.
  *
  * Conforms to Decision D4 (privacy/no-PII), D5 (no raw photo retention),
  * and D1/D8 (anti-hallucination closed-set guarantees).
  */
 
 import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
+
+import { sanitizePiiText } from './privacy';
 
 export const TELEMETRY_DIR = join(process.cwd(), 'data', 'telemetry');
 export const TELEMETRY_FILE = join(TELEMETRY_DIR, 'events.jsonl');
@@ -38,7 +42,7 @@ export interface TelemetryEvent {
   readonly event_id: string;
   readonly timestamp: string;
   readonly locale: string;
-  readonly idempotency_key: string;
+  readonly request_hash: string;
   readonly event_type: TelemetryEventType;
   readonly input_mode: 'image' | 'text' | 'sample_id';
   readonly items: readonly TelemetryItemDelta[];
@@ -46,17 +50,36 @@ export interface TelemetryEvent {
   readonly total_kcal_after?: number;
 }
 
+export interface TelemetryEventInput extends Omit<TelemetryEvent, 'event_id' | 'timestamp' | 'request_hash'> {
+  readonly idempotency_key: string;
+}
+
+function privacySafeText(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  return sanitizePiiText(value).slice(0, 512);
+}
+
 /**
  * Persist an anonymized telemetry event to the append-only event store.
  */
 export function recordTelemetryEvent(
-  event: Omit<TelemetryEvent, 'event_id' | 'timestamp'>,
+  event: TelemetryEventInput,
   targetFile: string = TELEMETRY_FILE,
 ): TelemetryEvent {
+  const { idempotency_key, ...eventWithoutRawKey } = event;
   const fullEvent: TelemetryEvent = {
     event_id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     timestamp: new Date().toISOString(),
-    ...event,
+    ...eventWithoutRawKey,
+    request_hash: createHash('sha256').update(idempotency_key).digest('hex'),
+    locale: privacySafeText(event.locale)?.slice(0, 32) ?? 'unknown',
+    items: event.items.map((item) => ({
+      ...item,
+      original_query: privacySafeText(item.original_query),
+      predicted_food_id: privacySafeText(item.predicted_food_id)?.slice(0, 128),
+      selected_food_id: privacySafeText(item.selected_food_id)?.slice(0, 128),
+      delta_reason: privacySafeText(item.delta_reason),
+    })),
   };
 
   try {

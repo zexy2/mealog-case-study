@@ -29,6 +29,13 @@ import { defaultRateLimiter } from './rate-limiter';
 import { Settings, settings } from '../config';
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const TELEMETRY_EVENT_TYPES = new Set<TelemetryEventType>([
+  'CONFIRMED_AS_IS',
+  'CANDIDATE_SWAPPED',
+  'PORTION_ADJUSTED',
+  'ITEM_REMOVED',
+  'CUSTOM_OVERRIDE',
+]);
 
 interface UploadedImage {
   readonly buffer: Uint8Array;
@@ -186,7 +193,10 @@ export class MealsController {
     @Body() body: unknown,
     @Headers('x-user-id') userId: string | undefined,
   ): { status: string; event_id?: string } {
-    const rateKey = userId && userId.trim() ? userId.trim() : 'telemetry-anonymous';
+    if (!userId || !userId.trim()) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'X-User-Id header is required for telemetry');
+    }
+    const rateKey = userId.trim();
     const rate = defaultRateLimiter.check(rateKey);
     if (!rate.allowed) {
       invalid(
@@ -215,14 +225,22 @@ export class MealsController {
         delta_reason: typeof it.delta_reason === 'string' ? it.delta_reason : undefined,
       }));
 
-    const eventType = typeof body.event_type === 'string'
-      ? (body.event_type as TelemetryEventType)
-      : 'CONFIRMED_AS_IS';
+    if (typeof body.event_type !== 'string' || !TELEMETRY_EVENT_TYPES.has(body.event_type as TelemetryEventType)) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'invalid telemetry event_type');
+    }
+    const eventType = body.event_type as TelemetryEventType;
     const inputMode = body.input_mode === 'text' || body.input_mode === 'sample_id'
       ? body.input_mode
       : 'image';
     const localeStr = typeof body.locale === 'string' ? body.locale : 'tr';
-    const idempotencyKeyStr = typeof body.idempotency_key === 'string' ? body.idempotency_key : 'unknown';
+    if (
+      typeof body.idempotency_key !== 'string' ||
+      body.idempotency_key.trim() === '' ||
+      body.idempotency_key.length > 256
+    ) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'invalid telemetry idempotency_key');
+    }
+    const idempotencyKeyStr = body.idempotency_key;
 
     const event = recordTelemetryEvent({
       locale: localeStr,

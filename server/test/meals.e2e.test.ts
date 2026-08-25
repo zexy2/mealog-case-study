@@ -288,6 +288,28 @@ describe('POST /v1/meals', () => {
     expect(body.detail).toMatch(/fixture replay needs image bytes or a sample_id/);
   });
 
+  it('requires user scope and a supported event type for telemetry', async () => {
+    const payload = {
+      idempotency_key: 'telemetry-contract',
+      event_type: 'CONFIRMED_AS_IS',
+      input_mode: 'text',
+      locale: 'tr',
+      items: [],
+    };
+    const missingUser = await request(app.getHttpServer())
+      .post('/v1/telemetry/events')
+      .send(payload);
+    expect(missingUser.status).toBe(422);
+    expect(missingUser.body).toEqual({ detail: 'X-User-Id header is required for telemetry' });
+
+    const invalidEvent = await request(app.getHttpServer())
+      .post('/v1/telemetry/events')
+      .set('x-user-id', 'telemetry-contract-user')
+      .send({ ...payload, event_type: 'TRAIN_MODEL_NOW' });
+    expect(invalidEvent.status).toBe(422);
+    expect(invalidEvent.body).toEqual({ detail: 'invalid telemetry event_type' });
+  });
+
   it('GDPR delete purges user meal cache and resets user rate limiter', async () => {
     const userId = 'gdpr-e2e-user';
     const key = 'gdpr-purge-key';

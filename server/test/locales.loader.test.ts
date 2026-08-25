@@ -29,6 +29,14 @@ describe('locale loader', () => {
     }
   });
 
+  it('exposes a user-facing Turkish name for the whole-egg source record', () => {
+    const egg = load('tr', PACK_ROOT).foods['tr.yumurta_tavuk'];
+
+    expect(egg.name).toBe('Tavuk yumurtası');
+    expect(egg.source).toBe('TURKOMP food code 02.01.0007');
+    expect(egg.per_100g.kcal).toBe(140);
+  });
+
   it('maps licence vocabulary and fails closed for unknown values', () => {
     expect(parse_license('public-domain')).toBe(LicenseTerm.PUBLIC_DOMAIN);
     expect(parse_license('RESTRICTED - non-commercial')).toBe(LicenseTerm.UNVERIFIED);

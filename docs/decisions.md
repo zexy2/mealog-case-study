@@ -386,3 +386,33 @@ the measured numbers do not move.
 **Constraint.** Auto-accepting a meal with a 200+ kcal uncertainty interval violates the product's trust boundary. The UI must ask the user for confirmation when the visual evidence is insufficient to count or size the food.
 
 **Cost.** The measured `AUTO_ACCEPT` rate on the offline golden set drops (to 0 on the 80 samples), increasing user friction by requiring a tap in the Review screen. This is an explicit trade-off: safety and explicit confirmation over frictionless but potentially wrong logging.
+
+---
+
+## D18 — Correction telemetry ships as a privacy-minimized local prototype, not an automated learning system
+
+**Decision.** Supersede D16's statement that no server-side telemetry endpoint
+ships. The delivered mobile client sends review events to the same configured
+API base URL as meal requests, and `POST /v1/telemetry/events` appends them to a
+process-local JSONL store. The endpoint requires `X-User-Id` for rate limiting
+but does not persist it. Before disk append, the server replaces the raw
+idempotency key with a SHA-256 request hash and redacts supported PII patterns
+from free-text fields. Photos and provider envelopes are not telemetry fields.
+The operator-run curation script is shipped; automatic training, a dietitian
+portal, shadow traffic, and model promotion are not.
+
+**Rejected.** Hard-code telemetry to mobile `localhost`; persist raw request
+keys or unredacted correction text; describe a local JSONL file and curation
+script as an enterprise lakehouse or completed active-learning flywheel.
+
+**Constraint.** Corrections are signals, not licensed nutrition ground truth.
+D1 still forbids telemetry from producing nutrients or silently changing a
+locale pack, golden label, threshold, or model. Repository documentation must
+separate shipped behavior from proposed production architecture.
+
+**Cost.** The prototype store is process-local, non-durable across container
+replacement, and unsuitable for multi-instance delivery. Because no user ID is
+stored, an individual anonymized event cannot be selected by the current GDPR
+delete endpoint. Production telemetry therefore needs authenticated
+pseudonymous ownership, retention limits, deletion semantics, durable storage,
+and explicit human curation before it can support learning claims.

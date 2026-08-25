@@ -7,7 +7,8 @@ import { Candidate, CaptureMedium, ItemClarification, MealAction, MealLog } from
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
 import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity } from "../src/reviewState";
 import { nutritionPresentationForItem } from "../src/nutritionPresentation";
-import { sendTelemetryEvent } from "../src/telemetry";
+import { sendTelemetryEvent, telemetryEventTypeForEdits } from "../src/telemetry";
+import { apiBaseUrl, getClientUserId, isDemoMode } from "../src/api";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -381,11 +382,12 @@ export function ReviewScreen({
       }
     });
 
-    const hasEdits = Object.keys(selectedCandidates).length > 0 || Object.keys(portionEdits).length > 0 || Object.keys(quantityEdits).length > 0;
-    sendTelemetryEvent("http://localhost:3000", {
+    const hasCandidateEdit = Object.keys(selectedCandidates).length > 0;
+    const hasPortionOrQuantityEdit = Object.keys(portionEdits).length > 0 || Object.keys(quantityEdits).length > 0;
+    const telemetryPayload = {
       idempotency_key: meal.idempotency_key,
       locale: meal.locale ?? "tr",
-      event_type: hasEdits ? "CANDIDATE_SWAPPED" : "CONFIRMED_AS_IS",
+      event_type: telemetryEventTypeForEdits(hasCandidateEdit, hasPortionOrQuantityEdit),
       input_mode: meal.items[0]?.capture_medium === "real_plate" ? "image" : "text",
       items: meal.items.map((it, idx) => ({
         original_query: it.query,
@@ -393,11 +395,16 @@ export function ReviewScreen({
         selected_food_id: selectedCandidates[idx] ?? it.food_id,
         predicted_grams: it.grams,
         selected_grams: portionEdits[idx] ?? it.grams,
-        delta_reason: hasEdits ? "user_mobile_review_edit" : "user_accepted_without_edit",
+        delta_reason: hasCandidateEdit || hasPortionOrQuantityEdit
+          ? "user_mobile_review_edit"
+          : "user_accepted_without_edit",
       })),
       total_kcal_before: meal.totals?.kcal,
       total_kcal_after: liveTotalKcal,
-    });
+    } as const;
+    if (!isDemoMode) {
+      void getClientUserId().then((userId) => sendTelemetryEvent(apiBaseUrl, userId, telemetryPayload));
+    }
 
     onSave();
   }
