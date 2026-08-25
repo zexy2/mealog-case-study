@@ -220,19 +220,107 @@ this provenance and licence boundary.
 
 ## 8. Visual comparison evidence boundary
 
-No competitor screenshot pair is committed to this repository. This document
-therefore does not claim that EatBetter guessed calories or miscounted a meal
-from an uncommitted image. The defensible comparison is the observable mealog
-behavior documented above: unsupported identities abstain, ambiguous counts
-route to Review, and portion uncertainty remains visible. EatBetter's public
-listing establishes its photo-first positioning, but not its internal model,
-catalogue, confidence thresholds, or behavior on mealog's fixtures.
+No competitor screenshot pair is committed to this repository. The local capture
+pack is ignored by Git because AGENTS.md forbids committing user-provided photo
+artifacts; the matrix below is therefore a local evidence index, not clean-clone
+or CI evidence. This document does not claim that EatBetter guessed calories or
+miscounted a meal from an uncommitted image. The defensible comparison is the
+observable mealog behavior documented above: unsupported identities abstain,
+ambiguous counts route to Review, and portion uncertainty remains visible.
+EatBetter's public listing establishes its photo-first positioning, but not its
+internal model, catalogue, confidence thresholds, or behavior on mealog's
+fixtures.
 
 A future side-by-side accuracy claim requires the same licensed test images,
 declared ground truth, repeated runs, and the same accept/refuse definitions for
 both products. Until that experiment exists, the comparison stays at product
 behavior and measurable mealog guarantees rather than declaring an accuracy
 winner.
+
+## 9. Local screenshot matrix: every captured test
+
+The folders contain **17 Mealog test IDs with captures** (`test01`–`test16` and
+`test18`) and **16 EatBetter pairs** (`test01`–`test16`). `test17` was skipped;
+there is no screenshot pair for it. Links below resolve only in the working copy
+that contains the ignored `docs/benchmark_photos/` directory. They are included
+to make the capture order auditable, not to turn screenshots into a benchmark
+label or a new metric.
+
+| Test | Mealog capture(s) | EatBetter capture(s) | What the local Mealog screen visibly records |
+|---|---|---|---|
+| 01 | [M01](benchmark_photos/testler/checkresimleri/mealog/test01_01_kontrol_3_eslesme.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test01_02_simit_porsiyon_secimi.png), [M03](benchmark_photos/testler/checkresimleri/mealog/test01_03_cay_ve_zeytin_eslestirme.png), [M04](benchmark_photos/testler/checkresimleri/mealog/test01_04_zeytin_ve_peynir_detayi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test01_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test01_02_eatbetter_alt.jpeg) | Three matches; simit portion selection; tea/olive and olive/cheese detail screens. |
+| 02 | [M01](benchmark_photos/testler/checkresimleri/mealog/test02_01_kontrol_2_porsiyon_belirsizligi.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test02_02_kofte_pilav_salata_detayi.png), [M03](benchmark_photos/testler/checkresimleri/mealog/test02_03_ayran_ve_ekmek_detayi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test02_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test02_02_eatbetter_alt.jpeg) | Two-item portion uncertainty; meatball/rice/salad and ayran/bread detail. |
+| 03 | [M01](benchmark_photos/testler/checkresimleri/mealog/test03_01_yemek_tespit_edilmedi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test03_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test03_02_eatbetter_alt.jpeg) | “Yemek veya içecek tespit edilemedi” state. |
+| 04 | [M01](benchmark_photos/testler/checkresimleri/mealog/test04_01_katalog_disi_coffee_ust.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test04_02_coffee_tahmini_onay.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test04_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test04_02_eatbetter_alt.jpeg) | Out-of-catalogue coffee path and manual estimate confirmation. |
+| 05 | [M01](benchmark_photos/testler/checkresimleri/mealog/test05_01_yemek_tespit_edilmedi_pizza.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test05_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test05_02_eatbetter_alt.jpeg) | Food-not-detected state for pizza image. |
+| 06 | [M01](benchmark_photos/testler/checkresimleri/mealog/test06_01_tavuk_yumurtasi_1_adet_70kcal.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test06_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test06_02_eatbetter_alt.jpeg) | Chicken egg, one item, 70 kcal shown. |
+| 07 | [M01](benchmark_photos/testler/checkresimleri/mealog/test07_01_kontrol_lahmacun_482kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test07_02_lahmacun_porsiyon_secimi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test07_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test07_02_eatbetter_alt.jpeg) | Lahmacun result with portion selection. |
+| 08 | [M01](benchmark_photos/testler/checkresimleri/mealog/test08_01_kontrol_4_eslesme_736kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test08_02_kofte_pilav_salata_detayi.png), [M03](benchmark_photos/testler/checkresimleri/mealog/test08_03_ekmek_ve_water_eslestirme.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test08_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test08_02_eatbetter_alt.jpeg) | Four matches; meatball/rice/salad detail; bread/water matching. |
+| 09 | [M01](benchmark_photos/testler/checkresimleri/mealog/test09_01_kontrol_5_eslesme_774kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test09_02_kuru_fasulye_pilav_yogurt_tursu_detayi.png), [M03](benchmark_photos/testler/checkresimleri/mealog/test09_03_ekmek_ve_su_eslestirme.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test09_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test09_02_eatbetter_alt.jpeg) | Five matches; beans/rice/yogurt/pickles detail; bread/water matching. |
+| 10 | [M01](benchmark_photos/testler/checkresimleri/mealog/test10_01_kontrol_ekmek_69kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test10_02_ekmek_detayi_25g.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test10_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test10_02_eatbetter_alt.jpeg) | Bread result: 69 kcal and 25 g detail. |
+| 11 | [M01](benchmark_photos/testler/checkresimleri/mealog/test11_01_yemek_tespit_edilmedi_bulanik.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test11_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test11_02_eatbetter_alt.jpeg) | Blurred-input food-not-detected state. |
+| 12 | [M01](benchmark_photos/testler/checkresimleri/mealog/test12_01_yemek_tespit_edilmedi_bos_tabak.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test12_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test12_02_eatbetter_alt.jpeg) | Empty-plate food-not-detected state. |
+| 13 | [M01](benchmark_photos/testler/checkresimleri/mealog/test13_01_tavuk_yumurtasi_3_adet_210kcal.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test13_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test13_02_eatbetter_alt.jpeg) | Three chicken eggs, 210 kcal shown. |
+| 14 | [M01](benchmark_photos/testler/checkresimleri/mealog/test14_01_simit_porsiyon_100g_329kcal.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test14_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test14_02_eatbetter_alt.jpeg) | Simit portion review: 100 g and 329 kcal shown. |
+| 15 | [M01](benchmark_photos/testler/checkresimleri/mealog/test15_01_izgara_kofte_pilav_salata_ekmek_819kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test15_02_izgara_kofte_pilav_salata_ekmek_detayi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test15_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test15_02_eatbetter_alt.jpeg) | Grilled meatball/rice/salad/bread plate, 819 kcal, with detail view. |
+| 16 | [M01](benchmark_photos/testler/checkresimleri/mealog/test16_01_yemek_tespit_edilmedi_kafe.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test16_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test16_02_eatbetter_alt.jpeg) | Cafe-scene food-not-detected state. |
+| 17 | **Skipped; no capture** | **No pair** | Deliberately absent from this local capture run. |
+| 18 | [M01](benchmark_photos/testler/checkresimleri/mealog/test18_01_yemek_tespit_edilmedi_laptop.png) | **No pair** | Laptop/screen scene rejected as non-direct food input. |
+
+### How to read this matrix
+
+The two folders are an evidence index, not a controlled accuracy experiment.
+The EatBetter files are numbered upper/lower screen captures; their existence
+does not prove an internal model decision, count reliability, calorie accuracy,
+or data-retention policy. The Mealog captions describe what its captured UI
+shows, not what a fresh provider run would return today. A defensible product
+comparison still needs identical source-image hashes, run timestamps, repeated
+runs, ground-truth labels, and a shared accept/refuse definition.
+
+## 10. Privacy, face blurring, and photo retention
+
+**What mealog actually ships.** The active edge path sanitizes JPEG, PNG, WebP,
+and GIF metadata in memory before perception, including EXIF/GPS, IPTC, comments,
+and supported text metadata. It redacts PII from text fields, keeps request image
+bytes ephemeral, and does not persist meal photos. The upload path validates
+image signatures and size before provider use. These boundaries are covered by
+the privacy tests and documented in [security.md](security.md).
+
+**Face blurring boundary.** `blurFacesInPixelArray` and
+`detectFaceRegions` exist as a pure TypeScript RGBA module with focused tests.
+They are not a claim that the current compressed JPEG HTTP path automatically
+decodes, blurs, and re-encodes every face before Gemini. D14 explicitly keeps
+pixel blurring decoupled from the live edge controller; client-side camera
+canvas processing or an asynchronous image worker is the integration path still
+needed for that guarantee. EXIF stripping is active; live provider receipt of a
+pixel-blurred face is not verified here.
+
+**Comparison boundary.** EatBetter's screenshots show its visible product
+surface only. Its face handling, biometric policy, EXIF behavior, retention,
+and training use are unknown from the public evidence available here. No
+privacy advantage is attributed to EatBetter or mealog beyond the implementation
+and test boundaries stated above.
+
+## 11. Training, correction data, and what is not learned automatically
+
+Nothing is trained in this repository. [D8](decisions.md#d8--one-component-fine-tuned-one-specified-and-not-trained)
+chooses a rented frontier VLM, while the locale adapter and Nutrition5k mass
+regressor remain specified plans. There is no checkpoint, training run, GPU-hour
+record, training spend, or held-out training result to report. The local
+screenshot pack is test evidence, not a training set.
+
+The shipped correction path is a privacy-minimized prototype: review events go
+to a process-local JSONL store, raw idempotency keys are hashed, supported PII is
+redacted, and photos/provider envelopes are not telemetry fields. The operator
+script can prepare human-review candidates; it does not create golden labels,
+change catalogue nutrition, fine-tune a model, or promote a model automatically.
+New catalogue rows require licensed source data, human nutrition curation, and
+the existing regression gates. This distinction matters: correction telemetry
+is a signal about possible errors, not ground truth.
+
+EatBetter training data, fine-tuning, catalogue construction, and retention are
+not observable in the screenshots or public listing used here. They remain
+unknown, not evidence of superiority or deficiency.
 
 ## Where EatBetter is better: catalogue coverage and long-tail breadth
 
