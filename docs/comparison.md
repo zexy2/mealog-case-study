@@ -176,12 +176,13 @@ directly; no EatBetter internal retry behavior is asserted.
 **Why it is better.** Mobile uploads can be retried after a lost response. A
 key scoped only globally can merge two users' meals; a key ignored entirely can
 duplicate one user's meal. mealog makes `(user_id, idempotency_key)` the cache
-boundary in the current reference API.
+boundary in the delivered NestJS API.
 
-**How it is measured.** `server/tests/test_idempotency.py` checks an identical
-replay pair, a multipart replay with **one pipeline call**, and a cross-user
-pair with **two distinct results**. These are deterministic request tests, not a
-claim about production-scale storage; the current reference cache is in-memory.
+**How it is measured.** `server/test/meals.e2e.test.ts` checks identical replay,
+multipart ingestion, conflicting payload rejection, rate-limit interaction, and
+a cross-user pair with **two distinct results**. These are deterministic request
+tests, not a claim about production-scale storage; the current service cache is
+in-memory.
 The optional `X-User-Id` header selects the cache namespace and defaults to
 `demo-user`; it is not an authentication mechanism. The edge exposes a liveness
 health check and the adapter has an event hook, but durable request metrics and
@@ -205,7 +206,7 @@ restricted or unknown before serving it. [D2](decisions.md#d2--a-locale-is-a-dat
 keeps market and licence variation in data, while the loader fails closed when
 commercial use is not established.
 
-**How it is measured.** The current tree has **99/99** sourced food rows in
+**How it is measured.** The current tree has **103/103** sourced food rows in
 **3** packs. `en_US` is `public-domain` and allowed in commercial mode;
 `tr` is `restricted-noncommercial` and refused; `ja_JP` is `unverified` and
 also refused. `server/tests/test_locale_packs.py` covers declared licence
@@ -217,27 +218,21 @@ invariant checker covers the pack declarations.
 The same call for `en_US` is permitted. No provider call is needed to exercise
 this provenance and licence boundary.
 
-## 8. Visual Evidence: EatBetter vs. Mealog
+## 8. Visual comparison evidence boundary
 
-**What is better.** Mealog provides a deterministic, visual-first safety workflow. We ran side-by-side tests on the same images to demonstrate how both apps handle ambiguity.
+No competitor screenshot pair is committed to this repository. This document
+therefore does not claim that EatBetter guessed calories or miscounted a meal
+from an uncommitted image. The defensible comparison is the observable mealog
+behavior documented above: unsupported identities abstain, ambiguous counts
+route to Review, and portion uncertainty remains visible. EatBetter's public
+listing establishes its photo-first positioning, but not its internal model,
+catalogue, confidence thresholds, or behavior on mealog's fixtures.
 
-**Why it matters.** An app that guesses calories on an ambiguous image creates a false sense of accuracy. Below are concrete side-by-side comparisons using the images you provided.
-
-*(Note for Zeki: Lütfen aşağıda yer alan resim placeholder'larını daha önce yüklediğin EatBetter ekran görüntüleri ve Mealog ekran görüntüleri ile değiştirin)*
-
-### Test Case 1: Uncaloried / Unknown Dish (e.g. Sushi / Mixed Plate)
-| EatBetter (Guesses wrong calories) | Mealog (Safely abstains / Asks user) |
-|---|---|
-| `![EatBetter Sushi](/absolute/path/to/eatbetter_sushi.png)` | `![Mealog Sushi](/absolute/path/to/mealog_sushi.png)` |
-
-*Observation:* EatBetter tries to estimate a calorie value without knowing the exact dish contents, while Mealog's confidence gate trips, correctly routing the user to the review screen for clarification.
-
-### Test Case 2: Portion Counting (e.g. 2 Simits)
-| EatBetter (Miscounts) | Mealog (Asks for count confirmation) |
-|---|---|
-| `![EatBetter Simit](/absolute/path/to/eatbetter_simit.png)` | `![Mealog Simit](/absolute/path/to/mealog_simit.png)` |
-
-*Observation:* As documented above, EatBetter over-counted a user-confirmed count of two. Mealog processes the image, flags occlusion/portion uncertainty (D17), and asks "Kaç adet yediniz?".
+A future side-by-side accuracy claim requires the same licensed test images,
+declared ground truth, repeated runs, and the same accept/refuse definitions for
+both products. Until that experiment exists, the comparison stays at product
+behavior and measurable mealog guarantees rather than declaring an accuracy
+winner.
 
 ## Where EatBetter is better: catalogue coverage and long-tail breadth
 
@@ -273,8 +268,8 @@ case abstains rather than charging brewed tea against dry-leaf nutrition.
 ## Evidence boundary
 
 All repository measurements above are offline and reproducible with `make eval`
-or `python eval/retrieval_eval.py` against committed fixtures and labels. Fresh
-replay at current main `fcb53d4` reports V3 **10/80 committed**, **70/80 ask**,
+or `python eval/retrieval_eval.py` against committed fixtures and labels. The
+recorded replay at commit `fcb53d4` reports V3 **10/80 committed**, **70/80 ask**,
 
 Item F1 **0.15**, FP rate **86.0%**, and **12.7% MAPE over 2/2
 calorie-eligible/scored rows**; 72 partial-truth rows remain outside that
