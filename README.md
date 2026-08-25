@@ -12,10 +12,10 @@ abstains instead of silently saving the nearest guess.
 [EatBetter comparison](#compared-with-eatbetter) · [Architecture](#architecture)
 
 <p align="center">
-  <img src="docs/assets/readme-live-review.png" width="360" alt="Mealog live Gemini result held in Review because two food and portion decisions remain unresolved">
+  <img src="docs/assets/readme-live-review.gif" width="360" alt="Mealog live Gemini flow from photo selection through Review and Day save">
 </p>
 
-<p align="center"><sub>Live Gemini · iOS Simulator · one observed run. Unresolved items remain in Review; this is integration evidence, not an accuracy benchmark.</sub></p>
+<p align="center"><sub>Live Gemini 3.1 Flash-Lite · iOS Simulator · one observed run · playback accelerated 2.5×. Integration evidence, not an accuracy benchmark.</sub></p>
 
 ## Run locally
 
