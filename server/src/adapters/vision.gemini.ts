@@ -26,8 +26,8 @@ import type { CaptureMedium, CountOrigin, PerceivedItem } from '../domain/models
 import { makePerceivedItem } from '../domain/models';
 
 export const PROMPT_VERSION = 'p4';
-export const DEFAULT_MODEL = 'gemini-3.5-flash';
-export const SECONDARY_MODEL = 'gemini-3.7-flash';
+export const DEFAULT_MODEL = 'gemini-3.6-flash';
+export const SECONDARY_MODEL = 'gemini-flash-latest';
 export const MODEL_ENV_VAR = 'GEMINI_MODEL';
 export const REQUEST_INTERVAL_SECONDS = 4.0;
 export const API_ROOT = 'https://generativelanguage.googleapis.com/v1beta';
