@@ -19,7 +19,7 @@ folder-by-folder code tour.
 | 2:50–4:00 | One architecture diagram and the server-action routing table | Node/Nest boundary on screen |
 | 4:00–5:20 | The model mistake that changed the design; closed-set nutrition and worst-cuisine measurement | D1/D3 and one short code boundary |
 | 5:20–6:00 | EatBetter comparison, bounded to observed public surfaces | Visibility of uncertainty, not accuracy |
-| 6:00–6:55 | Offline scorecard, ablation, retrieval, and regression guard | Scorecard SHA `bfb1703b…` |
+| 6:00–6:55 | Offline scorecard, ablation, retrieval, and regression guard | Fresh scorecard from the recording commit |
 | 6:55–7:30 | Security and privacy | Request boundary and CI guard |
 | 7:30–8:10 | Limitations, exact calorie denominator, and the open photo-count defect | `n=80` scorecard plus #218 status |
 | 8:10–8:40 | Error/empty states and next steps | Close on the honest state, not a success animation |
@@ -62,7 +62,7 @@ tree or read a scorecard in this opening.
 ### 0:40–2:20 — Capture, loading, result, and auditability
 
 **Picture:** Choose a photo or enter a meal description, then show the loading
-state, the result, and the expanded **“Nasıl bulundu?”** panel.
+state and result. Tap **“Nasıl bulundu?”** to expand the optional audit details.
 
 **Say:**
 
@@ -81,12 +81,13 @@ state, the result, and the expanded **“Nasıl bulundu?”** panel.
 > auto-accepts. A `503` is an error-with-retry state ("Sağlayıcıya ulaşılamadı. Taslağın güvende."), not a meal result.
 >
 > Review shows a band, never a single asserted mass: **“yaklaşık [gram] g
-> ([alt]–[üst] g)”**. The **“Nasıl bulundu?”** panel is open and shows the
+> ([alt]–[üst] g)”**. I open **“Nasıl bulundu?”** when I want the technical
+> audit trace: it shows the
 > `food_id`, catalogue source, confidence, portion source, provenance, and
 > p10–p90 evidence.
 
-**On-screen proof:** loading copy, one result with its portion band, the open
-audit panel, and the action transition. Do not show raw JSON.
+**On-screen proof:** loading copy, one result with its portion band, the tap that
+opens the audit panel, and the action transition. Do not show raw JSON.
 
 ### 2:20–2:50 — Live out-of-catalogue abstention and fallback logging
 
@@ -183,8 +184,8 @@ Do not show an inferred competitor architecture or claim an accuracy winner.
 
 ### 6:00–6:55 — Evaluation, ablation, and the regression guard
 
-**Picture:** The scorecard, retrieval table, and CI regression check. Keep the
-scorecard hash visible: `bfb1703b…`.
+**Picture:** The scorecard, retrieval table, and CI regression check. Generate
+the scorecard from the recording commit and keep its SHA-256 visible.
 
 **Say:**
 
@@ -258,8 +259,8 @@ abstention screen as the closing frame.
 > dene”**. A `503` is not a first-class answer: it preserves the draft, creates no record, and lets the user retry. An empty day says
 > **“Henüz bir öğün yok.”** and gives one next action.
 >
-> Record this 8:40 run from the current commit, and send the submission with the scorecard hash.
-> denominators. End on the abstention: useful because it shows evidence, safe
+> Record this 8:40 run from the current commit, and send the submission with the
+> scorecard hash and stated denominators. End on the abstention: useful because it shows evidence, safe
 > because it can say no.
 
 **On-screen proof:** retry button, empty state, and the deliberate abstention.
@@ -268,15 +269,16 @@ Do not end on a fabricated success state.
 ## Final edit checklist
 
 - [ ] Rehearse from a clean checkout after code freeze.
-- [ ] Re-check `bfb1703b…`, every scorecard figure, and every denominator against
-      the recording commit.
+- [ ] Regenerate the scorecard from the recording commit; verify its SHA-256,
+      every figure, and every denominator before recording.
 - [ ] Keep the 2:20–2:50 live abstention in the final cut; use and label the
       fixture fallback only if the live shot cannot run.
 - [ ] Confirm the server action, not a local guess, controls every screen.
 - [ ] Confirm degraded results show Review and never auto-accept.
 - [ ] Confirm the portion is always spoken and shown as a band.
-- [ ] Confirm the **Still open** #218 sentence remains unless the conditional
-      merge and live re-run are both verified before recording.
+- [ ] Confirm the current #218 count-clarification behavior and issue status;
+      do not call it fixed without merged and runtime evidence from the
+      recording commit.
 - [ ] Confirm no API key, personal photo, personal identifier, or raw provider
       payload appears in the recording.
 - [ ] Confirm the full script is at or under 9:00.

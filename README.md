@@ -73,11 +73,11 @@ delivered HTTP API.
 
 | Brief requirement | Status | Evidence or reason |
 | --- | --- | --- |
-| Mobile app, not a web app | Delivered | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection, EXIF stripping, iOS Simulator and Expo Go verified. |
+| Mobile app, not a web app | Delivered; runtime evidence is local | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection, EXIF stripping, iOS Simulator and Expo Go verified. Repository CI can prove typecheck and bundle export, not device execution. |
 | Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 299 tests passing across 25 files. |
 | Technical write-up | Delivered | Comprehensive architecture documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D17), and [docs/comparison.md](docs/comparison.md). |
-| Walkthrough video | Delivered | 5–10 minute Loom walkthrough video with accompanying script in [docs/walkthrough.md](docs/walkthrough.md). |
-| Email summary | Delivered | Concise executive summary delivered in submission email. |
+| Walkthrough video | Pending recording | Timed 5–10 minute script is ready in [docs/walkthrough.md](docs/walkthrough.md); no Loom URL is claimed until the recording exists. |
+| Email summary | Draft ready | [Submission email draft](docs/submission_email_draft.md) is prepared but must receive the recorded Loom URL before sending. |
 | Explicit EatBetter comparison | Delivered | Evidence-backed comparison and benchmark report documented in [docs/comparison.md](docs/comparison.md). |
 | AI / LLM path | Delivered | Hybrid rules + retrieval + LLM approach with closed-set resolution, confidence routing, and deterministic nutrition guarantee. |
 
@@ -228,4 +228,3 @@ conflict with those constraints.
 * **Human Override:** 
   1. Enforced strict prompt instructions requiring `count: null` on occluded/stacked food instances to force explicit uncertainty intervals (`grams_p10`–`grams_p90`).
   2. Appended negative aliases in `locale_packs/tr/aliases.jsonl` for cooked dishes (`"haşlanmış makarna"`, `"haşlanmış bulgur"`) to force `ABSTAIN` / user review instead of silently accepting dry raw ingredient nutrition.
-

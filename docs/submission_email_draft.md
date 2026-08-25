@@ -1,4 +1,8 @@
-# Case Study Submission Email Draft ✉️
+# Case Study submission email draft
+
+> **Do not send yet:** record the walkthrough, replace the pending Loom line
+> below with its real URL, rotate the exposed provider credential, and confirm
+> hosted CI is green.
 
 **To:** `hello@eatbetter.app`  
 **Subject:** Full Stack Developer Case Study Submission — mealog / Zeki  
@@ -15,7 +19,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 
 ### 🔗 Submission Links
 * **GitHub Repository:** https://github.com/zexy2/mealog-case-study
-* **Loom Walkthrough Video (5–10 min):** [Loom Video Link Here]
+* **Loom Walkthrough Video (5–10 min):** Pending recording — insert the real URL before sending
 * **Architecture Decisions (D1–D17):** [docs/decisions.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/decisions.md)
 * **Continuous Learning & HITL Data Flywheel:** [docs/data_flywheel_and_hitl_architecture.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/data_flywheel_and_hitl_architecture.md)
 * **EatBetter Comparison & Benchmark:** [docs/comparison.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/comparison.md)
@@ -38,7 +42,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 
 3. **Testing & CI Quality Gates:**
    - **299 Node.js / Vitest tests across 25 files** covering edge controllers, adapters, rate limiter, and privacy pipeline.
-   - **289 Python parity tests** for reference normalization, retrieval, and nutrition arithmetic.
+   - **Offline Python parity and regression suite** for reference normalization, retrieval, and nutrition arithmetic.
    - **80 recorded golden-set fixtures** with regression guard in GitHub Actions CI (`make check`).
 
 ---
@@ -60,5 +64,4 @@ Thank you for reviewing my case study. I look forward to your feedback and discu
 
 Best regards,  
 **Zeki**
-
 
