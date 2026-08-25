@@ -2,6 +2,7 @@
 
 mealog is a mobile-first meal logging case study: the model sees food, but never produces a calorie number.
 
+* **System Architecture & Design:** [docs/architecture.md](docs/architecture.md)
 * **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D17)
 * **EatBetter Comparison & Benchmark:** [docs/comparison.md](docs/comparison.md)
 * **Continuous Learning & HITL Flywheel:** [docs/data_flywheel_and_hitl_architecture.md](docs/data_flywheel_and_hitl_architecture.md)
@@ -102,6 +103,8 @@ pure core stages stay framework-independent so parity tests can compare ports
 against the Python reference. The Python harness remains research tooling for
 fixtures, golden labels, and offline evaluation. It is not presented as the
 delivered API.
+
+For detailed sequence diagrams, security boundaries, and continuous learning topologies, see the comprehensive [System Architecture Specification](docs/architecture.md).
 
 ## Key decisions
 
