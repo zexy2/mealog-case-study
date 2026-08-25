@@ -11,71 +11,11 @@ abstains instead of silently saving the nearest guess.
 · [Run locally](#run-locally) · [Evaluation](docs/evaluation.md) ·
 [EatBetter comparison](#compared-with-eatbetter) · [Architecture](#architecture)
 
-## Product thesis
+<p align="center">
+  <img src="docs/assets/readme-live-review.png" width="360" alt="Mealog live Gemini result held in Review because two food and portion decisions remain unresolved">
+</p>
 
-Most meal loggers optimize for a complete-looking answer. Mealog optimizes for
-knowing when that answer is unsupported:
-
-- **Closed-set identity:** grounded nutrition requires a catalogue `food_id`;
-  otherwise resolution returns `ABSTAIN`.
-- **Visible uncertainty:** portions are shown as grams plus p10–p90, with source
-  and provenance—not as a hidden point estimate.
-- **Human control:** server actions route a result to Day, Review, abstention,
-  or retry. The mobile client does not infer acceptance locally.
-
-The implementation uses a hybrid path: Gemini (or a deterministic fixture)
-extracts observations; pure TypeScript stages normalize, retrieve, resolve,
-estimate portions, compute grounded nutrition, and route the result. A separate
-LLM estimate lane exists only after a catalogue miss. Its output is labelled
-unverified, carries ranges and assumptions, is never auto-accepted, requires
-explicit user acceptance, and is excluded from grounded evaluation.
-
-## Evidence snapshot
-
-The current offline V3 replay uses **80 recorded, non-synthetic provider
-responses** and matching labels:
-
-- **10/80 commit, 70/80 ask:** 12% grounded coverage.
-- **Item F1 0.15; FP rate 86.0%:** the current identity layer is not accurate
-  enough for broad automatic logging.
-- **Calorie MAPE 12.7% on 2/2 rows:** too small a denominator for a general
-  calorie-accuracy claim.
-- **Hosted CI green:** [main run #32884235704](https://github.com/zexy2/mealog-case-study/actions/runs/32884235704)
-  passed server, mobile, offline evaluation, invariant, status, and history
-  gates on GitHub-hosted runners.
-
-`ask` is a safe routing outcome, not a claim that every deferred candidate was
-correct. The FP metric includes unsupported proposed items even when the system
-defers them; it is not an 86% silent-commit rate. These are fixture-replay
-results, not live-provider accuracy. The fixtures were recorded with
-`gemini-flash-lite-latest`; they do not measure the live adapter default,
-`gemini-3.6-flash`. Full cuisine slices, denominators, metric definitions, and
-error taxonomy are in [docs/evaluation.md](docs/evaluation.md).
-
-For a fast review, read the result and comparison, then run the keyless demo.
-Deep dives: [evaluation](docs/evaluation.md), [decisions D1–D20](docs/decisions.md), and the
-[bounded HITL/data-flywheel design](docs/data_flywheel_and_hitl_architecture.md).
-
-## Compared with EatBetter
-
-This is an observed-product comparison, not a controlled accuracy benchmark.
-It is limited to Mealog's demonstrated behavior and EatBetter's public
-positioning and observed public product surfaces. It makes no claim about
-EatBetter's internal model, catalogue, thresholds, storage, or retry design.
-
-| What is better | Why | How measured | Concrete example or failure |
-| --- | --- | --- | --- |
-| Closed-set `food_id` or `ABSTAIN` | Prevents invented IDs from becoming authoritative nutrition; it does not prevent perception or wrong-match errors | 145 retrieval variants; 122/122 positive Recall@1 and 0/22 absent-food false accepts | `baked beans` must not become `tr.kuru_fasulye` |
-| Visible abstention | A wrong complete-looking log is harder to notice than a deferral | V3 reports coverage beside errors: 10/80 commit, 70/80 ask | `jp_0002` returns three abstentions for foods absent from `ja_JP` |
-| p10–p90 portion uncertainty | Portion error directly changes calorie error | Portion tests cover count, density, label serving, fallback, and provenance | Packaged yogurt shows 170 g with a 153–187 g band and label provenance |
-| Worst-cuisine reporting | A mean can hide an unusable market | Every cuisine reports n, coverage, Item F1, MAPE, and FP rate | South Asian: n=16, 0% coverage, Item F1 0.00 |
-| Auditable result | Identity, alternatives, confidence, grams, source, and provenance can be challenged before save | Typed response contract plus focused API/mobile tests | Review exposes canonical ID, ranked candidates, portion source, and uncertainty |
-| User-scoped idempotency | Retries do not duplicate one user's meal or collide across users | E2E tests replay the same key and reuse it across two users | Same user/key replays one result; another user executes independently |
-| Licence enforcement | Nutrition-data rights are checked at pack load | 103/103 food rows have a source; all three packs declare a licence status | Commercial mode rejects restricted or unverified packs |
-| **EatBetter: catalogue and long-tail breadth** | Mealog's safety boundary creates correction friction outside 103 foods | Mealog measures its own catalogue and abstention; an equivalent public EatBetter count is unavailable | The Turkish pack misses common long-tail dishes; abstention is safer but less convenient |
-
-Full evidence and caveats: [docs/comparison.md](docs/comparison.md). This does
-not establish that Mealog beats EatBetter overall.
+<p align="center"><sub>Live Gemini · iOS Simulator · one observed run. Unresolved items remain in Review; this is integration evidence, not an accuracy benchmark.</sub></p>
 
 ## Run locally
 
@@ -191,6 +131,89 @@ make check
 `make check` is the offline Python/reference gate; it does not replace Node or
 mobile checks.
 
+## What I built against the brief
+
+| Brief requirement | Status | Reviewer evidence |
+| --- | --- | --- |
+| Working mobile app, not a web substitute | Done | Expo/React Native client; keyless demo above and iOS/Android bundle gates in CI |
+| Node.js/TypeScript backend | Done | NestJS edge plus framework-free TypeScript pipeline stages |
+| End-to-end meal logging | Done with measured limits | Photo/text input, canonical resolution, portion review, correction, save and Day audit |
+| One AI path taken deeply | Done | Hybrid Gemini + retrieval + rules + catalogue nutrition; alternatives and costs are recorded below |
+| Accuracy evaluation and failure taxonomy | Done | Reproducible 80-sample replay, cuisine slices, coverage, Item F1, FP rate and MAPE denominators |
+| Hallucination reduction and human control | Done with coverage cost | Closed-set `food_id`/`ABSTAIN`, server action routing, p10–p90 ranges and explicit review |
+| Explicit EatBetter comparison | Done, qualitative boundary stated | Four-part comparison below, full caveats in `docs/comparison.md`, and optional visual deck supplied with submission |
+| Short technical write-up and walkthrough | Done | This README and the linked 9:07 Loom video |
+
+The current limits are part of the result, not hidden work: no public backend
+deployment, no broad live-provider accuracy claim, and no trained checkpoint.
+See [Remaining limitations](#remaining-limitations).
+
+## Product thesis
+
+Most meal loggers optimize for a complete-looking answer. Mealog optimizes for
+knowing when that answer is unsupported:
+
+- **Closed-set identity:** grounded nutrition requires a catalogue `food_id`;
+  otherwise resolution returns `ABSTAIN`.
+- **Visible uncertainty:** portions are shown as grams plus p10–p90, with source
+  and provenance—not as a hidden point estimate.
+- **Human control:** server actions route a result to Day, Review, abstention,
+  or retry. The mobile client does not infer acceptance locally.
+
+The implementation uses a hybrid path: Gemini (or a deterministic fixture)
+extracts observations; pure TypeScript stages normalize, retrieve, resolve,
+estimate portions, compute grounded nutrition, and route the result. A separate
+LLM estimate lane exists only after a catalogue miss. Its output is labelled
+unverified, carries ranges and assumptions, is never auto-accepted, requires
+explicit user acceptance, and is excluded from grounded evaluation.
+
+## Evidence snapshot
+
+The current offline V3 replay uses **80 recorded, non-synthetic provider
+responses** and matching labels:
+
+- **10/80 commit, 70/80 ask:** 12% grounded coverage.
+- **Item F1 0.15; FP rate 86.0%:** the current identity layer is not accurate
+  enough for broad automatic logging.
+- **Calorie MAPE 12.7% on 2/2 rows:** too small a denominator for a general
+  calorie-accuracy claim.
+- **Hosted CI green:** [main run #32884235704](https://github.com/zexy2/mealog-case-study/actions/runs/32884235704)
+  passed server, mobile, offline evaluation, invariant, status, and history
+  gates on GitHub-hosted runners.
+
+`ask` is a safe routing outcome, not a claim that every deferred candidate was
+correct. The FP metric includes unsupported proposed items even when the system
+defers them; it is not an 86% silent-commit rate. These are fixture-replay
+results, not live-provider accuracy. The fixtures were recorded with
+`gemini-flash-lite-latest`; they do not measure the live adapter default,
+`gemini-3.6-flash`. Full cuisine slices, denominators, metric definitions, and
+error taxonomy are in [docs/evaluation.md](docs/evaluation.md).
+
+For a fast review, read the result and comparison, then run the keyless demo.
+Deep dives: [evaluation](docs/evaluation.md), [decisions D1–D20](docs/decisions.md), and the
+[bounded HITL/data-flywheel design](docs/data_flywheel_and_hitl_architecture.md).
+
+## Compared with EatBetter
+
+This is an observed-product comparison, not a controlled accuracy benchmark.
+It is limited to Mealog's demonstrated behavior and EatBetter's public
+positioning and observed public product surfaces. It makes no claim about
+EatBetter's internal model, catalogue, thresholds, storage, or retry design.
+
+| What is better | Why | How measured | Concrete example or failure |
+| --- | --- | --- | --- |
+| Closed-set `food_id` or `ABSTAIN` | Prevents invented IDs from becoming authoritative nutrition; it does not prevent perception or wrong-match errors | 145 retrieval variants; 122/122 positive Recall@1 and 0/22 absent-food false accepts | `baked beans` must not become `tr.kuru_fasulye` |
+| Visible abstention | A wrong complete-looking log is harder to notice than a deferral | V3 reports coverage beside errors: 10/80 commit, 70/80 ask | `jp_0002` returns three abstentions for foods absent from `ja_JP` |
+| p10–p90 portion uncertainty | Portion error directly changes calorie error | Portion tests cover count, density, label serving, fallback, and provenance | Packaged yogurt shows 170 g with a 153–187 g band and label provenance |
+| Worst-cuisine reporting | A mean can hide an unusable market | Every cuisine reports n, coverage, Item F1, MAPE, and FP rate | South Asian: n=16, 0% coverage, Item F1 0.00 |
+| Auditable result | Identity, alternatives, confidence, grams, source, and provenance can be challenged before save | Typed response contract plus focused API/mobile tests | Review exposes canonical ID, ranked candidates, portion source, and uncertainty |
+| User-scoped idempotency | Retries do not duplicate one user's meal or collide across users | E2E tests replay the same key and reuse it across two users | Same user/key replays one result; another user executes independently |
+| Licence enforcement | Nutrition-data rights are checked at pack load | 103/103 food rows have a source; all three packs declare a licence status | Commercial mode rejects restricted or unverified packs |
+| **EatBetter: catalogue and long-tail breadth** | Mealog's safety boundary creates correction friction outside 103 foods | Mealog measures its own catalogue and abstention; an equivalent public EatBetter count is unavailable | The Turkish pack misses common long-tail dishes; abstention is safer but less convenient |
+
+Full evidence and caveats: [docs/comparison.md](docs/comparison.md). This does
+not establish that Mealog beats EatBetter overall.
+
 ## Architecture
 
 ```mermaid
@@ -268,9 +291,10 @@ those foods. See [the error taxonomy](docs/evaluation.md#error-taxonomy).
   Production needs signed identity, durable consent, retention, and deletion.
 - API keys stay server-side. No key, `.env`, or user photo belongs in Git.
 
-This public repository is a noncommercial case-study. It does **not** grant one
-blanket licence over software and third-party nutrition data. Read
-[THIRD_PARTY_DATA.md](THIRD_PARTY_DATA.md) before reuse.
+Original Mealog software and documentation are MIT-licensed under
+[LICENSE](LICENSE). This public repository is a noncommercial case study, and
+the software licence does **not** grant rights to third-party nutrition data.
+Read [THIRD_PARTY_DATA.md](THIRD_PARTY_DATA.md) before reuse.
 
 - Turkish values use required visible attribution to
   [TürKomp, Ulusal Gıda Kompozisyon Veri Tabanı, version 1.0](https://turkomp.tarimorman.gov.tr/)
