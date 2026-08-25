@@ -86,29 +86,52 @@ delivered HTTP API.
 
 ## Architecture
 
-```text
-photo or text
-     |
-perception -> normalize -> retrieve -> resolve -> portion -> nutrition -> gate
-     |                                             |
-  evidence                                   food_id or ABSTAIN
+```mermaid
+flowchart LR
+    subgraph Ingress[" 📸 Ingress Layer "]
+        A["🍽️ Photo or Text\n(Multi-item Input)"] --> B["🔍 Perception\n(Gemini / Fixture)"]
+    end
+
+    subgraph CorePipeline[" ⚙️ Pure TypeScript Deterministic Pipeline "]
+        B --> C["🔤 Normalize\n(Diacritics & Units)"]
+        C --> D["🔎 Retrieval\n(TF-IDF N-grams)"]
+        D --> E["🎯 Resolution\n(Closed-Set ID / ABSTAIN)"]
+        E --> F["⚖️ Portion\n(p10–p90 Band)"]
+        F --> G["🧪 Nutrition\n(TÜRKOMP / USDA)"]
+    end
+
+    subgraph TrustGate[" 🛡️ Trust & Routing Gate "]
+        G --> H{"🚦 Confidence Gate\n(Score ≥ 0.85?)"}
+        H -->|"High Confidence"| I["✅ Commit (Day)"]
+        H -->|"Ambiguous / Occluded"| J["⚠️ Review / Clarify"]
+        H -->|"Out of Catalogue"| K["🛑 Safe ABSTAIN"]
+    end
+
+    style Ingress fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style CorePipeline fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#fff
+    style TrustGate fill:#1e1e2e,stroke:#f59e0b,stroke-width:2px,color:#fff
+    style G fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#a7f3d0
+    style I fill:#064e3b,stroke:#22c55e,stroke-width:1px,color:#bbf7d0
+    style J fill:#78350f,stroke:#f59e0b,stroke-width:1px,color:#fef3c7
+    style K fill:#7f1d1d,stroke:#ef4444,stroke-width:1px,color:#fecaca
 ```
 
-Perception may return observed food descriptions and uncertainty. Normalize
-makes text comparable across spelling, diacritics, and locale. Retrieval
-proposes catalogue candidates. Resolve accepts only a catalogue `food_id` or
-`ABSTAIN`; it never emits free text. Portion estimates serving size while
-retaining uncertainty. Nutrition is the only stage allowed to produce nutrient
-numbers, using locale-pack data rather than model prose. The final gate decides
-whether to save, ask for review, or abstain.
+### Pipeline Stages & Guarantees
 
-The delivered service is Node.js / TypeScript. NestJS owns the edge boundary;
-pure core stages stay framework-independent so parity tests can compare ports
-against the Python reference. The Python harness remains research tooling for
-fixtures, golden labels, and offline evaluation. It is not presented as the
-delivered API.
+| Stage | Responsibility | Boundary & Invariant Guarantee |
+|---|---|---|
+| **1. Perception** | Visual extraction & multi-item disaggregation | `VisionPort` returns candidate text observations and bounding signals; **never** nutrient numbers. |
+| **2. Normalize** | Text, diacritic, and unit cleaning | Normalizes Turkish/Japanese characters and converts colloquial measures (`"2 dilim"` $\rightarrow$ `slice`). |
+| **3. Retrieval** | Candidate proposal via in-house TF-IDF | Word 1–2 & Char 3–5 n-grams scored as IDF-weighted asymmetric coverage over canonical documents. |
+| **4. Resolution** | Closed-set ID mapping or safe abstention | Returns only a verified catalogue `food_id` or `ABSTAIN` (eliminates free-text LLM hallucination). |
+| **5. Portion** | Serving mass estimation with uncertainty | Computes `(grams, p10, p90)` interval based on physical food density and visual item count. |
+| **6. Nutrition** | Pure deterministic nutrient arithmetic | **D1 Invariant:** The *only* stage allowed to compute calories/macros from verified laboratory rows. |
+| **7. Decision Gate** | Multi-factor confidence routing | Routes entries to `commit` ($\ge 0.85$), `review` (uncertain portion/food), or `ask` (safe abstention). |
 
-For detailed sequence diagrams, security boundaries, and continuous learning topologies, see the comprehensive [System Architecture Specification](docs/architecture.md).
+> [!NOTE]
+> **Runtime Separation:** The delivered production API is **Node.js / TypeScript (NestJS Edge)** with framework-free pure core pipeline logic. Python remains dedicated **offline research, fixture generation, and regression testing tooling** (`eval/harness.py`).
+>
+> 📖 *For comprehensive sequence diagrams, privacy sanitization flows, and the continuous learning flywheel, see the [System Architecture Specification](docs/architecture.md).*
 
 ## Key decisions
 
