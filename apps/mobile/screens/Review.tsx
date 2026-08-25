@@ -5,7 +5,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 
 import { Candidate, CaptureMedium, ItemClarification, MealAction, MealLog, UnverifiedNutritionEstimate } from "../src/types";
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
-import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity } from "../src/reviewState";
+import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity, selectableCandidates, shouldShowCandidateEditor } from "../src/reviewState";
 import { nutritionPresentationForItem } from "../src/nutritionPresentation";
 import { sendTelemetryEvent, telemetryEventTypeForEdits } from "../src/telemetry";
 import { apiBaseUrl, estimateNutritionBatch, getClientUserId, isDemoMode } from "../src/api";
@@ -166,8 +166,8 @@ function getSmartActionBannerDetails(
   // When only unmatched items exist:
   if (unmatchedItems.length > 0) {
     return {
-      title: unmatchedItems.length > 1 ? `${unmatchedItems.length} Yemek Eşleşmesi Gerekli` : "Yemek Eşleşmesi Gerekli",
-      text: `Tabaktaki ${unmatchedNames.join(", ")} için katalog eşleşmesi bulunamadı; lütfen aşağıdaki seçeneklerden eşleştirin veya yapay zeka tahminini seçin.`,
+      title: unmatchedItems.length > 1 ? `${unmatchedItems.length} Öğede Güvenli Eşleşme Yok` : "Güvenli Eşleşme Yok",
+      text: `Tabaktaki ${unmatchedNames.join(", ")} güvenli şekilde kataloğa bağlanamadı. Yanlış bir adayı seçmek zorunda değilsiniz; yemeği değiştirin, kaldırın veya doğrulanmamış AI tahminini inceleyin.`,
       unmatchedNames,
       totalPendingCount: unmatchedItems.length,
       actionType: "ask",
@@ -357,10 +357,11 @@ export function ReviewScreen({
   const hasPendingQuestions = hasUnresolvedAbstain || pendingCountItems.length > 0;
 
   const isSaveDisabled = Boolean(saving || hasUnresolvedAbstain);
+  const unresolvedChoiceHint = "Güvenli eşleşme bulunmayan öğeler var; yemeği değiştirin, kaldırın veya doğrulanmamış AI tahminini inceleyin.";
   const footerHint = hasUnresolvedAbstain && pendingCountItems.length > 0
     ? "Çözülmemiş yemek eşleşmeleri ve porsiyon seçimleri var; kaydetmeden önce aşağıdaki listeden tamamlayın."
     : hasUnresolvedAbstain
-    ? t("unresolvedAbstainHint")
+    ? unresolvedChoiceHint
     : null;
 
   const bannerDetails = getSmartActionBannerDetails(meal, selectedCandidates, quantityEdits);
@@ -368,7 +369,7 @@ export function ReviewScreen({
   function handleSave() {
     if (saving) return;
     if (hasUnresolvedAbstain) {
-      Alert.alert(t("needsMatch"), t("unresolvedAbstainHint"));
+      Alert.alert("Güvenli eşleşme yok", unresolvedChoiceHint);
       return;
     }
     meal.items.forEach((item, index) => {
@@ -655,7 +656,7 @@ export function ReviewScreen({
                     <View style={styles.modernPillsGroup}>
                       {bannerDetails.unmatchedNames && bannerDetails.unmatchedNames.length > 0 ? (
                         <View style={styles.modernPillCategoryRow}>
-                          <Text style={styles.modernPillGroupLabel}>Eşleşme:</Text>
+                          <Text style={styles.modernPillGroupLabel}>Belirsiz:</Text>
                           <View style={styles.modernItemTagsRow}>
                             {bannerDetails.unmatchedNames.map((name) => (
                               <View key={name} style={styles.modernUnmatchedTag}>
@@ -785,7 +786,7 @@ export function ReviewScreen({
 
           // Clean display name
           const displayName = isAbstain
-            ? `${item.query || "Yemek"} (Eşleşme Bekleniyor)`
+            ? `${item.query || "Yemek"} (Güvenli Eşleşme Yok)`
             : selected === "USER_CUSTOM"
             ? `${resolveSelectedName(item, selected, customInfo?.name)} (Özel)`
             : resolveSelectedName(item, selected);
@@ -794,7 +795,12 @@ export function ReviewScreen({
 
           // Portion & Candidates sub-panels:
           const shouldShowPortion = !isAbstain && Boolean(showPortionEdit[index]);
-          const shouldShowCandidates = isAbstain || Boolean(showCandidateEdit[index]);
+          const shouldShowCandidates = shouldShowCandidateEditor(
+            isAbstain,
+            Boolean(showCandidateEdit[index]),
+            customSearchIndex === index,
+          );
+          const candidateChoices = selectableCandidates(isAbstain, item.candidates);
 
           return (
             <View key={`${item.query}-${index}`} style={[styles.itemCard, isExpanded && styles.itemCardExpanded]}>
@@ -815,7 +821,7 @@ export function ReviewScreen({
                   <View style={[styles.itemHeaderSubRow, styles.statusBadgesRow]}>
                     <Text style={styles.quantityText}>
                       {isAbstain
-                        ? "Eşleşme Seçin"
+                        ? "Yanlış aday seçilmedi"
                         : !hasQuantityEdit && clarification?.kind === "count" && !(meal.items.length === 1 && item.confidence >= 0.85)
                         ? "Porsiyon Seçimi Bekleniyor"
                         : grams > 0
@@ -825,7 +831,7 @@ export function ReviewScreen({
                     {isAbstain ? (
                       <View style={[styles.confidencePillMini, styles.confidenceLow]}>
                         <Text style={[styles.confidenceTextMini, styles.confidenceTextLow]}>
-                          Eşleşme Gerekli
+                          Karar Bekliyor
                         </Text>
                       </View>
                     ) : !hasQuantityEdit && clarification?.kind === "count" && !(meal.items.length === 1 && item.confidence >= 0.85) ? (
@@ -865,7 +871,7 @@ export function ReviewScreen({
                       <View style={styles.abstainNoticeLeft}>
                         <Ionicons name="help-circle-outline" size={18} color="#8D641C" />
                         <Text style={styles.abstainCardText}>
-                          Tabaktaki "{item.query}" için aşağıdaki eşleşmelerden birini seçin:
+                          "{item.query}" için güvenli katalog eşleşmesi bulunamadı. Yanlış bir adayı seçmek zorunda değilsiniz.
                         </Text>
                       </View>
                       <Pressable
@@ -1159,15 +1165,11 @@ export function ReviewScreen({
                   {shouldShowCandidates ? (
                     <View style={styles.alternatesBlock}>
                       <Text style={styles.portionSectionLabel}>
-                        {isAbstain
-                          ? item.candidates.length > 0
-                            ? "KATALOG EŞLEŞMELERİ"
-                            : "KATALOG DIŞI SEÇENEKLER"
-                          : "BU YEMEĞİ DEĞİŞTİR / EŞLEŞTİR"}
+                        {isAbstain ? "GÜVENLİ EŞLEŞME BULUNAMADI" : "BU YEMEĞİ DEĞİŞTİR / EŞLEŞTİR"}
                       </Text>
 
                       {/* Catalogue misses stay unresolved until the user chooses a catalogue item or enters calories. */}
-                      {item.candidates.length === 0 ? (
+                      {isAbstain ? (
                         <View style={styles.aiEstimateRowCard}>
                           <View style={styles.aiEstimateRowHeader}>
                             <View style={styles.aiBadgeSmall}>
@@ -1227,7 +1229,7 @@ export function ReviewScreen({
                       ) : null}
 
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-                        {item.candidates.map((candidate) => {
+                        {candidateChoices.map((candidate) => {
                           const isSelected = selected === candidate.food_id;
                           return (
                             <Pressable key={candidate.food_id} onPress={() => onChooseCandidate(index, candidate)} style={[styles.chip, isSelected && styles.chipSelected]}>
@@ -1507,6 +1509,8 @@ export function ReviewScreen({
               ? t("saving")
               : isSaved
               ? t("saveCorrection")
+              : hasUnresolvedAbstain
+              ? "Kayıt için öğe kararlarını tamamlayın"
               : hasPendingQuestions
               ? t("saveQuestion")
               : t("saveToday")}

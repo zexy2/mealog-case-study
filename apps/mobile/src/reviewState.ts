@@ -38,3 +38,14 @@ export function computedValuesNeedServerRefresh(
   return false;
 }
 
+export function shouldShowCandidateEditor(
+  isAbstain: boolean,
+  candidateToggleOpen: boolean,
+  customSearchOpen: boolean,
+) {
+  return isAbstain || candidateToggleOpen || customSearchOpen;
+}
+
+export function selectableCandidates<T>(isAbstain: boolean, candidates: readonly T[]): readonly T[] {
+  return isAbstain ? [] : candidates;
+}
