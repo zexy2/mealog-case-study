@@ -1,379 +1,201 @@
-# mealog compared with EatBetter
+# Mealog compared with EatBetter
 
-This is a bounded comparison, not a claim that one product wins every
-dimension or beats EatBetter overall. EatBetter evidence comes only from its
+This is a bounded product comparison, not a claim that Mealog beats EatBetter
+overall. EatBetter evidence is limited to its
 [public App Store listing](https://apps.apple.com/us/app/eatbetter-ai-food-journal/id6639614109)
-and observed public product surfaces. Those surfaces show a photo-first logging
-workflow and user-facing feedback/editing; nothing here infers EatBetter's model,
-catalogue, storage, thresholds, or retry semantics.
+and directly observed public product surfaces. Nothing here infers EatBetter's
+model, catalogue, storage, confidence thresholds or retry architecture.
 
-Every comparison below uses the same four questions: what is better, why it is
-better, how it is measured, and which repository example makes the difference
-concrete.
+Each section answers four questions: what is better, why, how it is measured,
+and which repository example demonstrates it.
 
 ## 1. Closed-set resolution and `ABSTAIN`
 
-**What is better.** mealog's resolver returns a canonical catalogue `food_id`
-from retrieval candidates or returns `ABSTAIN`. It never emits a new food ID or
-a free-form nutrition answer. This is a safety property mealog can demonstrate;
-it is not a claim that EatBetter lacks an equivalent.
+**What is better.** The grounded Mealog resolver returns a canonical catalogue
+`food_id` or `ABSTAIN`; it does not generate a new food ID.
 
-**Why it is better.** [D1](decisions.md#d1--the-model-never-produces-a-nutrient-number)
-makes canonicality a boundary in code, not a prompt instruction. A food outside
-the locale pack becomes a visible miss instead of a plausible identifier. The
-cost is lower catalogue coverage.
+**Why it is better.** An unsupported dish stays visibly unresolved instead of
+quietly inheriting a plausible neighbour's nutrition. The cost is lower
+automatic coverage and more correction work.
 
-**How it is measured.** `server/tests/test_resolution_is_closed_set.py` covers
-two unknown-input cases. The offline retrieval set has **145 variants**: **122
-positive** and **23 negative/confusion** rows. Blended retrieval ranks the target
-first for **122/122 positive rows (100.0% Recall@1)**, reaches it in the top five
-for **122/122 (100.0% Recall@5)**, and records **MRR 1.000**. Its 22 deliberately
-absent rows produce **0/22 false accepts**; confusion rows are checked
-separately and must surface the neighbour while still abstaining. This is a fixed
-ambiguity guard, not a claim that the 145 variants cover every newly added
-catalogue entry; catalogue-growth evidence must name its own sample set.
+**How it is measured.** The offline retrieval set has **145 variants**: **122
+positive** and **23 negative/confusion** rows. Positive Recall@1 and Recall@5
+are **122/122 (100.0%)**, MRR is **1.000**, and deliberately absent inputs
+produce **0/22 false accepts**. Resolution tests separately assert that unknown
+inputs cannot escape the closed set.
 
-**Example.** The `baked beans` negative row forbids Turkish
-`tr.kuru_fasulye`; the resolver must abstain rather than turn a regional
-near-neighbour into a logged food. The same rule is exercised by the unknown
-`zzzz nonexistent dish` test.
+**Example.** The `baked beans` negative case must not become Turkish
+`tr.kuru_fasulye`. The nearest neighbour may be shown for review, but resolution
+abstains.
 
 ## 2. Abstention instead of silent wrong logging
 
-**What is better.** mealog asks for clarification when it cannot support a
-safe match. EatBetter's public product surface presents scan-first convenience,
-including snapping a photo for nutrition feedback; this is a deliberate safety
-trade-off against observed public workflow, not a claim about EatBetter's
-implementation.
+**What is better.** Mealog makes deferral a designed user state. EatBetter's
+public surface emphasizes photo-first logging and feedback; this comparison is
+about Mealog's demonstrable safety behavior, not an assertion that EatBetter has
+no equivalent gate.
 
-**Why it is better.** A visible deferral preserves an honest log boundary. A
-wrong food and its calories look complete while being harder to notice or
-repair. The cost is friction and lower automatic coverage.
+**Why it is better.** A wrong complete-looking log is harder to detect than a
+question. Deferral protects the saved diary at the cost of friction.
 
-**How it is measured.** The current offline V3 replay on **n=80** golden
-samples reports **12% coverage**: **10/80** samples commit and **70/80** ask.
-After the TypeScript confidence gate in merged [PR #184](https://github.com/zexy2/mealog-case-study/pull/184)
-and the scorecard refresh in merged [PR #185](https://github.com/zexy2/mealog-case-study/pull/185),
-worst/mean calorie MAPE is **12.7%** over **2/2** complete-positive rows. The
-other 72 manifest rows have partial truth and stay outside the calorie denominator;
-seven of those are covered but remain diagnostic only.
+**How it is measured.** On the current recorded **n=80** V3 replay, Mealog
+commits **10/80** meals and routes **70/80** to `ask`, for **12%** grounded
+coverage after integer formatting. `ask` includes several safe-deferral causes;
+it is not synonymous with 70 catalogue misses.
 
-**Example.** `jp_0002` contains three foods absent from the `ja_JP` pack. V3
-returns three `ABSTAIN` items and `action=ask`; it does not save a Japanese food
-chosen merely because it was the nearest available record.
+**Example.** `jp_0002` contains three foods absent from `ja_JP`; all three
+resolve to `ABSTAIN` and the meal asks instead of saving a nearest catalogue row.
 
-## 3. Portion uncertainty as p10–p90, not a hidden point
+## 3. Portion uncertainty as p10-p90
 
-**What is better.** mealog returns a median `grams` estimate together with
-`grams_p10` and `grams_p90`. Stronger evidence narrows the band; an assumed or
-unknown-density portion stays visibly wide. EatBetter's observed public product
-surface exposes feedback and editing affordances; mealog exposes the uncertainty
-before an edit rather than hiding it behind one number. No EatBetter internal
-portion method is inferred.
+**What is better.** Mealog returns `grams` with `grams_p10` and `grams_p90`,
+plus portion source and provenance, instead of presenting an unexplained point.
 
-**Why it is better.** Portion error directly changes calorie error. A band tells
-the user whether the number came from a printed serving, a catalogue prior, or a
-weak density assumption. It makes the uncertainty available to review and to
-future confidence gating.
+**Why it is better.** Portion error directly changes calories. A visible band
+shows when count, density or serving evidence is weak and gives the confidence
+gate something measurable to act on.
 
-**Observed counting cases (2026-08-22).** EatBetter was observed on both images:
-one over-count of three against a user-confirmed count of two, and one correct
-count of two. mealog was observed on the second image only, where it resolved one
-simit at **100 g / 329 kcal** — reproduced three times through the API and three
-times on a physical device at close, medium, and long framing. mealog was never
-run on the first image. One product has two data points, the other has one; no
-counting comparison can be drawn.
+**How it is measured.** Portion tests cover explicit units, known and unknown
+density, packaged serving evidence, catalogue fallback, count origin and
+provenance. The TypeScript gate uses the weaker of identity, portion and count
+confidence; missing count cannot auto-accept.
 
-**How it is measured.** `server/tests/test_portion.py` asserts the p10–p90
-contract for known density, unknown density, packaged serving evidence, and
-provenance. The Node path now preserves normalized `quantity` and `unit` on each
-resolved item. In current live E2E runs on `main`, `A2.jpg` (two stacked simits, no text)
-triggers occlusion handling, returning `quantity: null`, a standard 100 g serving
-with explicit uncertainty interval (**65–145 g**, **214–478 kcal**), and routes the meal to
-Review with an explicit count clarification question ("Kaç adet yediniz?").
-The verified `C7.jpg` repeated-observation case returns one `tr.ayran` with
-`quantity: null` and `catalogue_default`; the Part A text scenarios are **8/8** passing. `POST
-/v1/meals/correct` offers item-scoped catalogue-backed count, identity, and
-portion clarification; the server recomputes the changed item rather than trusting
-client grams or nutrients. The exact current fixture outputs are deterministic and offline.
-The current V3 calorie result is **12.7% MAPE over n=2 scored rows**; it is not a live
-provider accuracy claim.
+**Example.** `pkg_0001` uses a 170 g serving with a **153-187 g** band and Open
+Food Facts serving provenance. A catalogue-default portion remains wider and
+routes to review when its effective confidence is insufficient.
 
-**Example.** `pkg_0001` resolves to `us.yogurt_greek_plain` with `grams=170`,
-`p10=153`, `p90=187`, and `portion_source=label_serving`. The recorded serving
-provenance is `dataset=Open Food Facts; record_id=0011110107176;
-field=serving_size`. The UI therefore shows a 153–187 g band, not an
-unqualified 170 g fact.
+## 4. Worst-cuisine reporting, not only a mean
 
-## 4. Worst-cuisine reporting instead of only mean accuracy
+**What is better.** Mealog reports worst-cuisine calorie error beside the mean,
+coverage and eligible denominator.
 
-**What is better.** mealog makes the weakest cuisine bucket the headline and
-keeps coverage beside it. It does not collapse market shift into one mean. This
-is a measurement choice we can prove; it is not an assertion that EatBetter
-does not inspect its own markets.
+**Why it is better.** A strong majority bucket can hide a weak market. The worst
+bucket makes that failure visible and prevents an overall mean from becoming a
+marketing number.
 
-**Why it is better.** A mean can improve while one cuisine becomes unusable.
-[D3](decisions.md#d3--headline-metric-is-the-worst-cuisine-and-accuracy-is-read-with-coverage)
-therefore requires worst-bucket MAPE, spread, coverage, and bucket size to be
-read together.
+**How it is measured.** The V3 replay reports worst and mean calorie MAPE of
+**12.7%**, but only over **2/2 eligible and covered rows**. Item F1 is **0.15**
+and the reported false-positive rate is **86.0%** across all 80 samples. The
+small calorie denominator is part of the result, not a footnote.
 
-**How it is measured.** `eval/harness.py` emits `n`, coverage, Item F1, kcal
-MAPE, within-20%, and FP rate for every cuisine. The current V3 sample sizes are
-western **n=12**, mediterranean **n=12**, east_asian **n=16**, other_mixed
-**n=8**, south_asian **n=16**, and latin_american **n=16**. Current V3 coverage is
-**12% (10/80)**, Item F1 is **0.15**, FP rate is **86.0%**, and calorie MAPE is
-**12.7% over n=2 scored complete-positive rows**. Empty cuisine calorie buckets
-render `—`; they are not zero-error results.
+**Example.** Cuisine rows with no complete, covered calorie truth display an
+em dash rather than a fabricated zero. The current result therefore says both
+“12.7% on two rows” and “not enough evidence for broad calorie accuracy.”
 
-**Example.** In the current V3 replay, western is **33% covered on n=12** while
-east_asian is **6% covered on n=16**. A single mean would hide that the Japanese
-bucket has almost no committed V3 meals in this set, so the reviewer sees where
-catalogue coverage fails.
+## 5. Auditable identity, alternatives, confidence and mass
 
-## 5. Auditable food, source, alternatives, confidence, and grams
+**What is better.** A resolved item carries its canonical `food_id`, ranked
+candidates, identity confidence, grams and p10-p90 band, catalogue source,
+portion source and provenance.
 
-**What is better.** A mealog result carries the matched `food_id`, ranked
-`candidates`, resolver `confidence`, exact `grams`, p10–p90 grams, and portion
-provenance. The source is auditable by joining that ID to its locale-pack record
-(`CanonicalFood.source` and `pack.yaml.nutrition_source`); it is not an invented
-model citation or a claim of a durable audit database.
+**Why it is better.** The user or reviewer can challenge the identity and mass
+that produced nutrition. EatBetter's public workflow is referenced only for its
+visible scan/edit positioning; its internal result schema is unknown.
 
-**Why it is better.** A reviewer can challenge identity, alternatives, or mass
-before trusting the total. The trace shows which decision produced the number,
-while EatBetter's observed public workflow is used here only to describe its
-scan-and-feedback positioning, not its internal result schema.
+**How it is measured.** The typed `ResolvedItem` contract crosses pipeline, API
+and mobile review tests. Current locale packs contain **103/103** rows with a
+non-empty food source across three packs; pack-level licence status is checked
+separately.
 
-**How it is measured.** The fields are defined in `ResolvedItem` and rendered
-by the mobile review path. `server/tests/test_portion.py` checks that portion
-provenance reaches the resolved item, while `server/tests/test_retrieval_eval.py`
-checks candidate ranking and abstention. The current tree has **103/103** food
-rows with a non-empty food source across **3** locale packs.
-
-**Example.** The current `pkg_0001` trace is:
-
-```text
-food_id:             us.yogurt_greek_plain
-candidate score:     0.939
-confidence:          0.963
-grams:               170.0
-grams_p10..p90:      153.0..187.0
-catalogue source:    USDA SR
-portion provenance:  dataset=Open Food Facts; record_id=0011110107176; field=serving_size
-```
-
-The candidate list remains available for review; the serving evidence explains
-why this portion is narrower than a catalogue fallback. The `two pieces` evidence
-used in focused text fixtures does not prove that Gemini visually counted two
-pieces in a live image.
+**Example.** The `pkg_0001` trace resolves `us.yogurt_greek_plain` with candidate
+score **0.939**, identity confidence **0.963**, 170 g, 153-187 g, USDA catalogue
+source and `dataset=Open Food Facts; record_id=0011110107176;
+field=serving_size` portion provenance.
 
 ## 6. User-scoped idempotency
 
-**What is better.** Repeating a request with the same client-generated key
-returns the same result for that user, while the same key from another user is
-not treated as the same meal. This is a correctness property mealog measures
-directly; no EatBetter internal retry behavior is asserted.
+**What is better.** The same idempotency key replays one result for one user;
+the same key from another user is a distinct request.
 
-**Why it is better.** Mobile uploads can be retried after a lost response. A
-key scoped only globally can merge two users' meals; a key ignored entirely can
-duplicate one user's meal. mealog makes `(user_id, idempotency_key)` the cache
-boundary in the delivered NestJS API.
+**Why it is better.** Mobile retries should not duplicate a meal, while two
+users must never share cached results. This is a measured Mealog property; no
+EatBetter retry behavior is inferred.
 
-**How it is measured.** `server/test/meals.e2e.test.ts` checks identical replay,
-multipart ingestion, conflicting payload rejection, rate-limit interaction, and
-a cross-user pair with **two distinct results**. These are deterministic request
-tests, not a claim about production-scale storage; the current service cache is
-in-memory.
-The optional `X-User-Id` header selects the cache namespace and defaults to
-`demo-user`; it is not an authentication mechanism. The edge exposes a liveness
-health check and the adapter has an event hook, but durable request metrics and
-traces are not implemented. A degraded provider result is now propagated through
-the API and mobile result and forced to `review`; it cannot become `auto_accept`.
+**How it is measured.** NestJS end-to-end tests cover identical replay,
+conflicting payload rejection, multipart retry, rate-limit interaction and a
+cross-user pair. The current cache is bounded and process-local, not distributed
+production storage.
 
-**Example.** The test sends `shared-key` as `user-a` for `tr_0001` and as
-`user-b` for `tr_0002`; both requests execute and keep different bodies. A
-second multipart submission of the same image returns the first body without a
-second pipeline execution.
+**Example.** `shared-key` sent by `user-a` and `user-b` executes as two distinct
+requests. Repeating one user's identical request returns the original response
+without another pipeline execution.
 
 ## 7. Nutrition provenance and licence enforcement
 
-**What is better.** Nutrition numbers come from canonical food records with a
-declared source, and each locale pack declares a licence that the loader checks
-at runtime. This is stronger than adding a database name after calculation;
-the legal boundary is executable.
+**What is better.** Grounded nutrition comes from canonical rows with a source,
+and every locale pack declares a licence status enforced at load time.
 
-**Why it is better.** A deployment can refuse data whose commercial rights are
-restricted or unknown before serving it. [D2](decisions.md#d2--a-locale-is-a-data-pack-not-code)
-keeps market and licence variation in data, while the loader fails closed when
-commercial use is not established.
+**Why it is better.** Legal provenance is part of serving behavior, not a label
+added after calculation. Unknown or restricted rights can fail closed.
 
-**How it is measured.** The current tree has **103/103** sourced food rows in
-**3** packs. `en_US` is `public-domain` and allowed in commercial mode;
-`tr` is `restricted-noncommercial` and refused; `ja_JP` is `unverified` and
-also refused. `server/tests/test_locale_packs.py` covers declared licence
-vocabulary, runtime refusal, cache bypass, and unknown-licence failure; the
-invariant checker covers the pack declarations.
+**How it is measured.** The tree has **103/103** sourced rows in three packs.
+`en_US` is public-domain; `tr` is restricted-noncommercial; `ja_JP` is
+unverified. Commercial mode permits the first and rejects the latter two.
+Locale-pack tests cover known vocabulary, cache bypass and unknown-licence
+failure.
 
 **Example.** `load("tr", commercial_mode=True)` raises
-`RestrictedPackError` and names both the pack and `MEALOG_COMMERCIAL_MODE`.
-The same call for `en_US` is permitted. No provider call is needed to exercise
-this provenance and licence boundary.
+`RestrictedPackError`, while `en_US` loads. This test requires no provider call.
 
-## 8. Visual comparison evidence boundary
+## 8. Where EatBetter is better: catalogue and long-tail breadth
 
-No competitor screenshot pair is committed to this repository. The local capture
-pack is ignored by Git because AGENTS.md forbids committing user-provided photo
-artifacts; the matrix below is therefore a local evidence index, not clean-clone
-or CI evidence. This document does not claim that EatBetter guessed calories or
-miscounted a meal from an uncommitted image. The defensible comparison is the
-observable mealog behavior documented above: unsupported identities abstain,
-ambiguous counts route to Review, and portion uncertainty remains visible.
-EatBetter's public listing establishes its photo-first positioning, but not its
-internal model, catalogue, confidence thresholds, or behavior on mealog's
-fixtures.
+**What is better.** EatBetter's public positioning presents broad, convenient
+photo logging. Mealog has only **103 canonical foods** across three packs and
+must ask outside them. A public EatBetter catalogue count is unavailable, so no
+invented head-to-head count is presented.
 
-A future side-by-side accuracy claim requires the same licensed test images,
-declared ground truth, repeated runs, and the same accept/refuse definitions for
-both products. Until that experiment exists, the comparison stays at product
-behavior and measurable mealog guarantees rather than declaring an accuracy
-winner.
+**Why it is better.** Breadth reduces correction friction. Mealog's closed-set
+safety boundary does not compensate the user for a missing common dish.
 
-## 9. Local screenshot matrix: every captured test
+**How it is measured.** Mealog counts pack rows and reports coverage and
+false-accept behavior. The Turkish pack has **57 rows**. Direct inspection shows
+common gaps including döner, poğaça, börek, pide and kebap. Köfte is not listed
+as a gap because `tr.kofte_izgara` exists.
 
-The folders contain **17 Mealog test IDs with captures** (`test01`–`test16` and
-`test18`) and **16 EatBetter pairs** (`test01`–`test16`). `test17` was skipped;
-there is no screenshot pair for it. Links below resolve only in the working copy
-that contains the ignored `docs/benchmark_photos/` directory. They are included
-to make the capture order auditable, not to turn screenshots into a benchmark
-label or a new metric.
+**Example.** A long-tail dish absent from the pack triggers a question or the
+separate unverified estimate option. The grounded path does not silently convert
+it to the closest known food.
 
-| Test | Mealog capture(s) | EatBetter capture(s) | What the local Mealog screen visibly records |
-|---|---|---|---|
-| 01 | [M01](benchmark_photos/testler/checkresimleri/mealog/test01_01_kontrol_3_eslesme.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test01_02_simit_porsiyon_secimi.png), [M03](benchmark_photos/testler/checkresimleri/mealog/test01_03_cay_ve_zeytin_eslestirme.png), [M04](benchmark_photos/testler/checkresimleri/mealog/test01_04_zeytin_ve_peynir_detayi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test01_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test01_02_eatbetter_alt.jpeg) | Three matches; simit portion selection; tea/olive and olive/cheese detail screens. |
-| 02 | [M01](benchmark_photos/testler/checkresimleri/mealog/test02_01_kontrol_2_porsiyon_belirsizligi.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test02_02_kofte_pilav_salata_detayi.png), [M03](benchmark_photos/testler/checkresimleri/mealog/test02_03_ayran_ve_ekmek_detayi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test02_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test02_02_eatbetter_alt.jpeg) | Two-item portion uncertainty; meatball/rice/salad and ayran/bread detail. |
-| 03 | [M01](benchmark_photos/testler/checkresimleri/mealog/test03_01_yemek_tespit_edilmedi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test03_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test03_02_eatbetter_alt.jpeg) | “Yemek veya içecek tespit edilemedi” state. |
-| 04 | [M01](benchmark_photos/testler/checkresimleri/mealog/test04_01_katalog_disi_coffee_ust.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test04_02_coffee_tahmini_onay.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test04_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test04_02_eatbetter_alt.jpeg) | Out-of-catalogue coffee path and manual estimate confirmation. |
-| 05 | [M01](benchmark_photos/testler/checkresimleri/mealog/test05_01_yemek_tespit_edilmedi_pizza.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test05_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test05_02_eatbetter_alt.jpeg) | Food-not-detected state for pizza image. |
-| 06 | [M01](benchmark_photos/testler/checkresimleri/mealog/test06_01_tavuk_yumurtasi_1_adet_70kcal.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test06_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test06_02_eatbetter_alt.jpeg) | Chicken egg, one item, 70 kcal shown. |
-| 07 | [M01](benchmark_photos/testler/checkresimleri/mealog/test07_01_kontrol_lahmacun_482kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test07_02_lahmacun_porsiyon_secimi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test07_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test07_02_eatbetter_alt.jpeg) | Lahmacun result with portion selection. |
-| 08 | [M01](benchmark_photos/testler/checkresimleri/mealog/test08_01_kontrol_4_eslesme_736kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test08_02_kofte_pilav_salata_detayi.png), [M03](benchmark_photos/testler/checkresimleri/mealog/test08_03_ekmek_ve_water_eslestirme.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test08_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test08_02_eatbetter_alt.jpeg) | Four matches; meatball/rice/salad detail; bread/water matching. |
-| 09 | [M01](benchmark_photos/testler/checkresimleri/mealog/test09_01_kontrol_5_eslesme_774kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test09_02_kuru_fasulye_pilav_yogurt_tursu_detayi.png), [M03](benchmark_photos/testler/checkresimleri/mealog/test09_03_ekmek_ve_su_eslestirme.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test09_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test09_02_eatbetter_alt.jpeg) | Five matches; beans/rice/yogurt/pickles detail; bread/water matching. |
-| 10 | [M01](benchmark_photos/testler/checkresimleri/mealog/test10_01_kontrol_ekmek_69kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test10_02_ekmek_detayi_25g.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test10_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test10_02_eatbetter_alt.jpeg) | Bread result: 69 kcal and 25 g detail. |
-| 11 | [M01](benchmark_photos/testler/checkresimleri/mealog/test11_01_yemek_tespit_edilmedi_bulanik.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test11_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test11_02_eatbetter_alt.jpeg) | Blurred-input food-not-detected state. |
-| 12 | [M01](benchmark_photos/testler/checkresimleri/mealog/test12_01_yemek_tespit_edilmedi_bos_tabak.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test12_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test12_02_eatbetter_alt.jpeg) | Empty-plate food-not-detected state. |
-| 13 | [M01](benchmark_photos/testler/checkresimleri/mealog/test13_01_tavuk_yumurtasi_3_adet_210kcal.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test13_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test13_02_eatbetter_alt.jpeg) | Three chicken eggs, 210 kcal shown. |
-| 14 | [M01](benchmark_photos/testler/checkresimleri/mealog/test14_01_simit_porsiyon_100g_329kcal.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test14_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test14_02_eatbetter_alt.jpeg) | Simit portion review: 100 g and 329 kcal shown. |
-| 15 | [M01](benchmark_photos/testler/checkresimleri/mealog/test15_01_izgara_kofte_pilav_salata_ekmek_819kcal.png), [M02](benchmark_photos/testler/checkresimleri/mealog/test15_02_izgara_kofte_pilav_salata_ekmek_detayi.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test15_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test15_02_eatbetter_alt.jpeg) | Grilled meatball/rice/salad/bread plate, 819 kcal, with detail view. |
-| 16 | [M01](benchmark_photos/testler/checkresimleri/mealog/test16_01_yemek_tespit_edilmedi_kafe.png) | [üst](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test16_01_eatbetter_ust.jpeg), [alt](benchmark_photos/testler/checkresimleri/eatbettersonuclari/test16_02_eatbetter_alt.jpeg) | Cafe-scene food-not-detected state. |
-| 17 | **Skipped; no capture** | **No pair** | Deliberately absent from this local capture run. |
-| 18 | [M01](benchmark_photos/testler/checkresimleri/mealog/test18_01_yemek_tespit_edilmedi_laptop.png) | **No pair** | Laptop/screen scene rejected as non-direct food input. |
+## Additional product boundaries
 
-### How to read this matrix
+### Unverified estimate lane
 
-The two folders are an evidence index, not a controlled accuracy experiment.
-The EatBetter files are numbered upper/lower screen captures; their existence
-does not prove an internal model decision, count reliability, calorie accuracy,
-or data-retention policy. The Mealog captions describe what its captured UI
-shows, not what a fresh provider run would return today. A defensible product
-comparison still needs identical source-image hashes, run timestamps, repeated
-runs, ground-truth labels, and a shared accept/refuse definition.
+After `ABSTAIN`, D19/D20 permit a separate Gemini request for one to twenty
+unresolved items. It returns broad calorie/macro ranges and assumptions labelled
+`llm_unverified_estimate`. Generation may be automatic, but acceptance and
+saving are not. Provider or quota failure returns no hardcoded numbers. These
+estimates are excluded from the grounded metrics above and need their own
+labelled evaluation before any accuracy claim.
 
-## 10. Privacy, face blurring, and photo retention
+### Privacy and face masking
 
-**What mealog actually ships.** The active edge path sanitizes JPEG, PNG, WebP,
-and GIF metadata in memory before perception, including EXIF/GPS, IPTC, comments,
-and supported text metadata. It redacts PII from text fields, keeps request image
-bytes ephemeral, and does not persist meal photos. The upload path validates
-image signatures and size before provider use. These boundaries are covered by
-the privacy tests and documented in [security.md](security.md).
+The active edge strips supported metadata, redacts supported text PII and keeps
+meal photos ephemeral. Pixel-level face-blur utilities are tested but are not
+connected to compressed-image ingestion; visible faces may still reach the
+provider. No EatBetter privacy behavior is inferred from screenshots.
 
-**Face blurring boundary.** `blurFacesInPixelArray` and
-`detectFaceRegions` exist as a pure TypeScript RGBA module with focused tests.
-They are not a claim that the current compressed JPEG HTTP path automatically
-decodes, blurs, and re-encodes every face before Gemini. D14 explicitly keeps
-pixel blurring decoupled from the live edge controller; client-side camera
-canvas processing or an asynchronous image worker is the integration path still
-needed for that guarantee. EXIF stripping is active; live provider receipt of a
-pixel-blurred face is not verified here.
+### Correction telemetry and training
 
-**Comparison boundary.** EatBetter's screenshots show its visible product
-surface only. Its face handling, biometric policy, EXIF behavior, retention,
-and training use are unknown from the public evidence available here. No
-privacy advantage is attributed to EatBetter or mealog beyond the implementation
-and test boundaries stated above.
-
-## 11. Training, correction data, and what is not learned automatically
-
-Nothing is trained in this repository. [D8](decisions.md#d8--one-component-fine-tuned-one-specified-and-not-trained)
-chooses a rented frontier VLM, while the locale adapter and Nutrition5k mass
-regressor remain specified plans. There is no checkpoint, training run, GPU-hour
-record, training spend, or held-out training result to report. The local
-screenshot pack is test evidence, not a training set.
-
-The shipped correction path is a privacy-minimized prototype: review events go
-to a process-local JSONL store, raw idempotency keys are hashed, supported PII is
-redacted, and photos/provider envelopes are not telemetry fields. The operator
-script can prepare human-review candidates; it does not create golden labels,
-change catalogue nutrition, fine-tune a model, or promote a model automatically.
-New catalogue rows require licensed source data, human nutrition curation, and
-the existing regression gates. This distinction matters: correction telemetry
-is a signal about possible errors, not ground truth.
-
-EatBetter training data, fine-tuning, catalogue construction, and retention are
-not observable in the screenshots or public listing used here. They remain
-unknown, not evidence of superiority or deficiency.
-
-## Where EatBetter is better: catalogue coverage and long-tail breadth
-
-**What is observed.** EatBetter's public surface depicts a general photo-
-logging workflow, while mealog can accept only the **103 canonical foods** in its
-**3** locale packs and must ask or abstain outside them. This identifies
-mealog's measured coverage limit; it does not claim an EatBetter catalogue
-count or internal matching policy.
-
-The Turkish pack contains **57 foods**. Direct inspection of
-`locale_packs/tr/foods.jsonl` found no entry for **döner**, **poğaça**,
-**börek** (including **su böreği**), **köfte**, **pide**, or **kebap**. In the
-**2026-08-22** probe of ten out-of-catalogue images, all ten abstained correctly
-with **0 false accepts**; the Turkish examples were döner, poğaça, and su böreği.
-This is closed-set boundary evidence, not a new retrieval metric.
-
-**Why it matters.** A long-tail dish missing from mealog creates a question
-instead of a one-tap log. That is the real cost of the closed-set guarantee;
-preventing a wrong calorie record does not remove the coverage gap.
-
-**How it is measured.** mealog counts canonical IDs from the locale packs and
-measures retrieval on the **145-variant** set, including **23** negative or
-confusion cases, not just positive recall. A fair EatBetter head-to-head needs a
-fixed, public long-tail panel and the same coverage/false-accept definitions;
-EatBetter's public listing supplies no comparable catalogue count, so that side
-of the breadth measurement is **pending**, not guessed.
-
-**Example.** `jp_0002` produces three abstentions because its foods are absent
-from `ja_JP`; the result is honest but not broad. `çay` also demonstrates the
-trade-off: the dry-tea neighbour is surfaced for inspection, then the negative
-case abstains rather than charging brewed tea against dry-leaf nutrition.
+Review corrections can be written to a privacy-minimized, process-local JSONL
+store and prepared by an operator curation script. They do not automatically
+become labels, catalogue rows or model updates. No model is trained in this
+repository. Human verification, licence review and offline regression gates are
+required before a correction could become release evidence.
 
 ## Evidence boundary
 
-All repository measurements above are offline and reproducible with `make eval`
-or `python eval/retrieval_eval.py` against committed fixtures and labels. The
-recorded replay at commit `fcb53d4` reports V3 **10/80 committed**, **70/80 ask**,
+Repository measurements are reproducible with `make eval`,
+`python eval/retrieval_eval.py` and the committed tests. The current replay is
+**10/80 commit**, **70/80 ask**, item F1 **0.15**, FP rate **86.0%**, and
+**12.7% MAPE over 2/2 eligible and covered rows**. Retrieval is Recall@1/5
+**100.0%**, MRR **1.000**, with **0/22** false accepts on absent rows.
 
-Item F1 **0.15**, FP rate **86.0%**, and **12.7% MAPE over 2/2
-calorie-eligible/scored rows**; 72 partial-truth rows remain outside that
-denominator. Retrieval replay reports Recall@1 **100.0%**, Accept@1 **99.2%**,
-MRR **1.000**, and **0/22 false accepts**. The live iOS evidence in [PR #191](https://github.com/zexy2/mealog-case-study/pull/191)
-is separate runtime smoke evidence, not offline accuracy, visual counting proof,
-or hosted deployment proof. It reran four selected flows, not all twelve gallery
-images, and no live multi-item acceptance gate is claimed. EatBetter comparison
-remains limited to observed public surfaces; no internal metrics or architecture
-are inferred.
+No competitor screenshot pair or user photo is committed. Local presentation
+media is not clean-clone, CI or benchmark evidence, so this document contains no
+links into ignored local folders. Historical iOS smoke in
+[PR #191](https://github.com/zexy2/mealog-case-study/pull/191) is runtime evidence
+for selected flows only; it is not current-release device proof, offline
+accuracy, visual-counting accuracy or deployment proof.
 
-This document compares bounded, demonstrated properties. It does not establish
-that mealog beats EatBetter overall.
-
-For a presentation-ready English summary of the privacy boundary, correction
-telemetry, and proposed human-in-the-loop data path, see the companion
-[HITL and privacy evidence brief](hitl_data_flywheel_loom_presentation_report.html).
-It is a static report, not a Loom recording; the former speech-script section is
-intentionally omitted, and proposed production work is labelled as unshipped.
+This comparison demonstrates bounded Mealog properties and honestly names the
+coverage cost. It does not establish that Mealog beats EatBetter overall.

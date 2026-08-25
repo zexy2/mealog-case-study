@@ -1,71 +1,58 @@
-# Case Study submission email draft
+# Case study submission email draft
 
-> **Pre-send checklist:** verify the Loom link in a private window, confirm
-> repository access for the reviewers, and confirm the previously
-> exposed provider credential has been revoked. GitHub-hosted runners remain
-> blocked before execution; preserve the hosted/self-hosted distinction below.
+> Pre-send: open the public repository and Loom link in a private window, check
+> the latest GitHub Actions run, and confirm every development credential has
+> been revoked or rotated. Sending and receipt cannot be verified from Git.
 
 **To:** `hello@eatbetter.app`  
-**Subject:** Full Stack Developer Case Study Submission — mealog / Zeki  
+**Subject:** Full Stack Developer case study — Mealog / Zeki Akgül
 
----
+Hi EatBetter team,
 
-Hi EatBetter Team,
+I’m submitting Mealog, a mobile-first meal-logging case study built around a
+hybrid flow: Gemini perception, closed-set retrieval, deterministic catalogue
+nutrition and explicit human review.
 
-I am excited to submit my take-home case study for the Full Stack Developer role. 
+Links:
 
-Below is a concise summary of what was built, key trade-offs, known boundaries, and next steps.
+- Repository and technical write-up: https://github.com/zexy2/mealog-case-study
+- Loom walkthrough (9:07): https://www.loom.com/share/8a1ad6fea24e401eaf52788d72d5a0fd
+- Bounded EatBetter comparison: https://github.com/zexy2/mealog-case-study/blob/main/docs/comparison.md
 
----
+What I built:
 
-### 🔗 Submission Links
-* **GitHub Repository:** https://github.com/zexy2/mealog-case-study
-* **Loom Walkthrough Video (9:07):** https://www.loom.com/share/8a1ad6fea24e401eaf52788d72d5a0fd
-* **Architecture Decisions (D1–D20):** [docs/decisions.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/decisions.md)
-* **Correction Telemetry & Proposed HITL Loop:** [docs/data_flywheel_and_hitl_architecture.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/data_flywheel_and_hitl_architecture.md)
-* **EatBetter Comparison & Benchmark:** [docs/comparison.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/comparison.md)
+- A React Native / Expo app with capture, review, abstention and day-log flows.
+- A NestJS / TypeScript backend that resolves observations to a catalogue
+  `food_id` or `ABSTAIN`, exposes p10-p90 portion uncertainty, and computes
+  grounded nutrition from sourced locale-pack rows.
+- A separate, visibly unverified Gemini estimate lane for catalogue misses. It
+  returns ranges and assumptions, is never auto-accepted, requires explicit
+  user acceptance and is excluded from grounded evaluation.
+- User-scoped idempotency, retries and degraded-state handling; metadata/text
+  privacy controls; licence gates; offline regression evaluation; and a
+  privacy-minimized correction-telemetry prototype.
 
----
+The main trade-off is precision over automatic coverage. On the current
+80-sample recorded replay, the grounded V3 path commits 10 meals and asks on 70.
+Item F1 is 0.15; calorie MAPE is 12.7% over only 2 eligible and covered rows.
+Those are deliberately narrow numbers, not a claim of broad production
+accuracy. The comparison document explains the sample sizes and failure cases.
 
-### 🛠️ What Was Built
-1. **Node.js / TypeScript Backend (NestJS):**
-   - **Grounded Closed-Set Resolution (D1):** The model perceives food descriptions while authoritative nutrition is computed deterministically from verified regional composition data (TÜRKOMP / USDA) across 103 canonical foods.
-   - **Explicit Unverified Fallback (D19/D20):** After a catalogue miss, a separate bounded Gemini lane may prepare calorie/macro ranges and assumptions for up to 20 unresolved items. It is visibly labelled `llm_unverified_estimate`, is never auto-accepted, requires explicit user acceptance, and is excluded from grounded evaluation.
-   - **Portion Uncertainty Intervals:** Returns explicit `grams_p10`–`grams_p90` bounds alongside provenance data rather than a hidden point estimate.
-   - **Confidence Routing:** Routes items to `auto_accept`, `review`, or `ask` (safe deferral, including explicit `ABSTAIN`) with localized Turkish/English clarification questions.
-   - **Security & Privacy (D4, D5, D13, D14):** Zero persistent photo storage (ephemeral in-memory processing only), binary EXIF/GPS stripping, PII text redaction, rate limiting, and prompt-injection defense.
-   - **Correction Telemetry Prototype:** Best-effort candidate/portion events are PII-redacted, request-key hashed, and synchronously appended to a process-local JSONL store for operator review; write failure does not fail the user request. No automatic training, dietitian portal, shadow traffic, or model promotion is claimed.
+What I did not build: a trained model, production authentication/distributed
+state, durable telemetry infrastructure, or a public backend deployment. The
+Japanese locale pack is unverified evaluation data; the Turkish pack is
+restricted to non-commercial use. Pixel-level face blurring is tested as an
+RGBA utility but is not connected to compressed-image ingestion.
 
-2. **Mobile App (React Native / Expo):**
-   - Implements Capture, Review, Day, and Abstention screens.
-   - Supports interactive candidate selection ("Seç & Kaydet"), inline item editing/deletion, and dynamic portion adjustments.
-   - Enforces count clarification answering before saving to Day, and infers correct HEIC/PNG/JPEG MIME types on iOS gallery uploads.
-   - Current demo and live-provider paths were exercised on iOS Simulator; iOS and Android bundle exports pass. An earlier physical-iPhone Expo Go check covered only SDK 54 shell/camera compatibility, not current-flow E2E.
+My next three steps would be: expand licensed catalogue coverage where `ask`
+clusters, build a separately labelled evaluation set for the unverified
+estimate lane, and replace process-local identity/rate-limit/telemetry state
+with authenticated distributed infrastructure.
 
-3. **Testing & CI Quality Gates:**
-   - **313 Node.js / Vitest tests across 26 files** covering edge controllers, adapters, rate limiter, telemetry privacy, and the privacy pipeline.
-   - **Offline Python parity and regression suite** for reference normalization, retrieval, and nutrition arithmetic.
-   - **80 recorded golden-set fixtures** with a `make check` regression guard; the same gates passed in a private-repository temporary self-hosted Actions run.
+I used AI coding agents for implementation support, review and test generation;
+the repository keeps the decisions, measurements, limitations and reproducible
+checks visible.
 
----
+Thanks for reviewing it,
 
-### ⚠️ Key Trade-Offs & Boundaries
-* **Precision over Recall:** The grounded replay commits 10/80 samples and routes 70/80 to `ask`. `ask` includes explicit `ABSTAIN` plus other safe deferrals; it must not be reported as 70 catalogue misses.
-* **Process-Local Idempotency:** The MVP uses an in-memory idempotency cache suitable for single-instance review; production scaling requires distributed Redis locks.
-* **Client-Device Scoped Auth:** Authentication in this take-home demo is bounded by client device ID / `X-User-Id` header for isolation rather than signed OAuth/JWT tokens.
-* **Evaluation Scope:** Focused on reproducible offline golden evaluation rather than unconstrained live API spend.
-* **Estimate-Lane Risk:** Model-generated fallback ranges can still be wrong, especially for cooking fat, recipe, and visual portion. They are a weaker product option, not verified nutrition or evidence that grounded accuracy improved.
-* **Mobile Preview Duplication:** Review currently recalculates edited preview totals from a duplicated client catalogue map. The server-grounded path remains authoritative, but this client arithmetic should be removed in favor of rendering `POST /v1/meals/correct` responses only.
-* **CI Execution Boundary:** GitHub-hosted jobs remain blocked before execution by the repository account's billing/spending state. The unchanged workflow passed on a trusted temporary self-hosted Mac runner; I do not present that as GitHub-hosted-runner evidence.
-
----
-
-### 🚀 Top Next Steps
-1. **Curated Catalogue Expansion:** Add foods only after licence review, canonical mapping, and nutrition-source verification; telemetry suggestions remain evidence, not labels.
-2. **Multimodal Embeddings:** Hybrid visual retrieval (CLIP embeddings + BM25 text) for higher visual recall on complex multi-dish platters.
-3. **Interactive Multi-Item Bounding Boxes:** User-tap segment correction for multi-item plates.
-
-Thank you for reviewing my case study. I look forward to your feedback and discussing the architecture in the next round!
-
-Best regards,  
-**Zeki**
+Zeki Akgül
