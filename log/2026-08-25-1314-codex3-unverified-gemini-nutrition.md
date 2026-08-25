@@ -1,7 +1,7 @@
 # Session: unverified Gemini nutrition fallback
 
-Agent: `codex3`  
-Issue: #367  
+Agent: `codex3`
+Issue: #367
 Branch: `agent/codex3/chicken-egg-abstain`
 
 ## State
