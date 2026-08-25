@@ -15,7 +15,7 @@ abstains instead of silently saving the nearest guess.
   <img src="docs/assets/readme-live-review.gif" width="360" alt="Mealog live Gemini flow from photo selection through Review and Day save">
 </p>
 
-<p align="center"><sub>Live Gemini 3.1 Flash-Lite · iOS Simulator · one observed run · playback accelerated 2.5×. Integration evidence, not an accuracy benchmark.</sub></p>
+<p align="center"><sub>Live Gemini 3.1 Flash-Lite · iOS Simulator · one observed run · playback accelerated 1.7×. Integration evidence, not an accuracy benchmark.</sub></p>
 
 ## Run locally
 
