@@ -16,7 +16,6 @@ export type AbstentionScreenProps = {
   onRetake: () => void;
   onSaveUncaloriedNote?: (meal: MealLog, dishName: string) => void;
   onSaveManualCalories?: (meal: MealLog, dishName: string, calories: number) => void;
-  onAcceptLlmEstimate?: (dishName: string, calories: number, protein: number, carb: number, fat: number) => void;
   onSuggestDish?: (dishName: string) => void;
   scrollY?: number;
   testFold?: "top" | "actions";
@@ -31,7 +30,6 @@ export function AbstentionScreen({
   onRetake,
   onSaveUncaloriedNote,
   onSaveManualCalories,
-  onAcceptLlmEstimate,
   onSuggestDish,
   scrollY = 0,
   testFold,
@@ -81,99 +79,6 @@ export function AbstentionScreen({
     }
   }
 
-  const rawQuery = meal.items[0]?.query || "";
-  const serverQuantity = meal.items[0]?.quantity;
-
-  function getLlmEstimate(query: string, explicitQuantity?: number | null) {
-    const q = query.toLowerCase();
-
-    // Dynamically parse quantity from query or vision detection
-    let count = typeof explicitQuantity === "number" && explicitQuantity > 0 ? explicitQuantity : 1;
-    if (q.includes("3 adet") || q.includes("3 tane") || q.includes("3 yumurta") || q.includes("üç ") || q.includes("uc ")) {
-      count = 3;
-    } else if (q.includes("2 adet") || q.includes("2 tane") || q.includes("2 yumurta") || q.includes("iki ") || q.includes("çift")) {
-      count = 2;
-    } else if (q.includes("4 adet") || q.includes("4 tane") || q.includes("4 yumurta") || q.includes("dört ") || q.includes("dort ")) {
-      count = 4;
-    } else if (q.includes("1 adet") || q.includes("1 tane") || q.includes("1 yumurta") || q.includes("bir ") || q.includes("tek ")) {
-      count = 1;
-    }
-
-    if (q.includes("yumurta") || q.includes("egg")) {
-      const baseKcal = 70;
-      const baseProtein = 6;
-      const baseCarb = 0.5;
-      const baseFat = 5;
-      return {
-        name: `Haşlanmış Yumurta (${count} adet)`,
-        kcal: Math.round(baseKcal * count),
-        protein: Math.round(baseProtein * count * 10) / 10,
-        carb: Math.round(baseCarb * count * 10) / 10,
-        fat: Math.round(baseFat * count * 10) / 10,
-      };
-    }
-
-    if (q.includes("tursu") || q.includes("turşu")) {
-      return { name: "Salatalık Turşusu (50g)", kcal: 25, protein: 0.5, carb: 2.0, fat: 0.1 };
-    }
-    if (q.includes("patates") || q.includes("fries")) {
-      return { name: "Patates Kızartması", kcal: 250, protein: 3.5, carb: 35, fat: 12 };
-    }
-    if (q.includes("hamburger") || q.includes("burger")) {
-      return { name: "Hamburger", kcal: 350, protein: 18, carb: 32, fat: 16 };
-    }
-
-    if (q.includes("chia") || q.includes("puding")) {
-      return { name: "Chia Tohumlu Puding", kcal: 220, protein: 6, carb: 28, fat: 9 };
-    }
-    if (q.includes("smoothie") || q.includes("bowl")) {
-      return { name: "Meyveli Smoothie Bowl", kcal: 280, protein: 8, carb: 45, fat: 7 };
-    }
-    if (q.includes("protein")) {
-      return { name: "Protein Bar / Shake", kcal: 230, protein: 22, carb: 18, fat: 6 };
-    }
-
-    const cleanTitle = query.trim() || "Özel Tarif / Yemek";
-    return { name: cleanTitle, kcal: 200, protein: 10, carb: 20, fat: 8 };
-  }
-
-  function getCombinedLlmEstimate(items: MealLog["items"]) {
-    if (!items || items.length === 0) {
-      return { name: "Özel Yemek", kcal: 200, protein: 10, carb: 20, fat: 8 };
-    }
-    if (items.length === 1) {
-      return getLlmEstimate(items[0]?.query || "", items[0]?.quantity);
-    }
-    const estimates = items.map((item) => getLlmEstimate(item.query || "", item.quantity));
-    const combinedName = estimates.map((e) => e.name).join(" + ");
-    const totalKcal = estimates.reduce((sum, e) => sum + e.kcal, 0);
-    const totalProtein = Math.round(estimates.reduce((sum, e) => sum + e.protein, 0) * 10) / 10;
-    const totalCarb = Math.round(estimates.reduce((sum, e) => sum + e.carb, 0) * 10) / 10;
-    const totalFat = Math.round(estimates.reduce((sum, e) => sum + e.fat, 0) * 10) / 10;
-
-    return {
-      name: combinedName,
-      kcal: totalKcal,
-      protein: totalProtein,
-      carb: totalCarb,
-      fat: totalFat,
-    };
-  }
-
-  const llmEstimate = getCombinedLlmEstimate(meal.items);
-  const [estimatedCalories, setEstimatedCalories] = useState(String(llmEstimate.kcal));
-  const [estimatedName, setEstimatedName] = useState(llmEstimate.name);
-
-  function handleSaveLlmEstimate() {
-    const kcal = parseInt(estimatedCalories, 10) || llmEstimate.kcal;
-    const name = estimatedName || llmEstimate.name;
-    if (onAcceptLlmEstimate) {
-      onAcceptLlmEstimate(name, kcal, llmEstimate.protein, llmEstimate.carb, llmEstimate.fat);
-    } else if (onSaveManualCalories) {
-      onSaveManualCalories(meal, name, kcal);
-    }
-  }
-
   const scrollRef = React.useRef<ScrollView>(null);
   React.useEffect(() => {
     if (scrollY && scrollY > 0) {
@@ -218,51 +123,6 @@ export function AbstentionScreen({
             <Text style={styles.guaranteeHeader}>Denetlenmiş Besin Güvencesi (D1)</Text>
           </View>
           <Text style={styles.guaranteeCopy}>{t("abstainHonestGuarantee")}</Text>
-        </View>
-      ) : null}
-
-      {/* 🤖 Smart LLM Generative Estimation & 1-Tap Save Card */}
-      {!isEmptyPlate ? (
-        <View style={styles.llmEstimationCard}>
-          <View style={styles.llmCardHeaderRow}>
-            <View style={styles.llmBadge}>
-              <Ionicons name="sparkles" size={13} color="#8D641C" />
-              <Text style={styles.llmBadgeText}>Yapay Zeka (LLM) Tahmini</Text>
-            </View>
-            <Text style={styles.llmDisclaimerTag}>Katalog Dışı Seçenek</Text>
-          </View>
-
-          <Text style={styles.llmDishTitle}>{estimatedName}</Text>
-          <Text style={styles.llmDishKcal}>≈ {estimatedCalories} kcal</Text>
-
-          <View style={styles.llmMacroRow}>
-            <View style={styles.llmMacroPill}>
-              <Text style={styles.llmMacroLabel}>Protein</Text>
-              <Text style={styles.llmMacroVal}>{llmEstimate.protein}g</Text>
-            </View>
-            <View style={styles.llmMacroPill}>
-              <Text style={styles.llmMacroLabel}>Karb</Text>
-              <Text style={styles.llmMacroVal}>{llmEstimate.carb}g</Text>
-            </View>
-            <View style={styles.llmMacroPill}>
-              <Text style={styles.llmMacroLabel}>Yağ</Text>
-              <Text style={styles.llmMacroVal}>{llmEstimate.fat}g</Text>
-            </View>
-          </View>
-
-          <Text style={styles.llmCardExplanation}>
-            💡 Bu yemek resmi TÜRKOMP kataloğunda doğrudan eşleşmedi. Yapay zekanın tahmini laboratuvar dışı değerleriyle gününüze eklemek ister misiniz?
-          </Text>
-
-          <Pressable
-            style={({ pressed }) => [styles.llmApproveBtn, pressed && styles.buttonPressed]}
-            onPress={handleSaveLlmEstimate}
-            accessibilityRole="button"
-            accessibilityLabel="Yapay Zeka Tahminini Onayla ve Kaydet"
-          >
-            <Ionicons name="checkmark-circle" size={17} color={colors.white} />
-            <Text style={styles.llmApproveBtnText}>Evet, Bu Tahmini Kabul Et</Text>
-          </Pressable>
         </View>
       ) : null}
 
@@ -580,107 +440,6 @@ const styles = StyleSheet.create({
   overrideInputRow: {
     flexDirection: "row",
     gap: 8,
-  },
-  // LLM Estimation Card Styles
-  llmEstimationCard: {
-    backgroundColor: colors.card,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: "#E8B653",
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  llmCardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  llmBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#FBF1D8",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  llmBadgeText: {
-    color: "#8D641C",
-    fontSize: 10,
-    fontWeight: "800",
-  },
-  llmDisclaimerTag: {
-    color: colors.muted,
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  llmDishTitle: {
-    color: colors.ink,
-    fontSize: 16,
-    fontWeight: "900",
-    marginTop: 2,
-  },
-  llmDishKcal: {
-    color: colors.terracotta,
-    fontSize: 22,
-    fontWeight: "900",
-    marginTop: 2,
-    marginBottom: 8,
-  },
-  llmMacroRow: {
-    flexDirection: "row",
-    gap: 6,
-    marginBottom: 10,
-  },
-  llmMacroPill: {
-    flex: 1,
-    backgroundColor: colors.paper,
-    borderRadius: 10,
-    paddingVertical: 6,
-    alignItems: "center",
-  },
-  llmMacroLabel: {
-    color: colors.muted,
-    fontSize: 9,
-    fontWeight: "800",
-  },
-  llmMacroVal: {
-    color: colors.ink,
-    fontSize: 12,
-    fontWeight: "800",
-    marginTop: 2,
-  },
-  llmCardExplanation: {
-    color: colors.muted,
-    fontSize: 11,
-    lineHeight: 16,
-    marginBottom: 12,
-  },
-  llmApproveBtn: {
-    minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: colors.moss,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    shadowColor: colors.moss,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  llmApproveBtnText: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: "800",
   },
   overrideTextInput: {
     flex: 1,
