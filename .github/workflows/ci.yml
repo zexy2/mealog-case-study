@@ -23,7 +23,13 @@ jobs:
           # clone does not have.
           fetch-depth: 0
       - uses: actions/setup-python@v5
+        if: vars.CI_RUNNER != 'self-hosted'
         with: { python-version: "3.11" }
+      - name: prepare Python 3.11 on self-hosted runner
+        if: vars.CI_RUNNER == 'self-hosted'
+        run: |
+          python3.11 -m venv "$RUNNER_TEMP/ci-venv"
+          echo "$RUNNER_TEMP/ci-venv/bin" >> "$GITHUB_PATH"
       - name: secret guard
         run: python scripts/check_secrets.py --diff-base origin/main
       - run: cd server && python -m pip install -e ".[dev]" -q
@@ -119,7 +125,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
+        if: vars.CI_RUNNER != 'self-hosted'
         with: { python-version: "3.11" }
+      - name: prepare Python 3.11 on self-hosted runner
+        if: vars.CI_RUNNER == 'self-hosted'
+        run: |
+          python3.11 -m venv "$RUNNER_TEMP/main-guard-venv"
+          echo "$RUNNER_TEMP/main-guard-venv/bin" >> "$GITHUB_PATH"
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/check_main_push.py
