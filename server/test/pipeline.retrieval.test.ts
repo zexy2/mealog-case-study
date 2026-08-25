@@ -26,7 +26,7 @@ import {
   roundHalfEven,
   similarities,
 } from '../src/pipeline/retrieval/index';
-import { LicenseTerm, LocalePack } from '../src/locales/loader';
+import { LicenseTerm, LocalePack, load } from '../src/locales/loader';
 import { makeNutrients, type CanonicalFood } from '../src/domain/models';
 import {
   TfidfVectoriser,
@@ -283,6 +283,32 @@ describe('negative_alias eliminates every food carrying the matched alias', () =
     const cands = createRetrieval().search('pilav', pack);
     expect(cands[0]?.food_id).toBe('tr.pilav');
     expect(cands[0]?.score).toBe(1.0);
+  });
+
+  it('caps unsupported chicken meat below the whole-egg accept threshold', () => {
+    const pack = load('tr');
+    const r = retrieval();
+
+    for (const query of ['tavuk', 'tavuk eti', 'ızgara tavuk', 'chicken', 'chicken meat']) {
+      const egg = r.search(query, pack).find((candidate) => candidate.food_id === 'tr.yumurta_tavuk');
+      expect(egg?.score, query).toBe(CONFUSION_SCORE);
+    }
+  });
+
+  it('keeps explicit egg phrases as exact whole-egg matches', () => {
+    const pack = load('tr');
+    const r = retrieval();
+
+    expect(r.search('yumurta', pack)).toContainEqual(expect.objectContaining({
+      food_id: 'tr.yumurta_tavuk',
+      score: 1,
+    }));
+    for (const query of ['tavuk yumurtası', 'haşlanmış yumurta']) {
+      expect(r.search(query, pack)[0], query).toMatchObject({
+        food_id: 'tr.yumurta_tavuk',
+        score: 1,
+      });
+    }
   });
 });
 

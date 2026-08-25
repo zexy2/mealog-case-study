@@ -1,14 +1,14 @@
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { Candidate, CaptureMedium, ItemClarification, MealAction, MealLog } from "../src/types";
+import { Candidate, CaptureMedium, ItemClarification, MealAction, MealLog, UnverifiedNutritionEstimate } from "../src/types";
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
 import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity } from "../src/reviewState";
 import { nutritionPresentationForItem } from "../src/nutritionPresentation";
 import { sendTelemetryEvent, telemetryEventTypeForEdits } from "../src/telemetry";
-import { apiBaseUrl, getClientUserId, isDemoMode } from "../src/api";
+import { apiBaseUrl, estimateNutritionBatch, getClientUserId, isDemoMode } from "../src/api";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -103,32 +103,6 @@ function resolveSelectedName(item: MealLog["items"][number], selected: string, c
   return item.query || selected;
 }
 
-export function getSmartItemLlmEstimate(query: string) {
-  const q = (query || "").toLowerCase();
-  if (q.includes("tursu") || q.includes("turşu")) {
-    return { name: "Salatalık Turşusu", kcal: 25, protein: 0.5, carb: 2.0, fat: 0.1, grams: 50 };
-  }
-  if (q.includes("yumurta") || q.includes("egg")) {
-    return { name: "Haşlanmış Yumurta", kcal: 70, protein: 6.0, carb: 0.5, fat: 5.0, grams: 50 };
-  }
-  if (q.includes("zeytin")) {
-    return { name: "Sofralık Zeytin", kcal: 45, protein: 0.4, carb: 0.5, fat: 4.5, grams: 30 };
-  }
-  if (q.includes("peynir")) {
-    return { name: "Beyaz Peynir", kcal: 90, protein: 5.5, carb: 1.0, fat: 7.5, grams: 30 };
-  }
-  if (q.includes("cacik") || q.includes("cacık")) {
-    return { name: "Cacık", kcal: 75, protein: 3.5, carb: 4.0, fat: 4.0, grams: 150 };
-  }
-  if (q.includes("salata")) {
-    return { name: "Mevsim Salatası", kcal: 45, protein: 1.2, carb: 4.0, fat: 2.5, grams: 150 };
-  }
-  if (q.includes("tatli") || q.includes("tatlı") || q.includes("baklava")) {
-    return { name: "Tatlı / Baklava", kcal: 280, protein: 4.0, carb: 38.0, fat: 12.0, grams: 80 };
-  }
-  return { name: query ? `${query} (Tahmini)` : "Özel Yemek", kcal: 120, protein: 4.0, carb: 15.0, fat: 4.0, grams: 100 };
-}
-
 function captureMediumCopy(medium: CaptureMedium): StringKey {
   if (medium === "screen") return "captureMediumScreen";
   if (medium === "printed") return "captureMediumPrinted";
@@ -211,25 +185,41 @@ function getSmartActionBannerDetails(
     };
   }
 
+  const unverifiedEstimateItems = meal.items.filter((item) => (
+    item.portion_provenance === "llm_unverified_estimate"
+    && item.nutrition_estimate?.provenance === "llm_unverified_estimate"
+  ));
+
+  if (unverifiedEstimateItems.length > 0) {
+    const estimateNames = unverifiedEstimateItems.map((item) => item.query).join(", ");
+    return {
+      title: unverifiedEstimateItems.length === meal.items.length
+        ? "Doğrulanmamış AI Tahmini"
+        : "Doğrulanmamış Tahmin İçeren Öğün",
+      text: `${estimateNames} için değerler Gemini genel bilgisinden geldi. Katalog veya laboratuvar verisi değildir; aralıkları ve varsayımları inceleyin.`,
+      actionType: "review",
+    };
+  }
+
   const customItems = meal.items.filter((item, i) => {
     const sel = selectedCandidates[i] ?? item.food_id;
-    return sel === "USER_CUSTOM" || item.portion_provenance === "llm_generative_estimate";
+    return sel === "USER_CUSTOM";
   });
 
   if (customItems.length > 0) {
     const isEntireMealCustom = customItems.length === meal.items.length;
     if (isEntireMealCustom) {
       return {
-        title: "Yapay Zeka Tahmini Yüklendi",
-        text: "Özel öğün değerleri yapay zeka tarafından tahmin edildi. Tabağınızı inceleyip gününüze kaydedebilirsiniz.",
-        actionType: "auto_accept",
+        title: "Manuel Öğün Girişi",
+        text: "Bu öğünün besin değerleri kullanıcı tarafından girildi. Kaydetmeden önce değerleri inceleyin.",
+        actionType: "review",
       };
     } else {
       const customNames = customItems.map((c) => c.query).join(", ");
       return {
-        title: "Tüm Öğeler Doğrulandı",
-        text: `Katalog yemekleri resmi veriyle eşleşti; ${customNames} öğesi yapay zeka tahminiyle eklendi.`,
-        actionType: "auto_accept",
+        title: "Manuel Değer İçeren Öğün",
+        text: `Katalog yemekleri resmi veriyle eşleşti; ${customNames} öğesi kullanıcı tarafından girildi.`,
+        actionType: "review",
       };
     }
   }
@@ -262,7 +252,8 @@ export type ReviewScreenProps = {
   selectedCandidates: Record<number, string>;
   onChooseCandidate: (index: number, candidate: Candidate) => void;
   onRemoveItem?: (index: number) => void;
-  onAddItem?: (foodName: string, calories?: number, grams?: number) => void;
+  onAddItem?: (foodName: string, calories?: number) => void;
+  onAcceptEstimate?: (index: number, estimate: UnverifiedNutritionEstimate) => void;
   onSave: () => void;
   isSaved?: boolean;
   saving?: boolean;
@@ -284,6 +275,7 @@ export function ReviewScreen({
   onChooseCandidate,
   onRemoveItem,
   onAddItem,
+  onAcceptEstimate,
   onSave,
   isSaved = false,
   saving = false,
@@ -333,13 +325,16 @@ export function ReviewScreen({
   const [customSearchIndex, setCustomSearchIndex] = useState<number | null>(null);
   const [customFoodQuery, setCustomFoodQuery] = useState("");
   const [customNotFound, setCustomNotFound] = useState(false);
-  const [customCaloriesInput, setCustomCaloriesInput] = useState("250");
+  const [customCaloriesInput, setCustomCaloriesInput] = useState("");
 
   // + Tabağa Öğe Ekle state
   const [showAddPlateItem, setShowAddPlateItem] = useState(false);
   const [newPlateItemQuery, setNewPlateItemQuery] = useState("");
   const [newPlateItemKcal, setNewPlateItemKcal] = useState("");
   const [newPlateItemNotFound, setNewPlateItemNotFound] = useState(false);
+  const [nutritionEstimates, setNutritionEstimates] = useState<Record<number, UnverifiedNutritionEstimate>>({});
+  const [estimateLoading, setEstimateLoading] = useState<Record<number, boolean>>({});
+  const [estimateErrors, setEstimateErrors] = useState<Record<number, string>>({});
 
   // Audit details state: strictly collapsed by default
   const [openAuditItems, setOpenAuditItems] = useState<Record<number, boolean>>({});
@@ -432,31 +427,17 @@ export function ReviewScreen({
     }
   }
 
-  function handleSelectAiFallbackDish(index: number, name: string, kcal: number, grams: number) {
-    setCustomFoodDetails((prev) => ({
-      ...prev,
-      [index]: { name, kcal, grams },
-    }));
-
-    const customCandidate: Candidate = {
-      food_id: "USER_CUSTOM",
-      name: name,
-      score: 0.95,
-    };
-
-    onChooseCandidate(index, customCandidate);
-    setCustomSearchIndex(null);
-    setCustomFoodQuery("");
-    setCustomNotFound(false);
-  }
-
   function handleSaveCustomManualDish(index: number) {
     const name = customFoodQuery.trim() || "Özel Yemek";
-    const kcal = parseInt(customCaloriesInput.replace(/[^0-9]/g, ""), 10) || 250;
+    const kcal = parseInt(customCaloriesInput.replace(/[^0-9]/g, ""), 10);
+    if (!Number.isFinite(kcal) || kcal <= 0 || kcal > 5000) {
+      Alert.alert("Geçersiz kalori", "1–5000 arasında bir kalori değeri girin.");
+      return;
+    }
 
     setCustomFoodDetails((prev) => ({
       ...prev,
-      [index]: { name, kcal, grams: 150 },
+      [index]: { name, kcal, grams: 0 },
     }));
 
     const customCandidate: Candidate = {
@@ -471,6 +452,61 @@ export function ReviewScreen({
     setCustomNotFound(false);
     Alert.alert("Özel Yemek Eklendi", `"${name}" (${kcal} kcal) manuel kullanıcı girişi olarak tabağa eklendi.`);
   }
+
+  async function requestNutritionEstimates(indexes: number[]) {
+    if (indexes.length === 0) return;
+    setEstimateLoading((current) => ({
+      ...current,
+      ...Object.fromEntries(indexes.map((index) => [index, true])),
+    }));
+    setEstimateErrors((current) => ({
+      ...current,
+      ...Object.fromEntries(indexes.map((index) => [index, ""])),
+    }));
+    try {
+      const estimates = await estimateNutritionBatch(
+        indexes.map((index) => ({
+          dish_name: meal.items[index]?.query || "Yemek",
+          quantity: meal.items[index]?.quantity ?? null,
+        })),
+        `${meal.idempotency_key}:nutrition:${indexes.join("-")}`,
+      );
+      setNutritionEstimates((current) => ({
+        ...current,
+        ...Object.fromEntries(indexes.map((index, offset) => [index, estimates[offset]])),
+      }));
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "AI tahmini alınamadı.";
+      setEstimateErrors((current) => ({
+        ...current,
+        ...Object.fromEntries(indexes.map((index) => [index, message])),
+      }));
+    } finally {
+      setEstimateLoading((current) => ({
+        ...current,
+        ...Object.fromEntries(indexes.map((index) => [index, false])),
+      }));
+    }
+  }
+
+  useEffect(() => {
+    if (isDemoMode) return;
+    const allUnresolvedIndexes = meal.items
+      .map((item, index) => ({ item, index }))
+      .filter(({ item, index }) => (selectedCandidates[index] ?? item.food_id) === "ABSTAIN")
+      .map(({ index }) => index);
+    const unresolvedIndexes = allUnresolvedIndexes.slice(0, 20);
+    const overflowIndexes = allUnresolvedIndexes.slice(20);
+    if (overflowIndexes.length > 0) {
+      setEstimateErrors((current) => ({
+        ...current,
+        ...Object.fromEntries(overflowIndexes.map((index) => [index, "Bu öğünde 20 AI tahmini sınırına ulaşıldı."])),
+      }));
+    }
+    void requestNutritionEstimates(unresolvedIndexes);
+    // One automatic batch per meal. Candidate edits must not trigger new provider calls.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meal.idempotency_key]);
 
   // Calculate live total macros across all items (including newly resolved candidates)
   let liveTotalKcal = 0;
@@ -492,11 +528,11 @@ export function ReviewScreen({
     const catInfo = TURKISH_FOOD_NUTRITION_MAP[selected];
     const customInfo = customFoodDetails[index];
 
-    const baseGrams = (item.grams > 0) ? item.grams : (customInfo?.grams ?? catInfo?.default_g ?? 150);
-    const baseKcal = (item.nutrients.kcal > 0) ? item.nutrients.kcal : (customInfo?.kcal ?? (catInfo ? Math.round((catInfo.kcal_per_100g * baseGrams) / 100) : 150));
-    const baseProtein = (item.nutrients.protein_g > 0) ? item.nutrients.protein_g : (catInfo ? Math.round((catInfo.protein_g * baseGrams) / 100) : 4);
-    const baseCarb = (item.nutrients.carb_g > 0) ? item.nutrients.carb_g : (catInfo ? Math.round((catInfo.carb_g * baseGrams) / 100) : 20);
-    const baseFat = (item.nutrients.fat_g > 0) ? item.nutrients.fat_g : (catInfo ? Math.round((catInfo.fat_g * baseGrams) / 100) : 5);
+    const baseGrams = (item.grams > 0) ? item.grams : (customInfo?.grams ?? catInfo?.default_g ?? 0);
+    const baseKcal = (item.nutrients.kcal > 0) ? item.nutrients.kcal : (customInfo?.kcal ?? (catInfo ? Math.round((catInfo.kcal_per_100g * baseGrams) / 100) : 0));
+    const baseProtein = (item.nutrients.protein_g > 0) ? item.nutrients.protein_g : (catInfo ? Math.round((catInfo.protein_g * baseGrams) / 100) : 0);
+    const baseCarb = (item.nutrients.carb_g > 0) ? item.nutrients.carb_g : (catInfo ? Math.round((catInfo.carb_g * baseGrams) / 100) : 0);
+    const baseFat = (item.nutrients.fat_g > 0) ? item.nutrients.fat_g : (catInfo ? Math.round((catInfo.fat_g * baseGrams) / 100) : 0);
 
     const effectiveGrams = hasPortionEdit
       ? portionEdits[index]
@@ -695,6 +731,7 @@ export function ReviewScreen({
         {meal.items.map((item, index) => {
           const selected = selectedCandidates[index] ?? item.food_id;
           const isAbstain = selected === "ABSTAIN";
+          const isUnverifiedEstimate = item.portion_provenance === "llm_unverified_estimate";
 
           const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
           const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
@@ -706,11 +743,11 @@ export function ReviewScreen({
           const catInfo = TURKISH_FOOD_NUTRITION_MAP[selected];
           const customInfo = customFoodDetails[index];
 
-          const baseGrams = (item.grams > 0) ? item.grams : (customInfo?.grams ?? catInfo?.default_g ?? 150);
-          const baseKcal = (item.nutrients.kcal > 0) ? item.nutrients.kcal : (customInfo?.kcal ?? (catInfo ? Math.round((catInfo.kcal_per_100g * baseGrams) / 100) : 150));
-          const baseProtein = (item.nutrients.protein_g > 0) ? item.nutrients.protein_g : (catInfo ? Math.round((catInfo.protein_g * baseGrams) / 100) : 4);
-          const baseCarb = (item.nutrients.carb_g > 0) ? item.nutrients.carb_g : (catInfo ? Math.round((catInfo.carb_g * baseGrams) / 100) : 20);
-          const baseFat = (item.nutrients.fat_g > 0) ? item.nutrients.fat_g : (catInfo ? Math.round((catInfo.fat_g * baseGrams) / 100) : 5);
+          const baseGrams = (item.grams > 0) ? item.grams : (customInfo?.grams ?? catInfo?.default_g ?? 0);
+          const baseKcal = (item.nutrients.kcal > 0) ? item.nutrients.kcal : (customInfo?.kcal ?? (catInfo ? Math.round((catInfo.kcal_per_100g * baseGrams) / 100) : 0));
+          const baseProtein = (item.nutrients.protein_g > 0) ? item.nutrients.protein_g : (catInfo ? Math.round((catInfo.protein_g * baseGrams) / 100) : 0);
+          const baseCarb = (item.nutrients.carb_g > 0) ? item.nutrients.carb_g : (catInfo ? Math.round((catInfo.carb_g * baseGrams) / 100) : 0);
+          const baseFat = (item.nutrients.fat_g > 0) ? item.nutrients.fat_g : (catInfo ? Math.round((catInfo.fat_g * baseGrams) / 100) : 0);
 
           const effectiveGrams = hasPortionEdit
             ? portionEdits[index]
@@ -810,9 +847,12 @@ export function ReviewScreen({
                     </View>
                   </View>
                   {!isAbstain ? (
-                    <Text style={styles.itemHeaderMacrosMini}>
-                      {previewProtein}g P · {previewCarb}g K · {previewFat}g Y
-                    </Text>
+                    <>
+                      <Text style={styles.itemHeaderMacrosMini}>
+                        {previewProtein}g P · {previewCarb}g K · {previewFat}g Y
+                      </Text>
+                      {isUnverifiedEstimate ? <Text style={styles.unverifiedInlineTag}>AI tahmini · doğrulanmamış</Text> : null}
+                    </>
                   ) : null}
                 </View>
               </Pressable>
@@ -843,6 +883,17 @@ export function ReviewScreen({
                   {/* Item Macro Grid */}
                   {!isAbstain ? (
                     <View style={styles.nutritionCard}>
+                      {isUnverifiedEstimate && item.nutrition_estimate ? (
+                        <View style={styles.acceptedEstimateNotice}>
+                          <Text style={styles.unverifiedEstimateWarning}>AI tahmini — doğrulanmış katalog veya laboratuvar verisi değildir.</Text>
+                          <Text style={styles.unverifiedEstimateKcal}>
+                            {item.nutrition_estimate.kcal.low}–{item.nutrition_estimate.kcal.high} kcal
+                          </Text>
+                          {item.nutrition_estimate.assumptions.map((assumption) => (
+                            <Text key={assumption} style={styles.unverifiedEstimateAssumption}>• {assumption}</Text>
+                          ))}
+                        </View>
+                      ) : null}
                       <View style={styles.nutritionGrid}>
                         <View style={[styles.nutritionMetric, styles.nutritionMetricEnergy]}>
                           <Text style={styles.nutritionMetricValue}>≈ {previewKcal} kcal</Text>
@@ -867,15 +918,17 @@ export function ReviewScreen({
                   {/* Quick Action Toggle Buttons (ONLY FOR MATCHED FOODS) */}
                   {!isAbstain ? (
                     <View style={styles.itemQuickActionRow}>
-                      <Pressable
-                        style={[styles.itemQuickActionBtn, shouldShowPortion && styles.itemQuickActionBtnActive]}
-                        onPress={() => setShowPortionEdit((prev) => ({ ...prev, [index]: !prev[index] }))}
-                      >
-                        <Ionicons name="scale-outline" size={13} color={shouldShowPortion ? colors.moss : colors.ink} />
-                        <Text style={[styles.itemQuickActionBtnText, shouldShowPortion && styles.itemQuickActionBtnTextActive]}>
-                          {shouldShowPortion ? "Porsiyonu Gizle" : "Porsiyonu Ayarla"}
-                        </Text>
-                      </Pressable>
+                      {!isUnverifiedEstimate ? (
+                        <Pressable
+                          style={[styles.itemQuickActionBtn, shouldShowPortion && styles.itemQuickActionBtnActive]}
+                          onPress={() => setShowPortionEdit((prev) => ({ ...prev, [index]: !prev[index] }))}
+                        >
+                          <Ionicons name="scale-outline" size={13} color={shouldShowPortion ? colors.moss : colors.ink} />
+                          <Text style={[styles.itemQuickActionBtnText, shouldShowPortion && styles.itemQuickActionBtnTextActive]}>
+                            {shouldShowPortion ? "Porsiyonu Gizle" : "Porsiyonu Ayarla"}
+                          </Text>
+                        </Pressable>
+                      ) : null}
 
                       {item.candidates.length > 1 ? (
                         <Pressable
@@ -1113,46 +1166,63 @@ export function ReviewScreen({
                           : "BU YEMEĞİ DEĞİŞTİR / EŞLEŞTİR"}
                       </Text>
 
-                      {/* ONLY if truly uncatalogued (no candidates found in catalogue), show AI estimate helper */}
+                      {/* Catalogue misses stay unresolved until the user chooses a catalogue item or enters calories. */}
                       {item.candidates.length === 0 ? (
                         <View style={styles.aiEstimateRowCard}>
                           <View style={styles.aiEstimateRowHeader}>
                             <View style={styles.aiBadgeSmall}>
-                              <Ionicons name="sparkles" size={12} color="#8D641C" />
-                              <Text style={styles.aiBadgeSmallText}>Yapay Zeka (LLM) Tahmini</Text>
+                              <Ionicons name="shield-outline" size={12} color="#8D641C" />
+                              <Text style={styles.aiBadgeSmallText}>Doğrulanmış değer yok</Text>
                             </View>
                             <Text style={styles.aiKatalogDisiText}>Katalogda Yok</Text>
                           </View>
-
-                          {(() => {
-                            const aiEstimate = getSmartItemLlmEstimate(item.query);
-                            return (
-                              <View style={styles.aiEstimateActionsBox}>
-                                <Pressable
-                                  style={styles.aiEstimatePrimaryBtn}
-                                  onPress={() => handleSelectAiFallbackDish(index, aiEstimate.name, aiEstimate.kcal, aiEstimate.grams)}
-                                >
-                                  <Ionicons name="checkmark-circle" size={15} color={colors.white} />
-                                  <Text style={styles.aiEstimatePrimaryBtnText}>
-                                    {aiEstimate.name} (≈ {aiEstimate.kcal} kcal) Seç
-                                  </Text>
-                                </Pressable>
-
-                                <Pressable
-                                  style={styles.aiEstimateManualBtn}
-                                  onPress={() => {
-                                    setCustomSearchIndex(index);
-                                    setCustomFoodQuery(item.query);
-                                    setCustomCaloriesInput(String(aiEstimate.kcal));
-                                    setCustomNotFound(true);
-                                  }}
-                                >
-                                  <Ionicons name="pencil" size={13} color={colors.terracotta} />
-                                  <Text style={styles.aiEstimateManualBtnText}>Kendim Gireceğim</Text>
-                                </Pressable>
-                              </View>
-                            );
-                          })()}
+                          <Text style={styles.customNotFoundText}>
+                            Katalog doğrulaması yok. Gemini tahmini ayrı ve doğrulanmamış gösterilir; siz onaylamadan kaydedilmez.
+                          </Text>
+                          {nutritionEstimates[index] ? (
+                            <View style={styles.unverifiedEstimateBox}>
+                              <Text style={styles.unverifiedEstimateBadge}>AI TAHMİNİ · DOĞRULANMAMIŞ</Text>
+                              <Text style={styles.unverifiedEstimateTitle}>{nutritionEstimates[index].dish_name}</Text>
+                              <Text style={styles.unverifiedEstimateKcal}>
+                                ≈ {nutritionEstimates[index].kcal.midpoint} kcal ({nutritionEstimates[index].kcal.low}–{nutritionEstimates[index].kcal.high})
+                              </Text>
+                              <Text style={styles.unverifiedEstimateMacros}>
+                                Protein {nutritionEstimates[index].protein_g.low}–{nutritionEstimates[index].protein_g.high} g · Karb {nutritionEstimates[index].carb_g.low}–{nutritionEstimates[index].carb_g.high} g · Yağ {nutritionEstimates[index].fat_g.low}–{nutritionEstimates[index].fat_g.high} g
+                              </Text>
+                              {nutritionEstimates[index].assumptions.map((assumption) => (
+                                <Text key={assumption} style={styles.unverifiedEstimateAssumption}>• {assumption}</Text>
+                              ))}
+                              <Text style={styles.unverifiedEstimateWarning}>
+                                AI tahmini — doğrulanmış katalog veya laboratuvar verisi değildir.
+                              </Text>
+                              <Pressable
+                                style={styles.unverifiedEstimateAccept}
+                                onPress={() => onAcceptEstimate?.(index, nutritionEstimates[index])}
+                                accessibilityRole="button"
+                                accessibilityLabel="Doğrulanmamış AI tahminini kullan"
+                              >
+                                <Text style={styles.unverifiedEstimateAcceptText}>Bu tahmini kullan</Text>
+                              </Pressable>
+                            </View>
+                          ) : estimateErrors[index] ? (
+                            <Pressable
+                              style={styles.unverifiedEstimateRequest}
+                              onPress={() => void requestNutritionEstimates([index])}
+                              accessibilityRole="button"
+                              accessibilityLabel="Gemini tahminini yeniden dene"
+                            >
+                              <Ionicons name="sparkles-outline" size={15} color={colors.white} />
+                              <Text style={styles.unverifiedEstimateRequestText}>Yeniden dene</Text>
+                            </Pressable>
+                          ) : (
+                            <View style={styles.unverifiedEstimatePreparing}>
+                              <Ionicons name="sparkles-outline" size={15} color="#8D641C" />
+                              <Text style={styles.unverifiedEstimatePreparingText}>
+                                {estimateLoading[index] ? "AI tahmini hazırlanıyor…" : "AI tahmini sıraya alındı…"}
+                              </Text>
+                            </View>
+                          )}
+                          {estimateErrors[index] ? <Text style={styles.estimateError}>{estimateErrors[index]}</Text> : null}
                         </View>
                       ) : null}
 
@@ -1209,13 +1279,13 @@ export function ReviewScreen({
                               </Text>
 
                               <View style={styles.manualKcalRow}>
-                                <Text style={styles.manualKcalLabel}>Tahmini Kalori:</Text>
+                                <Text style={styles.manualKcalLabel}>Bildiğiniz kalori:</Text>
                                 <TextInput
                                   style={styles.manualKcalInput}
                                   keyboardType="number-pad"
                                   value={customCaloriesInput}
                                   onChangeText={setCustomCaloriesInput}
-                                  placeholder="250"
+                                  placeholder="Örn. 350"
                                 />
                                 <Text style={styles.manualKcalUnit}>kcal</Text>
                               </View>
@@ -1396,7 +1466,11 @@ export function ReviewScreen({
                   <Pressable
                     style={styles.saveManualDishBtn}
                     onPress={() => {
-                      const kcal = parseInt(newPlateItemKcal, 10) || 200;
+                      const kcal = parseInt(newPlateItemKcal, 10);
+                      if (!Number.isFinite(kcal) || kcal <= 0 || kcal > 5000) {
+                        Alert.alert("Geçersiz kalori", "1–5000 arasında bir kalori değeri girin.");
+                        return;
+                      }
                       onAddItem?.(newPlateItemQuery.trim(), kcal);
                       setNewPlateItemQuery("");
                       setNewPlateItemKcal("");
@@ -2092,45 +2166,74 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
   },
-  aiEstimateActionsBox: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  aiEstimatePrimaryBtn: {
-    flex: 1.4,
-    minHeight: 40,
-    borderRadius: 10,
+  unverifiedEstimateRequest: {
+    minHeight: 44,
+    marginTop: 12,
+    borderRadius: 12,
     backgroundColor: colors.moss,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingHorizontal: 10,
+    gap: 7,
+    paddingHorizontal: 14,
   },
-  aiEstimatePrimaryBtnText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  aiEstimateManualBtn: {
-    flex: 1,
-    minHeight: 40,
-    borderRadius: 10,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.terracotta,
+  unverifiedEstimateRequestText: { color: colors.white, fontSize: 13, fontWeight: "800" },
+  unverifiedEstimatePreparing: {
+    minHeight: 44,
+    marginTop: 12,
+    borderRadius: 12,
+    backgroundColor: "#FBF1D8",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    paddingHorizontal: 8,
+    gap: 7,
+    paddingHorizontal: 14,
   },
-  aiEstimateManualBtnText: {
-    color: colors.terracotta,
-    fontSize: 11,
-    fontWeight: "800",
+  unverifiedEstimatePreparingText: { color: "#8D641C", fontSize: 13, fontWeight: "800" },
+  unverifiedEstimateBox: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E8B653",
+    paddingTop: 12,
   },
-
+  unverifiedEstimateBadge: {
+    alignSelf: "flex-start",
+    color: "#8D641C",
+    backgroundColor: "#F7E8BC",
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.7,
+    marginBottom: 7,
+  },
+  unverifiedEstimateTitle: { color: colors.ink, fontSize: 15, fontWeight: "900" },
+  unverifiedEstimateKcal: { color: colors.terracotta, fontSize: 18, fontWeight: "900", marginTop: 4 },
+  unverifiedEstimateMacros: { color: colors.ink, fontSize: 12, lineHeight: 18, fontWeight: "700", marginTop: 6 },
+  unverifiedEstimateAssumption: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 3 },
+  unverifiedEstimateWarning: { color: "#8D641C", fontSize: 11, lineHeight: 16, fontWeight: "800", marginTop: 9 },
+  unverifiedEstimateAccept: {
+    minHeight: 44,
+    marginTop: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.terracotta,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  unverifiedEstimateAcceptText: { color: colors.terracotta, fontSize: 13, fontWeight: "900" },
+  estimateError: { color: colors.terracotta, fontSize: 11, lineHeight: 16, fontWeight: "700", marginTop: 8 },
+  unverifiedInlineTag: { color: "#8D641C", fontSize: 10, fontWeight: "900", marginTop: 3, textAlign: "right" },
+  acceptedEstimateNotice: {
+    borderRadius: 12,
+    backgroundColor: "#FBF1D8",
+    borderWidth: 1,
+    borderColor: "#E8B653",
+    padding: 12,
+    marginBottom: 12,
+  },
   // Alternates Block
   alternatesBlock: {
     marginTop: 10,

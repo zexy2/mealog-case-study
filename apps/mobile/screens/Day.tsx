@@ -62,6 +62,7 @@ export function DayScreen({ meals, totalCalories, totalProtein, totalCarbs, tota
   const carbs = totalCarbs ?? meals.reduce((sum, m) => sum + (m.totals.carb_g ?? 0), 0);
   const fat = totalFat ?? meals.reduce((sum, m) => sum + (m.totals.fat_g ?? 0), 0);
   const nutritionState = dayNutritionState(meals);
+  const hasAiEstimate = meals.some((meal) => meal.items.some((item) => item.portion_provenance === "llm_unverified_estimate"));
   const hasMeasuredPortion = portions.midpoint > 0 || portions.p10 > 0 || portions.p90 > 0;
 
   return (
@@ -90,7 +91,7 @@ export function DayScreen({ meals, totalCalories, totalProtein, totalCarbs, tota
             </View>
 
             <View style={styles.calorieRow}>
-              {nutritionState.hasVerifiedMacros ? <Text style={styles.totalApprox}>≈ </Text> : null}
+              {nutritionState.hasVerifiedMacros || hasAiEstimate ? <Text style={styles.totalApprox}>≈ </Text> : null}
               <Text style={styles.totalNumber}>{Math.round(totalCalories).toLocaleString()}</Text>
               <Text style={styles.totalUnit}> kcal</Text>
             </View>
@@ -126,7 +127,7 @@ export function DayScreen({ meals, totalCalories, totalProtein, totalCarbs, tota
 
             <View style={styles.macroSummary}>
               <Text style={styles.macroDisclaimer}>
-                {t("macrosPartial")}
+                {hasAiEstimate ? "Toplama doğrulanmamış AI tahminleri dahildir." : t("macrosPartial")}
               </Text>
             </View>
           </View>
@@ -141,7 +142,8 @@ export function DayScreen({ meals, totalCalories, totalProtein, totalCarbs, tota
 
           {/* Floating Bento Meal Cards */}
           {meals.map((item, index) => {
-            const isManual = item.items.some((i) => i.portion_provenance === "manual_user_input" || i.food_id === "USER_CUSTOM");
+            const isAiEstimate = item.items.some((i) => i.portion_provenance === "llm_unverified_estimate");
+            const isManual = !isAiEstimate && item.items.some((i) => i.portion_provenance === "manual_user_input" || i.food_id === "USER_CUSTOM");
             const isHighlighted = item.idempotency_key === highlightedMealKey;
             const primaryFood = item.items[0]?.food_id ?? item.items[0]?.query ?? "";
             const emoji = getFoodEmoji(primaryFood);
@@ -171,6 +173,7 @@ export function DayScreen({ meals, totalCalories, totalProtein, totalCarbs, tota
                           {isManual ? "" : "≈ "}
                           {Math.round(item.totals.kcal)} kcal
                           {isManual ? <Text style={styles.manualTag}> (Manuel)</Text> : null}
+                          {isAiEstimate ? <Text style={styles.estimateTag}> (AI tahmini)</Text> : null}
                         </Text>
                       )}
                       <Ionicons name="chevron-forward" size={15} color={colors.muted} />
@@ -415,6 +418,11 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 10,
     fontWeight: "600",
+  },
+  estimateTag: {
+    color: "#8D641C",
+    fontSize: 11,
+    fontWeight: "900",
   },
   mealCardBody: {
     marginTop: 2,

@@ -416,3 +416,62 @@ stored, an individual anonymized event cannot be selected by the current GDPR
 delete endpoint. Production telemetry therefore needs authenticated
 pseudonymous ownership, retention limits, deletion semantics, durable storage,
 and explicit human curation before it can support learning claims.
+
+---
+
+## D19 — Unverified LLM nutrition is a separate product lane, never grounded truth
+
+**Decision.** Supersede D1 and D15 only for an explicit, user-requested fallback
+after closed-set resolution returns `ABSTAIN`. A separate server endpoint may ask
+the configured Gemini model for broad calorie and macro ranges plus stated
+assumptions. The response is always labelled `llm_unverified_estimate`, requires
+an explicit user action, never uses `auto_accept`, and never claims catalogue,
+TÜRKOMP, laboratory, or measured provenance. Grounded V1–V3 evaluation and the
+canonical nutrition pipeline remain unchanged.
+
+**Rejected.** Client-side hardcoded calorie defaults; placing a provider key in
+Expo; silently mixing an LLM midpoint into a catalogue result; presenting a
+single precise number without its range and assumptions; treating the fallback
+as evidence that grounded meal-logging accuracy improved.
+
+**Constraint.** The UI must distinguish verified catalogue nutrition from an
+unverified model estimate at every review and saved-meal surface. Provider
+failure returns no numeric fallback. Server validation bounds every returned
+range, and catalogue misses remain unresolved until the user explicitly accepts
+the estimate or chooses another honest logging path.
+
+**Cost.** The zero-model-nutrients claim no longer applies to the whole product;
+it applies only to the grounded pipeline. Accepted estimates can still be wrong,
+especially when cooking fat, recipe, and portion are visually ambiguous. They
+consume provider quota and are excluded from grounded eval metrics, so their
+accuracy requires a separate labelled dataset before any quality claim.
+
+---
+
+## D20 — Prepare unresolved-item estimates as one bounded batch
+
+**Decision.** Supersede D19's tap-per-item request interaction. When Review or
+the abstention screen opens in live mode, prepare estimates for up to 20
+unresolved items in one Gemini request. Generation is automatic; acceptance and
+saving are not. Every estimate keeps the D19 ranges, assumptions, model id, and
+`llm_unverified_estimate` label. Catalogue-backed items remain visibly
+`Doğrulanmış`; model-only items remain visibly `AI tahmini · doğrulanmamış`.
+
+**Rejected.** One provider call per unresolved item; silently accepting every
+generated midpoint; removing unresolved items above an arbitrary five-item UI
+cap; unlimited automatic requests; falling back to hardcoded numbers when quota
+or provider calls fail.
+
+**Constraint.** One batch contains 1–20 items. New batches require a user-scoped
+idempotency key and pass both five-batches-per-minute and twenty-batches-per-day
+in-process quotas. Identical retries reuse an LRU cache, concurrent duplicates
+share one promise, provider calls time out after 20 seconds, and three
+consecutive provider failures open a 60-second circuit. Provider failure or
+quota exhaustion returns no nutrition numbers.
+
+**Cost.** Opening a live unresolved-result screen now spends provider quota
+without an extra tap. In-memory cache, quotas, and circuit state are per process,
+so production needs a shared store and atomic distributed limits. A 20-item
+response is slower and harder for the model to keep aligned; request indexes and
+strict response-count validation reject partial or reordered ambiguity instead
+of guessing.

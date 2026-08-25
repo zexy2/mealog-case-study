@@ -3,6 +3,11 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 import { FixtureVision } from '../adapters/vision.fixture';
 import { GeminiVision } from '../adapters/vision.gemini';
+import {
+  DisabledNutritionEstimator,
+  GeminiNutritionEstimator,
+  NUTRITION_ESTIMATE_PORT,
+} from '../adapters/nutrition-estimate.gemini';
 import { settings, Settings } from '../config';
 import { configure as configureLogging } from '../obs';
 import type { VisionPort } from '../pipeline/ports';
@@ -45,6 +50,13 @@ configureLogging(settings.log_level);
     {
       provide: VISION_PORT,
       useFactory: (runtimeSettings: Settings) => makeVision(runtimeSettings),
+      inject: [Settings],
+    },
+    {
+      provide: NUTRITION_ESTIMATE_PORT,
+      useFactory: (runtimeSettings: Settings) => runtimeSettings.vision_provider === 'gemini'
+        ? new GeminiNutritionEstimator({ apiKey: runtimeSettings.gemini_api_key ?? '' })
+        : new DisabledNutritionEstimator(),
       inject: [Settings],
     },
     MealsService,

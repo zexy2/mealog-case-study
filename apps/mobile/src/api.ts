@@ -4,7 +4,7 @@ import { buildDemoMeal } from "./demoData";
 import { demoScenarioFor } from "./demoScenarios";
 import { inferImageMimeAndName } from "./mime";
 import { t } from "./strings";
-import { MealCorrection, MealLog, PendingCapture } from "./types";
+import { MealCorrection, MealLog, PendingCapture, UnverifiedNutritionEstimate } from "./types";
 
 const defaultLocalApiUrl = Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
 export const apiBaseUrl = (process.env.EXPO_PUBLIC_API_URL || defaultLocalApiUrl).replace(/\/$/, "");
@@ -129,6 +129,43 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
     throw new MealApiError(response.status, message);
   }
   return response.json() as Promise<MealLog>;
+}
+
+export type NutritionEstimateInput = { dish_name: string; quantity: number | null };
+
+export async function estimateNutritionBatch(
+  items: NutritionEstimateInput[],
+  idempotencyKey: string,
+): Promise<UnverifiedNutritionEstimate[]> {
+  if (demoMode) {
+    throw new Error("AI tahmini yalnızca canlı sağlayıcı modunda kullanılabilir.");
+  }
+  if (items.length < 1 || items.length > 20) {
+    throw new Error("Tek öğünde en fazla 20 AI tahmini hazırlanabilir.");
+  }
+  const userId = await getClientUserId();
+  const response = await fetch(`${apiBaseUrl}/v1/meals/estimate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": userId,
+      "X-Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({ items }),
+  });
+  if (!response.ok) {
+    const message = response.status === 503
+      ? "AI tahmini şu anda alınamadı. Daha sonra yeniden deneyin."
+      : response.status === 429
+      ? "AI tahmini kotası doldu. Bir süre sonra yeniden deneyin; doğrulanmamış sayı üretilmedi."
+      : `AI tahmini alınamadı (${response.status}).`;
+    throw new MealApiError(response.status, message);
+  }
+  const payload = await response.json() as { estimates: UnverifiedNutritionEstimate[] };
+  if (!Array.isArray(payload.estimates) || payload.estimates.length !== items.length) {
+    throw new Error("AI tahmini eksik döndü. Lütfen yeniden deneyin.");
+  }
+  return payload.estimates;
 }
 
 async function submitText(capture: PendingCapture): Promise<Response> {
