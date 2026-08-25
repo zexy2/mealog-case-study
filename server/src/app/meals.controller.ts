@@ -19,7 +19,9 @@ import {
   isSupportedImageBytes,
 } from '../adapters/vision.gemini';
 import {
+  MAX_ESTIMATE_ITEMS,
   NUTRITION_ESTIMATE_PORT,
+  type NutritionEstimateInput,
   type NutritionEstimatePort,
   type UnverifiedNutritionEstimate,
 } from '../adapters/nutrition-estimate.gemini';
@@ -30,10 +32,12 @@ import type { CorrectionRequest, ItemCorrection } from '../pipeline/correction';
 import { recordTelemetryEvent, type TelemetryEventType, type TelemetryItemDelta } from '../pipeline/telemetry';
 
 import { MealsService, type MealRequest } from './meals.service';
-import { defaultRateLimiter } from './rate-limiter';
+import { defaultRateLimiter, InMemoryRateLimiter } from './rate-limiter';
 import { Settings, settings } from '../config';
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+export const nutritionEstimateMinuteLimiter = new InMemoryRateLimiter({ maxRequests: 5, windowMs: 60_000 });
+export const nutritionEstimateDailyLimiter = new InMemoryRateLimiter({ maxRequests: 20, windowMs: 86_400_000 });
 const TELEMETRY_EVENT_TYPES = new Set<TelemetryEventType>([
   'CONFIRMED_AS_IS',
   'CANDIDATE_SWAPPED',
@@ -198,31 +202,57 @@ export class MealsController {
   async estimateNutrition(
     @Body() body: unknown,
     @Headers('x-user-id') userId: string | undefined,
-  ): Promise<UnverifiedNutritionEstimate> {
+    @Headers('x-idempotency-key') idempotencyKey: string | undefined,
+  ): Promise<{ estimates: readonly UnverifiedNutritionEstimate[] }> {
     if (!userId || !userId.trim()) {
       invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'X-User-Id header is required');
     }
-    if (!isRecord(body) || typeof body.dish_name !== 'string') {
-      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'dish_name is required');
+    if (!idempotencyKey || !idempotencyKey.trim() || idempotencyKey.length > 128) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'X-Idempotency-Key header is required');
     }
-    const dishName = sanitizePromptInput(body.dish_name).cleanText.trim();
-    if (!dishName || dishName.length > 160) {
-      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'invalid dish_name');
+    if (!isRecord(body) || !Array.isArray(body.items)) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'items array is required');
     }
-    const quantity = body.quantity === undefined || body.quantity === null
-      ? null
-      : body.quantity;
-    if (
-      quantity !== null
-      && (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity < 1 || quantity > 20)
-    ) {
-      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'quantity must be an integer from 1 to 20 or null');
+    if (body.items.length < 1 || body.items.length > MAX_ESTIMATE_ITEMS) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, `items must contain 1-${MAX_ESTIMATE_ITEMS} rows`);
     }
-    const rate = defaultRateLimiter.check(`${userId.trim()}:nutrition-estimate`);
-    if (!rate.allowed) {
-      invalid(HttpStatus.TOO_MANY_REQUESTS, 'nutrition estimate rate limit exceeded');
+    const items: NutritionEstimateInput[] = body.items.map((value, index) => {
+      if (!isRecord(value) || typeof value.dish_name !== 'string') {
+        invalid(HttpStatus.UNPROCESSABLE_ENTITY, `items[${index}].dish_name is required`);
+      }
+      const dishName = sanitizePromptInput(value.dish_name).cleanText.trim();
+      if (!dishName || dishName.length > 160) {
+        invalid(HttpStatus.UNPROCESSABLE_ENTITY, `invalid items[${index}].dish_name`);
+      }
+      const quantity = value.quantity === undefined || value.quantity === null ? null : value.quantity;
+      if (
+        quantity !== null
+        && (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity < 1 || quantity > 20)
+      ) {
+        invalid(HttpStatus.UNPROCESSABLE_ENTITY, `items[${index}].quantity must be an integer from 1 to 20 or null`);
+      }
+      return { dish_name: dishName, quantity };
+    });
+    const cleanUserId = userId.trim();
+    const cacheKey = `${cleanUserId}\u0000${idempotencyKey.trim()}`;
+    if (!this.nutritionEstimator.hasPendingOrCompleted(cacheKey)) {
+      const minute = nutritionEstimateMinuteLimiter.check(cleanUserId);
+      if (!minute.allowed) {
+        invalid(HttpStatus.TOO_MANY_REQUESTS, 'nutrition estimate minute quota exceeded');
+      }
+      const daily = nutritionEstimateDailyLimiter.check(cleanUserId);
+      if (!daily.allowed) {
+        invalid(HttpStatus.TOO_MANY_REQUESTS, 'nutrition estimate quota exceeded');
+      }
     }
-    return this.nutritionEstimator.estimate(dishName, quantity);
+    try {
+      return { estimates: await this.nutritionEstimator.estimateMany(items, cacheKey) };
+    } catch (error) {
+      if (error instanceof Error && /idempotency key reused/i.test(error.message)) {
+        invalid(HttpStatus.CONFLICT, error.message);
+      }
+      throw error;
+    }
   }
 
   @Post('telemetry/events')
@@ -366,5 +396,8 @@ export class MealsController {
     }
     this.meals.purgeUserData(cleanId);
     defaultRateLimiter.reset(cleanId);
+    nutritionEstimateMinuteLimiter.reset(cleanId);
+    nutritionEstimateDailyLimiter.reset(cleanId);
+    this.nutritionEstimator.purgeUserData(cleanId);
   }
 }

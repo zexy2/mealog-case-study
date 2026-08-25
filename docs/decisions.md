@@ -445,3 +445,33 @@ it applies only to the grounded pipeline. Accepted estimates can still be wrong,
 especially when cooking fat, recipe, and portion are visually ambiguous. They
 consume provider quota and are excluded from grounded eval metrics, so their
 accuracy requires a separate labelled dataset before any quality claim.
+
+---
+
+## D20 — Prepare unresolved-item estimates as one bounded batch
+
+**Decision.** Supersede D19's tap-per-item request interaction. When Review or
+the abstention screen opens in live mode, prepare estimates for up to 20
+unresolved items in one Gemini request. Generation is automatic; acceptance and
+saving are not. Every estimate keeps the D19 ranges, assumptions, model id, and
+`llm_unverified_estimate` label. Catalogue-backed items remain visibly
+`Doğrulanmış`; model-only items remain visibly `AI tahmini · doğrulanmamış`.
+
+**Rejected.** One provider call per unresolved item; silently accepting every
+generated midpoint; removing unresolved items above an arbitrary five-item UI
+cap; unlimited automatic requests; falling back to hardcoded numbers when quota
+or provider calls fail.
+
+**Constraint.** One batch contains 1–20 items. New batches require a user-scoped
+idempotency key and pass both five-batches-per-minute and twenty-batches-per-day
+in-process quotas. Identical retries reuse an LRU cache, concurrent duplicates
+share one promise, provider calls time out after 20 seconds, and three
+consecutive provider failures open a 60-second circuit. Provider failure or
+quota exhaustion returns no nutrition numbers.
+
+**Cost.** Opening a live unresolved-result screen now spends provider quota
+without an extra tap. In-memory cache, quotas, and circuit state are per process,
+so production needs a shared store and atomic distributed limits. A 20-item
+response is slower and harder for the model to keep aligned; request indexes and
+strict response-count validation reject partial or reordered ambiguity instead
+of guessing.

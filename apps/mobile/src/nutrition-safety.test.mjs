@@ -31,6 +31,9 @@ assert.equal(
 );
 
 assert.match(apiSource, /\/v1\/meals\/estimate/);
+assert.match(apiSource, /items\.length > 20/);
+assert.match(reviewSource, /estimateNutritionBatch/);
+assert.match(reviewSource, /\.slice\(0, 20\)/);
 assert.match(reviewSource, /AI tahmini — doğrulanmış katalog veya laboratuvar verisi değildir/);
 assert.match(reviewSource, /Doğrulanmamış AI Tahmini/);
 assert.equal(

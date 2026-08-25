@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { t } from "../src/strings";
-import { estimateNutrition } from "../src/api";
+import { estimateNutritionBatch, isDemoMode } from "../src/api";
 import { Candidate, MealLog, UnverifiedNutritionEstimate } from "../src/types";
 import { Header } from "../components/Header";
 import { colors } from "../components/theme";
@@ -91,13 +91,24 @@ export function AbstentionScreen({
     setEstimateLoading(true);
     setEstimateError("");
     try {
-      setNutritionEstimate(await estimateNutrition(observedName, meal.items[0]?.quantity ?? null));
+      const estimates = await estimateNutritionBatch(
+        [{ dish_name: observedName, quantity: meal.items[0]?.quantity ?? null }],
+        `${meal.idempotency_key}:nutrition:abstention`,
+      );
+      setNutritionEstimate(estimates[0]);
     } catch (caught) {
       setEstimateError(caught instanceof Error ? caught.message : "AI tahmini alınamadı.");
     } finally {
       setEstimateLoading(false);
     }
   }
+
+  React.useEffect(() => {
+    if (isEmptyPlate || isDemoMode) return;
+    void handleRequestEstimate();
+    // One automatic estimate request per abstained meal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meal.idempotency_key, isEmptyPlate]);
 
   const scrollRef = React.useRef<ScrollView>(null);
   React.useEffect(() => {
@@ -149,9 +160,9 @@ export function AbstentionScreen({
       {!isEmptyPlate ? (
         <View style={styles.estimateCard}>
           <Text style={styles.estimateEyebrow}>DOĞRULANMAMIŞ ALTERNATİF</Text>
-          <Text style={styles.estimateTitle}>AI tahmini almak ister misiniz?</Text>
+          <Text style={styles.estimateTitle}>Doğrulanmamış AI tahmini</Text>
           <Text style={styles.estimateCopy}>
-            Gemini genel bilgisini kullanır. Sonuç katalog veya laboratuvar verisi değildir ve kaydetmeden önce sizin onayınızı ister.
+            Gemini genel bilgisini kullanır. Sonuç otomatik hazırlanır; katalog veya laboratuvar verisi değildir ve siz onaylamadan kaydedilmez.
           </Text>
           {nutritionEstimate ? (
             <View style={styles.estimateResult}>
@@ -175,17 +186,23 @@ export function AbstentionScreen({
                 <Text style={styles.estimateAcceptButtonText}>Bu tahmini kullan</Text>
               </Pressable>
             </View>
-          ) : (
+          ) : estimateError ? (
             <Pressable
               style={styles.estimateButton}
-              disabled={estimateLoading}
               onPress={() => void handleRequestEstimate()}
               accessibilityRole="button"
-              accessibilityLabel="Gemini tahmini iste"
+              accessibilityLabel="Gemini tahminini yeniden dene"
             >
               <Ionicons name="sparkles-outline" size={17} color={colors.white} />
-              <Text style={styles.estimateButtonText}>{estimateLoading ? "Gemini tahmin ediyor…" : "AI tahmini al"}</Text>
+              <Text style={styles.estimateButtonText}>Yeniden dene</Text>
             </Pressable>
+          ) : (
+            <View style={styles.estimatePreparing}>
+              <Ionicons name="sparkles-outline" size={17} color="#8D641C" />
+              <Text style={styles.estimatePreparingText}>
+                {isDemoMode ? "AI tahmini canlı modda hazırlanır." : estimateLoading ? "AI tahmini hazırlanıyor…" : "AI tahmini sıraya alındı…"}
+              </Text>
+            </View>
           )}
           {estimateError ? <Text style={styles.estimateError}>{estimateError}</Text> : null}
         </View>
@@ -501,6 +518,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   estimateButtonText: { color: colors.white, fontSize: 14, fontWeight: "900" },
+  estimatePreparing: {
+    minHeight: 48,
+    marginTop: 14,
+    borderRadius: 14,
+    backgroundColor: "#F7E8BC",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  estimatePreparingText: { color: "#8D641C", fontSize: 13, fontWeight: "900" },
   estimateResult: { marginTop: 14, borderTopWidth: 1, borderTopColor: "#E8B653", paddingTop: 12 },
   estimateDish: { color: colors.ink, fontSize: 16, fontWeight: "900" },
   estimateKcal: { color: colors.terracotta, fontSize: 20, fontWeight: "900", marginTop: 4 },

@@ -1,6 +1,6 @@
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Candidate, CaptureMedium, ItemClarification, MealAction, MealLog, UnverifiedNutritionEstimate } from "../src/types";
@@ -8,7 +8,7 @@ import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "..
 import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity } from "../src/reviewState";
 import { nutritionPresentationForItem } from "../src/nutritionPresentation";
 import { sendTelemetryEvent, telemetryEventTypeForEdits } from "../src/telemetry";
-import { apiBaseUrl, estimateNutrition, getClientUserId, isDemoMode } from "../src/api";
+import { apiBaseUrl, estimateNutritionBatch, getClientUserId, isDemoMode } from "../src/api";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -453,21 +453,60 @@ export function ReviewScreen({
     Alert.alert("Özel Yemek Eklendi", `"${name}" (${kcal} kcal) manuel kullanıcı girişi olarak tabağa eklendi.`);
   }
 
-  async function requestNutritionEstimate(index: number, item: MealLog["items"][number]) {
-    setEstimateLoading((current) => ({ ...current, [index]: true }));
-    setEstimateErrors((current) => ({ ...current, [index]: "" }));
+  async function requestNutritionEstimates(indexes: number[]) {
+    if (indexes.length === 0) return;
+    setEstimateLoading((current) => ({
+      ...current,
+      ...Object.fromEntries(indexes.map((index) => [index, true])),
+    }));
+    setEstimateErrors((current) => ({
+      ...current,
+      ...Object.fromEntries(indexes.map((index) => [index, ""])),
+    }));
     try {
-      const estimate = await estimateNutrition(item.query || "Yemek", item.quantity ?? null);
-      setNutritionEstimates((current) => ({ ...current, [index]: estimate }));
+      const estimates = await estimateNutritionBatch(
+        indexes.map((index) => ({
+          dish_name: meal.items[index]?.query || "Yemek",
+          quantity: meal.items[index]?.quantity ?? null,
+        })),
+        `${meal.idempotency_key}:nutrition:${indexes.join("-")}`,
+      );
+      setNutritionEstimates((current) => ({
+        ...current,
+        ...Object.fromEntries(indexes.map((index, offset) => [index, estimates[offset]])),
+      }));
     } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "AI tahmini alınamadı.";
       setEstimateErrors((current) => ({
         ...current,
-        [index]: caught instanceof Error ? caught.message : "AI tahmini alınamadı.",
+        ...Object.fromEntries(indexes.map((index) => [index, message])),
       }));
     } finally {
-      setEstimateLoading((current) => ({ ...current, [index]: false }));
+      setEstimateLoading((current) => ({
+        ...current,
+        ...Object.fromEntries(indexes.map((index) => [index, false])),
+      }));
     }
   }
+
+  useEffect(() => {
+    if (isDemoMode) return;
+    const allUnresolvedIndexes = meal.items
+      .map((item, index) => ({ item, index }))
+      .filter(({ item, index }) => (selectedCandidates[index] ?? item.food_id) === "ABSTAIN")
+      .map(({ index }) => index);
+    const unresolvedIndexes = allUnresolvedIndexes.slice(0, 20);
+    const overflowIndexes = allUnresolvedIndexes.slice(20);
+    if (overflowIndexes.length > 0) {
+      setEstimateErrors((current) => ({
+        ...current,
+        ...Object.fromEntries(overflowIndexes.map((index) => [index, "Bu öğünde 20 AI tahmini sınırına ulaşıldı."])),
+      }));
+    }
+    void requestNutritionEstimates(unresolvedIndexes);
+    // One automatic batch per meal. Candidate edits must not trigger new provider calls.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meal.idempotency_key]);
 
   // Calculate live total macros across all items (including newly resolved candidates)
   let liveTotalKcal = 0;
@@ -1138,10 +1177,11 @@ export function ReviewScreen({
                             <Text style={styles.aiKatalogDisiText}>Katalogda Yok</Text>
                           </View>
                           <Text style={styles.customNotFoundText}>
-                            Katalog doğrulaması yok. İsterseniz Gemini'den geniş aralıklı, doğrulanmamış bir tahmin isteyebilirsiniz.
+                            Katalog doğrulaması yok. Gemini tahmini ayrı ve doğrulanmamış gösterilir; siz onaylamadan kaydedilmez.
                           </Text>
                           {nutritionEstimates[index] ? (
                             <View style={styles.unverifiedEstimateBox}>
+                              <Text style={styles.unverifiedEstimateBadge}>AI TAHMİNİ · DOĞRULANMAMIŞ</Text>
                               <Text style={styles.unverifiedEstimateTitle}>{nutritionEstimates[index].dish_name}</Text>
                               <Text style={styles.unverifiedEstimateKcal}>
                                 ≈ {nutritionEstimates[index].kcal.midpoint} kcal ({nutritionEstimates[index].kcal.low}–{nutritionEstimates[index].kcal.high})
@@ -1164,19 +1204,23 @@ export function ReviewScreen({
                                 <Text style={styles.unverifiedEstimateAcceptText}>Bu tahmini kullan</Text>
                               </Pressable>
                             </View>
-                          ) : (
+                          ) : estimateErrors[index] ? (
                             <Pressable
                               style={styles.unverifiedEstimateRequest}
-                              disabled={Boolean(estimateLoading[index])}
-                              onPress={() => void requestNutritionEstimate(index, item)}
+                              onPress={() => void requestNutritionEstimates([index])}
                               accessibilityRole="button"
-                              accessibilityLabel="Gemini tahmini iste"
+                              accessibilityLabel="Gemini tahminini yeniden dene"
                             >
                               <Ionicons name="sparkles-outline" size={15} color={colors.white} />
-                              <Text style={styles.unverifiedEstimateRequestText}>
-                                {estimateLoading[index] ? "Gemini tahmin ediyor…" : "AI tahmini al"}
-                              </Text>
+                              <Text style={styles.unverifiedEstimateRequestText}>Yeniden dene</Text>
                             </Pressable>
+                          ) : (
+                            <View style={styles.unverifiedEstimatePreparing}>
+                              <Ionicons name="sparkles-outline" size={15} color="#8D641C" />
+                              <Text style={styles.unverifiedEstimatePreparingText}>
+                                {estimateLoading[index] ? "AI tahmini hazırlanıyor…" : "AI tahmini sıraya alındı…"}
+                              </Text>
+                            </View>
                           )}
                           {estimateErrors[index] ? <Text style={styles.estimateError}>{estimateErrors[index]}</Text> : null}
                         </View>
@@ -2134,11 +2178,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   unverifiedEstimateRequestText: { color: colors.white, fontSize: 13, fontWeight: "800" },
+  unverifiedEstimatePreparing: {
+    minHeight: 44,
+    marginTop: 12,
+    borderRadius: 12,
+    backgroundColor: "#FBF1D8",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingHorizontal: 14,
+  },
+  unverifiedEstimatePreparingText: { color: "#8D641C", fontSize: 13, fontWeight: "800" },
   unverifiedEstimateBox: {
     marginTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#E8B653",
     paddingTop: 12,
+  },
+  unverifiedEstimateBadge: {
+    alignSelf: "flex-start",
+    color: "#8D641C",
+    backgroundColor: "#F7E8BC",
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.7,
+    marginBottom: 7,
   },
   unverifiedEstimateTitle: { color: colors.ink, fontSize: 15, fontWeight: "900" },
   unverifiedEstimateKcal: { color: colors.terracotta, fontSize: 18, fontWeight: "900", marginTop: 4 },

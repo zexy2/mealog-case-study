@@ -131,12 +131,17 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
   return response.json() as Promise<MealLog>;
 }
 
-export async function estimateNutrition(
-  dishName: string,
-  quantity: number | null,
-): Promise<UnverifiedNutritionEstimate> {
+export type NutritionEstimateInput = { dish_name: string; quantity: number | null };
+
+export async function estimateNutritionBatch(
+  items: NutritionEstimateInput[],
+  idempotencyKey: string,
+): Promise<UnverifiedNutritionEstimate[]> {
   if (demoMode) {
     throw new Error("AI tahmini yalnızca canlı sağlayıcı modunda kullanılabilir.");
+  }
+  if (items.length < 1 || items.length > 20) {
+    throw new Error("Tek öğünde en fazla 20 AI tahmini hazırlanabilir.");
   }
   const userId = await getClientUserId();
   const response = await fetch(`${apiBaseUrl}/v1/meals/estimate`, {
@@ -144,18 +149,23 @@ export async function estimateNutrition(
     headers: {
       "Content-Type": "application/json",
       "X-User-Id": userId,
+      "X-Idempotency-Key": idempotencyKey,
     },
-    body: JSON.stringify({ dish_name: dishName, quantity }),
+    body: JSON.stringify({ items }),
   });
   if (!response.ok) {
     const message = response.status === 503
       ? "AI tahmini şu anda alınamadı. Daha sonra yeniden deneyin."
       : response.status === 429
-      ? t("rateLimitExceeded")
+      ? "AI tahmini kotası doldu. Bir süre sonra yeniden deneyin; doğrulanmamış sayı üretilmedi."
       : `AI tahmini alınamadı (${response.status}).`;
     throw new MealApiError(response.status, message);
   }
-  return response.json() as Promise<UnverifiedNutritionEstimate>;
+  const payload = await response.json() as { estimates: UnverifiedNutritionEstimate[] };
+  if (!Array.isArray(payload.estimates) || payload.estimates.length !== items.length) {
+    throw new Error("AI tahmini eksik döndü. Lütfen yeniden deneyin.");
+  }
+  return payload.estimates;
 }
 
 async function submitText(capture: PendingCapture): Promise<Response> {
