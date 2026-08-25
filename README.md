@@ -1,87 +1,202 @@
-# mealog — Full Stack Developer take-home for EatBetter
+# mealog — accuracy-first mobile meal logging
 
-mealog is a mobile-first meal logging case study. Its grounded pipeline maps
-observations to a closed catalogue and computes nutrition deterministically. A
-separate, explicitly unverified LLM-estimate lane is available only after a
-catalogue miss and requires user acceptance.
+mealog is a React Native meal logger backed by a Node.js/TypeScript service. It
+turns a photo or informal text into canonical foods, explicit portion ranges,
+and catalogue-backed nutrition. When the system cannot support a safe match, it
+asks or abstains instead of silently logging its nearest guess.
 
-> **Core Focus (AI Accuracy):** Converting noisy, ambiguous, multi-component dining photos and informal text into **verified canonical foods + explicit portion uncertainty intervals + catalogue-backed nutrition** ([Deep Dive in System Architecture](docs/architecture.md#3-robustness-to-messy-real-world-inputs--ambiguity-core-ai-focus)).
+The implementation follows a hybrid path: Gemini or a deterministic fixture
+extracts observations; pure TypeScript stages normalize, retrieve, resolve,
+estimate portions, compute nutrition, and route the result. A separate LLM
+estimate endpoint exists only after a catalogue miss. Its output is labelled
+unverified, carries ranges and assumptions, is never auto-accepted, requires
+user acceptance before save, and is excluded from grounded evaluation.
 
-* **System Architecture & Design:** [docs/architecture.md](docs/architecture.md)
-* **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D20)
-* **EatBetter Comparison & Benchmark:** [docs/comparison.md](docs/comparison.md)
-* **Correction Telemetry & Proposed HITL Loop:** [docs/data_flywheel_and_hitl_architecture.md](docs/data_flywheel_and_hitl_architecture.md)
-* **Walkthrough Script:** [docs/walkthrough.md](docs/walkthrough.md)
+> [!IMPORTANT]
+> **Submission state:** the app, Node service, offline evaluation, technical
+> write-up, and email draft are present. The Loom recording is still pending.
+> The latest hosted GitHub jobs were blocked before executing by the account's
+> billing/spending state; local checks are reported separately and are not
+> presented as hosted-CI evidence.
 
+## Reviewer guide
 
-## Run it
+| If you have... | Start here |
+| --- | --- |
+| 2 minutes | [Product and measured result](#product-and-measured-result), then [EatBetter comparison](#compared-with-eatbetter) |
+| 5 minutes | [Architecture](#architecture), [Known failures](#known-failures-measured), and [Trade-offs](#key-trade-offs) |
+| 10 minutes | Run the [keyless mobile demo](#1-keyless-mobile-demo), then inspect [evaluation](docs/evaluation.md) and [decisions](docs/decisions.md) |
+| Walkthrough | [Timed 5–10 minute script](docs/walkthrough.md) — Loom URL pending recording |
 
-Runtime versions are pinned by the project workflow: Python 3.11 for the offline research harness and Node.js 22 for the delivered TypeScript service and mobile app.
+Deep dives: [architecture](docs/architecture.md), [evaluation](docs/evaluation.md),
+[EatBetter comparison](docs/comparison.md), [decisions D1–D20](docs/decisions.md),
+and [bounded HITL/data-flywheel design](docs/data_flywheel_and_hitl_architecture.md).
 
-### Delivered Node.js service
+## Product and measured result
 
-The NestJS service defaults to the keyless fixture provider. From the repository root:
+The mobile experience has four deliberate outcomes:
+
+- `auto_accept` goes to Day with the new record highlighted and undo available.
+- `review` or `ask` opens an audit view with candidates, identity confidence,
+  source, quantity, and a visible p10–p90 portion band.
+- `ABSTAIN` explains that no safe catalogue match exists and offers correction,
+  note, or explicitly unverified estimate paths.
+- degraded/provider failures never appear as first-class accepted answers.
+
+The current offline V3 replay uses **80 recorded, non-synthetic provider
+responses** and matching labels. Its primary result is the risk–coverage trade:
+**10/80 meals commit (12% coverage), 70/80 ask, Item F1 is 0.15, and FP rate is
+86.0%**. Calorie MAPE is **12.7% over only 2/2 complete, covered calorie rows**;
+that denominator is too small for a broad accuracy claim.
+
+| Cuisine | n | Coverage | Item F1 | kcal MAPE | FP rate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| western | 12 | 33% | 0.43 | 12.7% (2 rows) | 66.7% |
+| mediterranean | 12 | 25% | 0.22 | — | 71.4% |
+| east_asian | 16 | 6% | 0.10 | — | 90.0% |
+| other_mixed | 8 | 0% | 0.08 | — | 91.7% |
+| south_asian | 16 | 0% | 0.00 | — | 100.0% |
+| latin_american | 16 | 12% | 0.06 | — | 95.7% |
+| **overall** | **80** | **12%** | **0.15** | **12.7% (2 rows)** | **86.0%** |
+
+An em dash means no covered, complete-positive calorie row—not zero error.
+These are reproducible fixture-replay results, not live-provider accuracy. The
+fixtures were recorded with `gemini-flash-lite-latest`; they do not measure the
+current live adapter default, `gemini-3.6-flash`.
+
+## Compared with EatBetter
+
+This comparison is bounded to mealog's demonstrated behavior and EatBetter's
+public App Store positioning and observed public product surfaces. It makes no
+claim about EatBetter's internal model, catalogue, thresholds, storage, or
+retry architecture.
+
+| What is better | Why | How measured | Concrete example or failure |
+| --- | --- | --- | --- |
+| Closed-set `food_id` or `ABSTAIN` | Prevents invented output IDs from becoming authoritative nutrition; it does not prevent perception or wrong-match errors | 145 retrieval variants; 122/122 positive Recall@1 and 0/22 absent-food false accepts | `baked beans` must not become `tr.kuru_fasulye` |
+| Visible abstention | A wrong complete-looking log is harder to notice than a deferral | V3 reports coverage beside errors: 10/80 commit, 70/80 ask | `jp_0002` returns three abstentions for foods absent from `ja_JP` |
+| p10–p90 portion uncertainty | Portion error directly changes calorie error | Portion tests cover count, density, label serving, fallback, and provenance | Packaged yogurt shows 170 g with a 153–187 g band and label provenance |
+| Worst-cuisine reporting | A mean can hide a market that is unusable | Every cuisine reports n, coverage, Item F1, MAPE, and FP rate | South Asian: n=16, 0% coverage, Item F1 0.00 |
+| Auditable result | Identity, alternatives, confidence, grams, source, and provenance can be challenged before save | Typed response contract plus focused API/mobile tests | Review exposes canonical ID, ranked candidates, portion source, and uncertainty |
+| User-scoped idempotency | Retries do not duplicate one user's meal or collide across users | E2E tests replay the same key and reuse it across two users | Same user/key replays one result; another user executes independently |
+| Licence enforcement | Nutrition data rights are checked at pack load, not documented after calculation | 103/103 food rows have a source; all 3 packs declare a licence | Commercial mode rejects a restricted pack |
+| **EatBetter: catalogue and long-tail breadth** | mealog's safety boundary creates correction friction outside 103 foods | mealog measures its own catalogue and abstention; an equivalent public EatBetter count is unavailable | Turkish pack misses common long-tail dishes; honest abstention is safe but not broad |
+
+Full evidence and caveats: [docs/comparison.md](docs/comparison.md). This does
+not establish that mealog beats EatBetter overall.
+
+## What was delivered
+
+| Brief requirement | State | Evidence |
+| --- | --- | --- |
+| Mobile app, not web | Delivered; historical local smoke only | Expo React Native Capture, Review, Abstention, and Day flows; earlier simulator logs exist, but no current-release physical-device or simulator E2E claim |
+| Node.js / TypeScript backend | Delivered | NestJS edge and framework-free TypeScript pipeline core |
+| Hybrid AI path | Delivered | Vision adapter + deterministic normalization/retrieval/resolution/portion/nutrition + confidence routing |
+| Accuracy evaluation | Delivered | 80-sample offline replay, cuisine/tier slices, error taxonomy, regression gate |
+| Technical write-up | Delivered | README and linked architecture/evaluation/decision documents |
+| EatBetter comparison | Delivered | Concise table above and full evidence document |
+| Loom walkthrough | **Pending** | [Timed script](docs/walkthrough.md) is ready; no recording is claimed |
+| Email summary | Draft ready | [docs/submission_email_draft.md](docs/submission_email_draft.md), awaiting final Loom URL |
+
+## Run locally
+
+Requirements: Node.js 22.x. Python 3.11 is needed only for offline evaluation.
+iOS runtime needs macOS, Xcode, and a bootable Simulator; Android runtime needs
+Android Studio/emulator or a connected device.
 
 ```sh
-cd server
-npm ci
-npm run build
-npm run lint
-npm run test
-npm start
+git clone https://github.com/zexy2/mealog-case-study.git
+cd mealog-case-study
+node --version       # 22.x
+python3.11 --version # required only for offline evaluation
 ```
 
-In another terminal, liveness is available at `http://localhost:3000/health`.
-If port 3000 is occupied, start with `PORT=4310 npm start` and use the same port
-in the mobile API URL.
-`VISION_PROVIDER=gemini` selects the live Gemini adapter and requires
-`GEMINI_API_KEY`; no live-provider accuracy claim is made here.
+### 1. Keyless mobile demo
 
-### Mobile app
-
-From the repository root:
+This is the fastest product path. It uses deterministic local scenarios and
+does **not** need the Node service, network access, or an API key.
 
 ```sh
 cd apps/mobile
 npm ci
 npm run typecheck
 npm test
-npx expo export --platform ios
-npx expo export --platform android
+EXPO_PUBLIC_DEMO_MODE=true npm run ios
 ```
 
-The keyless reviewer path is the default. Launch it with `npm run ios` when a
-local simulator is configured; it uses deterministic local scenarios and makes
-no network request. Live mode is an explicit opt-in:
+Use `EXPO_PUBLIC_DEMO_MODE=true npm run android` for an available Android
+emulator/device. These commands attempt runtime launch; bundle export is a
+separate build check and is not device proof.
+
+### 2. Keyless Node API smoke
+
+Terminal 1:
 
 ```sh
+cd server
+npm ci
+npm run build
+VISION_PROVIDER=fixture PORT=3000 npm start
+```
+
+Terminal 2:
+
+```sh
+curl --fail --silent http://localhost:3000/health
+
+curl --fail --silent \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "idempotency_key": "readme-quickstart-1",
+    "sample_id": "tr_0001",
+    "locale": "tr",
+    "config": "V3"
+  }' \
+  http://localhost:3000/v1/meals
+```
+
+The fixture request should return HTTP 200, `action: "review"`, and a resolved
+`tr.kuru_fasulye` item with an explicit portion band. If port 3000 is occupied,
+use another `PORT` and the same port in both URLs.
+
+### 3. Optional live Gemini integration
+
+Live mode requires a server-side key; it is never placed in the mobile bundle.
+
+```sh
+# Terminal 1: server/
+VISION_PROVIDER=gemini GEMINI_API_KEY='your-key' PORT=3000 npm start
+
+# Terminal 2: apps/mobile/
 EXPO_PUBLIC_DEMO_MODE=false \
 EXPO_PUBLIC_API_URL=http://localhost:3000 \
 npm run ios
 ```
 
-For a physical phone, replace `localhost` with a Node service address reachable
-from that phone. `apps/mobile/.env.example` records both modes without a secret.
-Session logs document current demo-mode iOS Simulator execution
-([log/2026-08-24-1755-codex3-demo-review-fixture-alignment.md](log/2026-08-24-1755-codex3-demo-review-fixture-alignment.md)); repository CI proves TypeScript typecheck and iOS/Android bundle exports.
-Fixture-backed multi-item pipeline behavior is covered by
-[server/test/messy_real_inputs.test.ts](server/test/messy_real_inputs.test.ts).
-A separate live-provider iOS Simulator retest is recorded in
-[log/2026-08-22-1434-codex3-live-gallery-pr184-retest.md](log/2026-08-22-1434-codex3-live-gallery-pr184-retest.md).
-Neither is physical-device deployment evidence.
+For a physical phone, replace `localhost` with a service address reachable from
+that phone. No live-provider accuracy claim is inferred from a successful run.
 
-The mobile client is deterministic demo mode unless
-`EXPO_PUBLIC_DEMO_MODE=false` is supplied. Demo mode uses local scenarios and
-no network. Live mode calls `POST /v1/meals`; `EXPO_PUBLIC_API_URL` selects the
-reachable Node service and otherwise falls back to the simulator-local default.
-
-### Offline evaluation and reference tooling
-
-This path is keyless. It replays repository fixtures from `eval/fixtures/`
-against locale and golden-set data; no provider token or network call is
-required. From the repository root:
+### 4. Full local verification
 
 ```sh
+# Node service
+cd server
+npm ci
+npm run build
+npm run typecheck
+npm run lint
+npm test
+
+# Mobile client
+cd ../apps/mobile
+npm ci
+npm run typecheck
+npm test
+npx expo export --platform ios
+npx expo export --platform android
+
+# Offline Python/reference gates, from repository root
+cd ../..
 MEALOG_VENV="$(mktemp -d)/venv"
 python3.11 -m venv "$MEALOG_VENV"
 . "$MEALOG_VENV/bin/activate"
@@ -89,218 +204,125 @@ python -m pip install -e "server[dev]"
 make check
 ```
 
-`make eval` runs the offline evaluation harness directly when a scorecard
-refresh is needed. Python remains evaluation/reference tooling, not the
-delivered HTTP API.
-
-## What I built vs the brief
-
-| Brief requirement | Status | Evidence or reason |
-| --- | --- | --- |
-| Mobile app, not a web app | Delivered; runtime evidence is local | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection and server-side EXIF stripping. Session logs record demo and live-provider iOS Simulator runs, but their temporary screenshots are not portable repository evidence. Local checks prove typecheck and bundle export, not device execution. |
-| Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 313 tests passing across 26 files. |
-| Technical write-up | Delivered | Comprehensive architecture documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D20), and [docs/comparison.md](docs/comparison.md). |
-| Walkthrough video | Pending recording | Timed 5–10 minute script is ready in [docs/walkthrough.md](docs/walkthrough.md); no Loom URL is claimed until the recording exists. |
-| Email summary | Draft ready | [Submission email draft](docs/submission_email_draft.md) is prepared but must receive the recorded Loom URL before sending. |
-| Explicit EatBetter comparison | Delivered | Evidence-backed comparison and benchmark report documented in [docs/comparison.md](docs/comparison.md). |
-| AI / LLM path | Delivered | Hybrid rules + retrieval + LLM approach with closed-set grounded nutrition, confidence routing, and a separately labelled unverified estimate fallback for catalogue misses. |
-
+The Expo exports prove bundling, not simulator/device execution. `make check`
+is the offline Python/reference gate; it does not replace Node or mobile checks.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    subgraph Ingress[" 📸 Ingress Layer "]
-        A["🍽️ Photo or Text\n(Multi-item Input)"] --> B["🔍 Perception\n(Gemini / Fixture)"]
-    end
-
-    subgraph CorePipeline[" ⚙️ Pure TypeScript Deterministic Pipeline "]
-        B --> C["🔤 Normalize\n(Diacritics & Units)"]
-        C --> D["🔎 Retrieval\n(TF-IDF N-grams)"]
-        D --> E["🎯 Resolution\n(Closed-Set ID / ABSTAIN)"]
-        E --> F["⚖️ Portion\n(p10–p90 Band)"]
-        F --> G["🧪 Grounded Nutrition\n(TÜRKOMP / USDA)"]
-    end
-
-    subgraph TrustGate[" 🛡️ Trust & Routing Gate "]
-        G --> H{"🚦 Confidence Gate\n(Effective score ≥ 0.75?)"}
-        H -->|"High Confidence"| I["✅ Commit (Day)"]
-        H -->|"Ambiguous / Occluded"| J["⚠️ Review / Clarify"]
-        H -->|"Out of Catalogue"| K["🛑 Safe ABSTAIN"]
-        K -.->|"Explicit user acceptance"| L["⚠️ Optional LLM Estimate\nUnverified, range + assumptions"]
-    end
-
-    style Ingress fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff
-    style CorePipeline fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#fff
-    style TrustGate fill:#1e1e2e,stroke:#f59e0b,stroke-width:2px,color:#fff
-    style G fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#a7f3d0
-    style I fill:#064e3b,stroke:#22c55e,stroke-width:1px,color:#bbf7d0
-    style J fill:#78350f,stroke:#f59e0b,stroke-width:1px,color:#fef3c7
-    style K fill:#7f1d1d,stroke:#ef4444,stroke-width:1px,color:#fecaca
-    style L fill:#78350f,stroke:#f59e0b,stroke-width:1px,color:#fef3c7
+    A[Photo or text] --> B[Vision or fixture observations]
+    B --> C[Normalize]
+    C --> D[Retrieve candidates]
+    D --> E{Resolve}
+    E -->|ABSTAIN| K[Ask or prepare optional estimate]
+    E -->|Catalogue food_id| F[Portion: grams and p10-p90]
+    F --> G[Catalogue nutrition]
+    G --> H{Confidence and server action}
+    H -->|auto_accept| I[Day]
+    H -->|review or ask| J[Review and clarify]
+    H -->|degraded| L[Review with warning]
+    K --> M[User explicitly accepts or rejects estimate]
 ```
 
-### Pipeline Stages & Guarantees
+| Boundary | Guarantee |
+| --- | --- |
+| Vision port | Produces observations, not canonical IDs or grounded nutrient values |
+| Resolver | Returns a candidate catalogue `food_id` or `ABSTAIN`; wrong perceptions and wrong in-catalogue matches remain possible |
+| Portion stage | Uses evidence-graded catalogue serving, explicit unit/count, package label, or density inputs and preserves p10–p90 plus provenance |
+| Grounded nutrition | Pure arithmetic over catalogue rows with declared source and licence status |
+| Confidence gate | Routes on server action; mobile does not infer acceptance locally |
+| Estimate lane | Separate endpoint, max 20 unresolved items, unverified label, automatic bounded preparation, explicit acceptance before save, excluded from grounded eval |
 
-| Stage | Responsibility | Boundary & Invariant Guarantee |
-|---|---|---|
-| **1. Perception** | Visual extraction & multi-item disaggregation | Grounded `VisionPort` returns candidate text observations and count evidence; it does not return nutrient numbers. |
-| **2. Normalize** | Text, diacritic, and unit cleaning | Normalizes Turkish/Japanese characters and converts colloquial measures (`"2 dilim"` $\rightarrow$ `slice`). |
-| **3. Retrieval** | Candidate proposal via in-house TF-IDF | Word 1–2 & Char 3–5 n-grams scored as IDF-weighted asymmetric coverage over canonical documents. |
-| **4. Resolution** | Closed-set ID mapping or safe abstention | Returns only a verified catalogue `food_id` or `ABSTAIN` (eliminates free-text LLM hallucination). |
-| **5. Portion** | Serving mass estimation with uncertainty | Computes `(grams, p10, p90)` interval based on physical food density and visual item count. |
-| **6. Nutrition** | Pure deterministic nutrient arithmetic | **D1 server invariant:** The only grounded server stage allowed to compute calories/macros from verified laboratory rows. |
-| **7. Decision Gate** | Multi-factor confidence routing | Routes entries to `auto_accept` ($\ge 0.75$ effective confidence), `review` (uncertain portion/food), or `ask` (safe deferral; `ABSTAIN` is one possible identity outcome). |
+The HTTP API is NestJS/TypeScript. Python remains offline evaluation and
+reference tooling, not the delivered backend. See [docs/architecture.md](docs/architecture.md)
+for sequence diagrams and port boundaries.
 
-The grounded path above uses an effective auto-accept threshold of `0.75` and
-keeps catalogue nutrition authoritative. After `ABSTAIN`, D19/D20 permit a
-separate `POST /v1/meals/estimate` request for up to 20 unresolved items. That
-response is labelled `llm_unverified_estimate`, carries ranges and assumptions,
-is never auto-accepted, and is excluded from grounded evaluation.
+## Reliability and observability
 
-> [!NOTE]
-> **Runtime Separation:** The delivered API implementation is **Node.js / TypeScript (NestJS Edge)** with framework-free pure core pipeline logic. Python remains dedicated **offline research, fixture generation, and regression testing tooling** (`eval/harness.py`). No production deployment is claimed.
->
-> 📖 *For comprehensive sequence diagrams, privacy sanitization flows, and the bounded correction telemetry design, see the [System Architecture Specification](docs/architecture.md).*
+- Idempotency is scoped by `(user_id, idempotency_key)`; payload conflicts are
+  rejected. Meal response cache is bounded to 5,000 entries and estimate cache
+  to 500 entries.
+- Provider failures use typed categories, retry metadata, degraded routing, and
+  a client retry state instead of an opaque successful answer.
+- The edge propagates `X-Request-Id`, emits structured JSON events, records
+  request/outcome/stage timings in a bounded process-local registry, and exposes
+  `/health` plus `/metrics`.
+- Metrics, rate-limit, and idempotency state are process-local. Multi-instance
+  production needs shared durable infrastructure.
 
-## Key decisions
+## Key trade-offs
 
-| Decision | Rejected alternative | Constraint | Cost |
-| --- | --- | --- | --- |
-| [D1](docs/decisions.md#d1), superseded narrowly by [D19](docs/decisions.md#d19) / [D20](docs/decisions.md#d20) | Silently treat model calories as grounded truth | Grounded nutrition remains catalogue-backed; optional model estimates are unverified, bounded, explicit, and excluded from eval | Catalogue misses either lose coverage or require a visibly weaker estimate lane |
-| [D2](docs/decisions.md#d2) — locale data lives in packs | Add market-specific branches to pipeline code | Market variation must remain data, with pack licensing visible | Pack maintenance and legal review grow with markets |
-| [D3](docs/decisions.md#d3) — report worst-case cuisine and coverage | Report only an overall mean | Distribution shift must stay visible to reviewers | Small buckets remain noisy and harder to summarize |
-| [D9](docs/decisions.md#d9) — Expo React Native client with focused screens | Ship a web app or a different mobile stack | Reviewer path must be a real phone flow | Expo and native runtime constraints remain |
-| [D12](docs/decisions.md#d12) — NestJS edge, TypeScript service, Python harness | Rewrite evaluation before parity or keep Python at the edge | Pure-core parity gates the port; Python stays research tooling | Two runtimes create temporary maintenance and release ceremony |
-
-## Results
-
-Current offline V3 replay from `docs/evaluation.md` covers all **80** committed
-samples. Overall coverage is **12% (10/80 committed, 70/80 ask)**, Item F1 is **0.15**, FP rate is
-**86.0%**, and kcal MAPE is **12.7%**. MAPE is computed over **2/2**
-calorie-eligible/scored rows; `eligible` means complete positive-truth rows and
-`scored` means the covered subset. An em dash means an empty calorie denominator,
-not zero-percent error.
-
-| Cuisine | n | Coverage | Eligible/scored | Item F1 | kcal MAPE | FP rate |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| western | 12 | 33% | 2/2 | 0.43 | 12.7% | 66.7% |
-| mediterranean | 12 | 25% | 0/0 | 0.22 | — | 71.4% |
-| east_asian | 16 | 6% | 0/0 | 0.10 | — | 90.0% |
-| other_mixed | 8 | 0% | 0/0 | 0.08 | — | 91.7% |
-| south_asian | 16 | 0% | 0/0 | 0.00 | — | 100.0% |
-| latin_american | 16 | 12% | 0/0 | 0.06 | — | 95.7% |
-| **overall** | **80** | **12%** | **2/2** | **0.15** | **12.7%** | **86.0%** |
-
-Measured repository inventory: **3 locale packs**, **103 canonical foods** (en_US 38, tr 57, ja_JP 8), and
-**80 recorded golden-set fixtures**. These are offline evaluation facts, not
-live-provider performance.
+| Decision | Constraint gained | Cost paid |
+| --- | --- | --- |
+| Closed-set grounded nutrition ([D1](docs/decisions.md#d1)) | No silent authoritative nutrient number for an unknown identity | Low catalogue coverage and more user questions |
+| Locale packs as data ([D2](docs/decisions.md#d2)) | New markets do not require pipeline branches; licence stays explicit | Pack curation and legal review grow per market |
+| Worst-cuisine + coverage reporting ([D3](docs/decisions.md#d3)) | Distribution shift stays visible | Small buckets are noisy and harder to market |
+| Expo mobile client ([D9](docs/decisions.md#d9)) | Real mobile flow rather than a format-violating web app | Simulator/device compatibility must be verified separately from export |
+| NestJS edge + Python harness ([D12](docs/decisions.md#d12)) | Backend matches the required Node/TypeScript workflow while preserving reproducible evaluation | Two runtimes and parity ceremony |
 
 ## Known failures, measured
 
-Every failure below is reproduced, not suspected. Figures come from the offline
-scorecard, a live verification run on `acfa6dd` (2026-08-23, 12 requests, all
-HTTP 200), and a 21-request catalogue audit (2026-08-22). Verified behaviour is
-recorded under Results and Testing; this section is deliberately only the
-failures.
+| Failure | Current behavior | User/product impact |
+| --- | --- | --- |
+| Occluded photographed counts | Two stacked simits become `quantity: null`, 100 g with a 65–145 g band, and a count question | Prevents silent undercount but adds review friction |
+| Legume/soup near-neighbours | Some inputs still surface egg, bean, or soup neighbours; low confidence keeps them from silent commit | Proposed identity can still be wrong even when routing contains the damage |
+| Thin Turkish catalogue | 57 rows; common dishes such as döner, poğaça, börek, pide, and kebap are absent | More `ask`/abstention and correction work |
+| South Asian coverage | n=16, 0% coverage, Item F1 0.00 | The weakest market remains unusable in this evaluation set |
 
-| Failure | Evidence | Effect | Tracked |
-|---|---|---|---|
-| A photographed count is occluded or uncertain | `A2.jpg` shows two stacked simits. The service flags occlusion, returning `quantity: null`, 100 g standard portion with 65–145 g uncertainty band (214–478 kcal), and routes to Review with a count clarification question ('Kaç adet?'). | Prevents silent undercounting by gating Day save on user count confirmation. | [#218](https://github.com/zexy2/mealog-case-study/issues/218) |
-| Legumes and soups still expose wrong near-neighbours | A current deterministic probe sends `haşlanmış mercimek` and `haşlanmış fasulye` to the egg record, `nohut yemeği` to `tr.kuru_fasulye`, and `tarhana çorbası` to `tr.mercimek_corbasi`. Their low effective confidence routes them away from silent commit, but the proposed identity is still wrong. | Review/ask contains the damage, but the correction burden remains with the user. This is retrieval/catalogue quality rather than calorie arithmetic. | Open, untracked |
-| The Turkish catalogue is thin for the default locale | `locale_packs/tr/foods.jsonl` holds 57 rows, including `tr.kofte_izgara`, but no entry for döner, poğaça, börek, pide, or kebap. | Unsupported or uncertain samples contribute to the measured 70/80 `ask` outcomes rather than being silently committed. `ask` is broader than explicit `ABSTAIN`. | Open, untracked |
-| South Asian cuisine is unrepresented | 16 samples, 0% coverage, Item F1 0.00, FP rate 100%. | The golden set was deliberately not narrowed to fit the catalogue, so this bucket reports honestly instead of being excluded. | Open, untracked |
-
-The false-positive rate (86.0%) is measured over the identity set and counts rejected
-samples as well; 64.4% of false positives stem from unmapped recipe ingredients
-(e.g., olive oil `us.olive_oil`) in multi-dish references. 70 of 80 samples ended in
-`ask` and none of them were saved to Day.
-
-The earlier cooked/dry defect is no longer listed as active: #219/#226 added
-narrow negative aliases. Current probes for cooked pasta, bulgur, mantı,
-ezogelin, kadayıf, prepared Turkish coffee, and brewed tea return `ABSTAIN`
-instead of selecting dry/raw nutrition. This improves safety by reducing
-coverage; it does not add the missing cooked catalogue rows.
-
-## Compare EatBetter
-
-EatBetter comparison is complete and stays short and evidence-led: product
-behavior, workflow, and explicit trade-offs belong in the dedicated
-[comparison document](docs/comparison.md), not in a marketing paragraph here.
-
-## Testing
-
-`make test` covers the Python reference behavior, locale-pack integrity,
-closed-set resolution, pipeline contracts, and replay safety. `make lint`,
-`python scripts/check_invariants.py`, and `python scripts/status.py --check`
-cover static and repository-level constraints. `make check` combines these
-checks with the offline regression gate.
-
-The TypeScript service has separate build, lint, and test commands. Its focused
-tests protect port parity and keep framework code at the edge. The mobile job
-typechecks the Expo client and creates an Android bundle. GitHub Actions is
-configured to run these gates, but the latest hosted jobs did not start because
-the repository account's billing/spending limit blocked all steps; local green
-checks are not presented as hosted-CI evidence.
+The earlier cooked/dry confusion is contained, not solved by new nutrition
+rows: prepared pasta, bulgur, mantı, Turkish coffee, and tea probes now abstain
+instead of selecting raw/dry records. See [docs/evaluation.md](docs/evaluation.md)
+and the full [error taxonomy](docs/error_taxonomy.md).
 
 ## Security and privacy limits
 
-- `X-User-Id` is a client-device scoped header (persisted in AsyncStorage) for
-  isolating idempotency, rate limiting (30 req/min), and meal/estimate-cache
-  deletion in this case study. Persisted telemetry omits that identifier and
-  cannot currently be selected for per-user deletion. Production deployment
-  requires signed authentication and owned telemetry retention/deletion semantics.
-- Idempotency state is process-local in memory with LRU eviction (5,000 max entries).
-- Image uploads use an allow-list, magic byte verification, and a 10 MiB limit.
-  The edge scrubs EXIF/GPS metadata (`sanitizeImageBuffer()`), redacts PII text,
-  and maintains zero persistent photo retention. Standalone pixel face blurring
-  (`blurFacesInPixelArray`) is decoupled to keep edge execution lightweight.
+- Uploads use MIME allow-listing, magic-byte checks, and a 10 MiB limit.
+- JPEG, PNG, WebP, and GIF metadata is stripped in memory before provider use.
+  HEIC/HEIF/AVIF are accepted but their metadata stripping is not shipped.
+- Raw photos are not persisted by the service.
+- Pixel-level face blurring exists as a tested standalone algorithm but is **not
+  wired into live JPEG/PNG ingestion** and is not claimed as shipped protection.
+- `X-User-Id` is a client-device scope for this case study, not authentication.
+  Production needs signed identity, durable consent, retention, and deletion.
+- API keys stay server-side. No key, `.env`, or user photo belongs in Git.
 
-## Known limitations
+## Remaining limitations
 
-- No deployment URL is published.
-- Hosted CI is currently blocked before step execution by the GitHub account's
-  billing/spending state. This must be cleared and rerun before submission.
-- The mobile Review preview duplicates a small Turkish nutrition map and
-  recalculates preview totals after local edits. That is presentation-layer
-  arithmetic, not the grounded server pipeline, but it weakens the single-source
-  boundary and should be replaced by server correction responses.
-- Live-provider accuracy is unmeasured; the scorecard replays recorded
-  fixtures offline.
-- Current demo and live-provider flows have iOS Simulator evidence; iOS and
-  Android bundle exports pass. An earlier SDK 54 compatibility smoke opened the
-  shell and camera in Expo Go on a physical iPhone, but it is not current-flow
-  physical-device E2E evidence.
-- Expo SDK 54 passes `expo-doctor`, typecheck, tests, and bundle export, but its
-  current transitive Metro/tooling tree reports npm audit advisories. The
-  available automatic fix is a major Expo SDK upgrade, which requires a
-  separate compatibility and device-validation pass rather than a forced
-  lockfile rewrite before submission.
-- The 80-sample scorecard has 2/2 calorie-eligible/scored rows; other rows
-  are partial or zero-truth for calorie evaluation.
-- Reproduced accuracy defects, including photographed-count ambiguity, are
-  listed with their evidence under [Known failures, measured](#known-failures-measured).
+- No public deployment URL and no current-release simulator or physical-device
+  end-to-end claim. Existing simulator logs are historical smoke evidence.
+- Loom is not recorded yet; the prepared script is not video evidence.
+- Latest hosted Actions jobs executed zero steps because of account
+  billing/spending state. Local green checks do not substitute for hosted CI.
+- Live-provider accuracy is unmeasured; the scorecard replays fixtures recorded
+  with a different Gemini model than the current live adapter default.
+- Only 2/80 rows are complete and covered for calorie MAPE.
+- The mobile client carries a shadow nutrition/correction map and local matching
+  rules, recomputes display totals, and can persist a locally corrected record
+  when no server correction is produced. This is broader than preview-only
+  arithmetic and weakens the intended server-authoritative D1 boundary.
+- Current Expo transitive tooling reports npm audit advisories; the automatic
+  remedy is a major SDK upgrade requiring a separate compatibility/device pass.
 
-## With more time
+## Next three accuracy improvements
 
-- Rehearse and record the live mobile-to-Node path, then publish a deployment
-  URL only after external proof exists.
-- Record the complete walkthrough from the merged script with exact review and
-  abstention states.
-- Add authenticated OAuth identity, distributed/shared rate limiting (Redis/token-bucket tier across multi-instance edge), durable PostgreSQL idempotency, and explicit consent/deletion controls before treating the service as production-ready.
-- Follow the [D8](docs/decisions.md#d8) training plan only after data provenance
-  and evaluation gates are ready. D8 is a specified, measured path, not
-  permission to tune against a headline.
+1. Expand licensed catalogue coverage where `ask` clusters, without tuning the
+   golden set or hiding the risk–coverage cost.
+2. Collect consented corrections through the bounded review queue, then measure
+   before changing thresholds or training.
+3. Improve multi-item segmentation and count evidence, then rerun the same
+   cuisine/tier slices and adversarial false-accept controls.
 
 ## AI usage
 
-Human decisions define the closed-set boundary, provenance rules, locale-pack
-structure, abstention behavior, and evaluation gates. Models assist with
-implementation and review, but their suggestions are overridden when they
-conflict with those constraints.
+AI coding tools assisted implementation, tests, review, and documentation.
+Gemini is the live vision adapter and optional unverified estimate provider.
+Human decisions define the closed-set boundary, provenance/licence rules,
+evaluation labels, abstention policy, and merge gates.
 
-### Concrete Model Error and Human Override
-
-* **Model Error:** Earlier probes treated two stacked simits as one and stripped cooking prefixes from inputs such as `"haşlanmış makarna"`, allowing dry-food nutrition to look plausible.
-* **How it was caught:** Live count verification plus adversarial cooked-form probes and regression tests made both failures reproducible.
-* **Human Override:** Occluded count-one observations become `count: null` with an explicit question, while narrow negative aliases force known raw/cooked ambiguities to `ABSTAIN`. Neither correction is presented as broad visual accuracy.
+A concrete model failure shaped the product: live probes treated two stacked
+simits as one and cooked-food prefixes could lead toward dry catalogue records.
+The response was not a stronger prompt claim. Count uncertainty now becomes an
+explicit question, while known cooked/dry ambiguities abstain. Both behaviors
+are covered by reproducible tests and remain visible as limitations rather than
+being removed from the evaluation set.
