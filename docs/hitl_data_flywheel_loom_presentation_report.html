@@ -60,6 +60,11 @@
     .flow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
     .flow span { padding: 12px 15px; border: 1px solid var(--line); border-radius: 999px; background: var(--green-soft); font-weight: 700; }
     .flow i { color: var(--muted); font-style: normal; font-weight: 800; }
+    .visual-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .visual-figure { margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); box-shadow: var(--shadow); }
+    .visual-figure img { display: block; width: 100%; max-height: 420px; object-fit: contain; background: #edf0ea; }
+    .visual-figure figcaption { padding: 13px 16px; color: var(--muted); font-size: .9rem; }
+    .asset-note { margin-top: 14px; color: var(--muted); font-size: .92rem; }
     .callout { padding: 21px; border-radius: 16px; background: var(--rose-soft); border: 1px solid #edcfc8; }
     .callout strong { color: var(--rose); }
     table { width: 100%; border-spacing: 0; overflow: hidden; text-align: left; }
@@ -69,11 +74,11 @@
     code { padding: 2px 5px; border-radius: 5px; background: #edf0ea; font-size: .9em; }
     footer { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: .92rem; }
     @media (max-width: 800px) {
-      .status-grid, .card-grid { grid-template-columns: 1fr 1fr; }
+      .status-grid, .card-grid, .visual-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 560px) {
       main { padding-inline: 16px; }
-      .status-grid, .card-grid { grid-template-columns: 1fr; }
+      .status-grid, .card-grid, .visual-grid { grid-template-columns: 1fr; }
       .step { grid-template-columns: 1fr; }
       th, td { padding: 11px 10px; }
     }
@@ -178,6 +183,23 @@
           <tr><td>Product comparison</td><td><a href="comparison.md">comparison.md</a></td><td>EatBetter statements are limited to observed public surfaces.</td></tr>
         </tbody>
       </table>
+    </section>
+
+    <section>
+      <div class="section-kicker">09 · Optional delivery visuals</div>
+      <h2>Attach the walkthrough images at delivery.</h2>
+      <p>These slots preserve the visual structure of the former presentation without committing user-provided photo binaries. Before presenting locally, place the exact files under <code>docs/loom_assets/</code>. The report will resolve them relative to this HTML file.</p>
+      <div class="visual-grid">
+        <figure class="visual-figure"><img src="loom_assets/loom_step1_original_sushi.png" alt="Original meal photo before processing"><figcaption>Step 1 · Original meal photo</figcaption></figure>
+        <figure class="visual-figure"><img src="loom_assets/loom_step2_analyzing_state.png" alt="Analysis state while the meal photo is processed"><figcaption>Step 2 · Processing and analysis state</figcaption></figure>
+        <figure class="visual-figure"><img src="loom_assets/loom_step3_d1_abstention_screen.png" alt="Closed-set abstention screen"><figcaption>Step 3 · D1 abstention state</figcaption></figure>
+        <figure class="visual-figure"><img src="loom_assets/loom_step4_review_screen.png" alt="Review screen asking for user confirmation"><figcaption>Step 4 · Review state</figcaption></figure>
+        <figure class="visual-figure"><img src="loom_assets/loom_step5_portion_adjusted_100kcal.png" alt="Portion-adjusted result screen"><figcaption>Step 5 · Portion adjustment</figcaption></figure>
+        <figure class="visual-figure"><img src="loom_assets/loom_step6_staging_photo.jpg" alt="Staging photo after privacy processing"><figcaption>Step 6 · Staging-photo attachment, if separately approved</figcaption></figure>
+        <figure class="visual-figure"><img src="loom_assets/loom_test2_raw_card_pizza.jpg" alt="Raw pizza and card image used for the secondary privacy example"><figcaption>Secondary example · Raw input</figcaption></figure>
+        <figure class="visual-figure"><img src="loom_assets/loom_test2_sanitized_card_pizza.jpg" alt="Sanitized pizza and card image used for the secondary privacy example"><figcaption>Secondary example · Sanitized output</figcaption></figure>
+      </div>
+      <p class="asset-note"><strong>Evidence boundary:</strong> these are attachment slots, not proof that the files are present in this commit. Keep any user-provided or unlicensed binaries outside Git and attach them only through the approved delivery channel.</p>
     </section>
 
     <footer>

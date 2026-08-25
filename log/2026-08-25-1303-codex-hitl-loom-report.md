@@ -18,6 +18,9 @@
   proposed human-gated data path, and absent training evidence.
 - Linked the report from `docs/comparison.md` and kept EatBetter claims bounded to
   observed public surfaces.
+- Added eight relative attachment slots for the former walkthrough visuals. They
+  resolve from `docs/loom_assets/` when the delivery pack is supplied locally;
+  no image binary is included in Git.
 - Restored no screenshots, user photos, or deleted `docs/loom_assets` binaries.
 
 ## Verification
@@ -26,8 +29,9 @@
   tests passed, architectural invariants hold, `STATUS.md` matches, and V3
   regression guard passed.
 - `git diff --check`: passed.
-- Local HTML link scan: all 9 repository-relative links resolved; the report
-  intentionally contains no image or external asset dependency.
+- Local HTML link scan: all 9 repository-relative document links resolved. The
+  report has eight intentional local image slots; their binary files are delivery
+  attachments and are not present in the commit.
 
 ## Traps
 
