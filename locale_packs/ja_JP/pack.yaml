@@ -3,9 +3,10 @@ cuisine_bucket: east_asian
 nutrition_source: MEXT Standard Tables of Food Composition
 license: unverified
 license_note: >-
-  The MEXT tables are published as a public reference, but their commercial
-  redistribution terms have not been confirmed by anyone on this project.
-  Recorded as unverified rather than permissive on purpose: silence is not
-  permission, so this pack is refused in commercial mode until the terms are
-  checked and the value is changed deliberately.
+  Source and reuse guidance:
+  https://www.mext.go.jp/a_menu/syokuhinseibun/index.htm. MEXT asks secondary
+  users to identify the relevant Standard Tables as the source. This pack stays
+  unverified because the exact source edition for every selected row and the
+  commercial-publication boundary have not been confirmed. It is refused in
+  commercial mode. See locale_packs/ja_JP/README.md and THIRD_PARTY_DATA.md.
 food_count: 8

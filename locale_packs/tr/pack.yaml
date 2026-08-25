@@ -3,11 +3,11 @@ cuisine_bucket: mediterranean
 nutrition_source: TURKOMP (Ulusal Gida Kompozisyon Veri Tabani)
 license: restricted-noncommercial
 license_note: >-
-  TURKOMP is published for reference and research use and does not grant
-  commercial redistribution. Enforced at load time: this pack refuses to load
-  when MEALOG_COMMERCIAL_MODE is on. Replacing the source means finding
-  permissively licensed regional composition data or first-party lab data --
-  USDA is not a substitute, it has no mercimek corbasi, lahmacun or yaprak
-  sarma, so swapping it deletes the coverage instead of fixing the licence.
-  See docs/decisions.md D2.
+  Noncommercial use is conditioned by the official data-use terms at
+  https://turkomp.tarimorman.gov.tr/useofdata. Required attribution: "TürKomp,
+  Ulusal Gıda Kompozisyon Veri Tabanı, versiyon 1.0,
+  https://turkomp.tarimorman.gov.tr/". Commercial software or website use
+  requires a separate agreement with the authorised institution. Enforced at
+  load time: this pack refuses to load when MEALOG_COMMERCIAL_MODE is on. See
+  locale_packs/tr/README.md, THIRD_PARTY_DATA.md, and docs/decisions.md D2.
 food_count: 57
