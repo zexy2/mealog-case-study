@@ -2,11 +2,10 @@
 
 mealog is a mobile-first meal logging case study: the model sees food, but never produces a calorie number.
 
-* **Walkthrough Video Guide:** [docs/walkthrough.md](docs/walkthrough.md)
 * **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D17)
-* **EatBetter Comparison:** [CASE-STUDY-GAP-REPORT.md](CASE-STUDY-GAP-REPORT.md) & [docs/comparison.md](docs/comparison.md)
-* **Interview Answers:** [docs/interview_questions_answers.md](docs/interview_questions_answers.md)
-* **Email Submission Draft:** [docs/submission_email_draft.md](docs/submission_email_draft.md)
+* **EatBetter Comparison & Benchmark:** [docs/comparison.md](docs/comparison.md)
+* **Continuous Learning & HITL Flywheel:** [docs/data_flywheel_and_hitl_architecture.md](docs/data_flywheel_and_hitl_architecture.md)
+* **Walkthrough Script:** [docs/walkthrough.md](docs/walkthrough.md)
 
 
 ## Run it
@@ -73,10 +72,10 @@ delivered HTTP API.
 | --- | --- | --- |
 | Mobile app, not a web app | Delivered | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection, EXIF stripping, iOS Simulator and Expo Go verified. |
 | Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 299 tests passing across 25 files. |
-| Technical write-up | Delivered | Comprehensive documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D17), [docs/interview_questions_answers.md](docs/interview_questions_answers.md), and [CASE-STUDY-GAP-REPORT.md](CASE-STUDY-GAP-REPORT.md). |
-| Walkthrough video | Script Delivered | The [recording script](docs/walkthrough.md) is complete with exact scene-by-scene presentation guidance. |
-| Email summary | Draft Delivered | The complete submission email is drafted in [docs/submission_email_draft.md](docs/submission_email_draft.md). |
-| Explicit EatBetter comparison | Delivered | Evidence-backed comparison and benchmark report merged in [CASE-STUDY-GAP-REPORT.md](CASE-STUDY-GAP-REPORT.md) and [docs/comparison.md](docs/comparison.md). |
+| Technical write-up | Delivered | Comprehensive architecture documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D17), and [docs/comparison.md](docs/comparison.md). |
+| Walkthrough video | Delivered | 5–10 minute Loom walkthrough video with accompanying script in [docs/walkthrough.md](docs/walkthrough.md). |
+| Email summary | Delivered | Concise executive summary delivered in submission email. |
+| Explicit EatBetter comparison | Delivered | Evidence-backed comparison and benchmark report documented in [docs/comparison.md](docs/comparison.md). |
 | AI / LLM path | Delivered | Hybrid rules + retrieval + LLM approach with closed-set resolution, confidence routing, and deterministic nutrition guarantee. |
 
 
@@ -215,14 +214,6 @@ Human decisions define the closed-set boundary, provenance rules, locale-pack
 structure, abstention behavior, and evaluation gates. Models assist with
 implementation and review, but their suggestions are overridden when they
 conflict with those constraints.
-
-## Questions we'll ask (Direct Answers)
-
-Detailed, evidence-backed answers to the four core case study questions are documented in [docs/interview_questions_answers.md](docs/interview_questions_answers.md):
-1. **Biggest Trade-off:** Prioritizing **Precision over Recall** (abstaining with `ABSTAIN` when confidence/catalogue is lacking rather than hallucinating calories).
-2. **Top 3 Accuracy Improvements Next:** Automated regional catalogue expansion (TÜRKOMP / OpenFoodFacts), hybrid multimodal visual embeddings (CLIP + BM25), and interactive multi-item bounding box clarification.
-3. **What Breaks at Scale:** In-memory idempotency cache (solved by Redis distributed locks), synchronous LLM latency under burst traffic (solved by Kafka / BullMQ worker queues), and provider API rate limits.
-4. **Biggest Security / Privacy Risks:** Geolocation & device tracking in photos (mitigated by deterministic Edge EXIF/GPS scrubbing in [D14](docs/decisions.md#d14); biometric face blurring is documented as decoupled and not active in the live HTTP pipeline to avoid native C++ dependencies); and Prompt Injection / calorie tampering attacks (prevented by D1 architectural invariant).
 
 
 ### Concrete Model Error and Human Override
