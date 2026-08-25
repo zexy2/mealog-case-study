@@ -42,7 +42,7 @@ const corrections = buildMealCorrections(meal, {}, {}, { 0: 2 });
 assert.deepEqual(corrections, [{ item_index: 0, quantity: 2, unit: "adet" }]);
 assert.equal("nutrients" in corrections[0], false, "mobile must never send client nutrients");
 
-const { countAnswerPending, computedValuesNeedServerRefresh, getEffectiveQuantity } = await import("./reviewState.ts");
+const { countAnswerPending, computedValuesNeedServerRefresh, getEffectiveQuantity, shouldShowCandidateEditor } = await import("./reviewState.ts");
 const { dayNutritionState, nutritionPresentationForItem } = await import("./nutritionPresentation.ts");
 assert.equal(getEffectiveQuantity(meal.items[0], false, undefined), 1, "smart pre-selection defaults to 1");
 assert.equal(getEffectiveQuantity(meal.items[0], true, 2), 2, "custom quantity overrides default");
@@ -50,6 +50,10 @@ assert.equal(countAnswerPending(meal.items[0], false), false, "smart pre-selecti
 assert.equal(computedValuesNeedServerRefresh(meal.items[0], false, 1), false, "standard baseline portion is immediately valid");
 assert.equal(computedValuesNeedServerRefresh(meal.items[0], true, 2), false, "slider and preview remain active on custom count");
 assert.equal(computedValuesNeedServerRefresh(meal.items[1], false, 1), false, "non-count items keep their server-provided band");
+assert.equal(shouldShowCandidateEditor(false, false, false), false, "closed matched item keeps candidate editor hidden");
+assert.equal(shouldShowCandidateEditor(false, false, true), true, "special-item Değiştir opens custom editor");
+assert.equal(shouldShowCandidateEditor(false, true, false), true, "multi-candidate toggle still opens editor");
+assert.equal(shouldShowCandidateEditor(true, false, false), true, "abstain item still exposes correction choices");
 
 const manualItem = {
   ...meal.items[1],

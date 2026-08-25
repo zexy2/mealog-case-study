@@ -5,7 +5,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 
 import { Candidate, CaptureMedium, ItemClarification, MealAction, MealLog, UnverifiedNutritionEstimate } from "../src/types";
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
-import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity } from "../src/reviewState";
+import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity, shouldShowCandidateEditor } from "../src/reviewState";
 import { nutritionPresentationForItem } from "../src/nutritionPresentation";
 import { sendTelemetryEvent, telemetryEventTypeForEdits } from "../src/telemetry";
 import { apiBaseUrl, estimateNutritionBatch, getClientUserId, isDemoMode } from "../src/api";
@@ -794,7 +794,11 @@ export function ReviewScreen({
 
           // Portion & Candidates sub-panels:
           const shouldShowPortion = !isAbstain && Boolean(showPortionEdit[index]);
-          const shouldShowCandidates = isAbstain || Boolean(showCandidateEdit[index]);
+          const shouldShowCandidates = shouldShowCandidateEditor(
+            isAbstain,
+            Boolean(showCandidateEdit[index]),
+            customSearchIndex === index,
+          );
 
           return (
             <View key={`${item.query}-${index}`} style={[styles.itemCard, isExpanded && styles.itemCardExpanded]}>

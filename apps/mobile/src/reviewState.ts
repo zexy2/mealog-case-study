@@ -38,3 +38,10 @@ export function computedValuesNeedServerRefresh(
   return false;
 }
 
+export function shouldShowCandidateEditor(
+  isAbstain: boolean,
+  candidateToggleOpen: boolean,
+  customSearchOpen: boolean,
+) {
+  return isAbstain || candidateToggleOpen || customSearchOpen;
+}
