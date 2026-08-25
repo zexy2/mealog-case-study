@@ -31,20 +31,24 @@ mealog additions; they are not represented as official TürKomp fields. Consult
 the official source rather than treating this subset as a complete or current
 copy of the database.
 
-## Japanese locale pack: MEXT
+## Japanese locale pack: unverified legacy data
 
 Files covered:
 
 - `locale_packs/ja_JP/foods.jsonl`
 - project metadata that refers to those rows in `locale_packs/ja_JP/`
 
-Source: [MEXT, Standard Tables of Food Composition in Japan](https://www.mext.go.jp/a_menu/syokuhinseibun/index.htm).
+The pack originally declared [MEXT, Standard Tables of Food Composition in
+Japan](https://www.mext.go.jp/a_menu/syokuhinseibun/index.htm) as its source.
+Row-level review did not establish that provenance for the pack as a whole:
+only 2 of 8 rows exactly matched the four checked nutrient fields in the 2015
+tables, while the remaining rows did not exactly match the checked 2015, 2020,
+or 2023 tables. The repository therefore does **not** present this pack as
+verified MEXT data.
 
-MEXT states that food-composition data may be reused and asks secondary users
-to identify the relevant Standard Tables as the source. The pack remains marked
-`unverified` because this project has not established the exact source edition
-for every selected row or completed a commercial-publication review. It is
-therefore rejected in mealog commercial mode.
+The pack remains marked `unverified` and is rejected in mealog commercial mode.
+Its rows are retained only as legacy, non-production evaluation material until
+each value has a traceable source edition and record identifier.
 
 ## US locale pack: USDA FoodData Central
 
