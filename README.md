@@ -16,9 +16,10 @@ user acceptance before save, and is excluded from grounded evaluation.
 > **Submission state:** the app, Node service, offline evaluation, technical
 > write-up, email draft, and [9:07 Loom walkthrough](https://www.loom.com/share/8a1ad6fea24e401eaf52788d72d5a0fd)
 > are present. Recipient access to the recording must be verified before sending.
-> The latest hosted GitHub jobs were blocked before executing by the account's
-> billing/spending state; local checks are reported separately and are not
-> presented as hosted-CI evidence.
+> GitHub-hosted jobs remain blocked before execution by the account's
+> billing/spending state. The unchanged gates passed in a private-repository
+> [temporary self-hosted Actions run](https://github.com/zexy2/mealog-case-study/actions/runs/32878391604);
+> that result is not presented as GitHub-hosted-runner evidence.
 
 ## Reviewer guide
 
@@ -294,8 +295,9 @@ and the full [error taxonomy](docs/error_taxonomy.md).
   end-to-end claim. Existing simulator logs are historical smoke evidence.
 - The 9:07 Loom walkthrough is linked, but recipient access still needs to be
   verified in a signed-out/private browser window before sending.
-- Latest hosted Actions jobs executed zero steps because of account
-  billing/spending state. Local green checks do not substitute for hosted CI.
+- GitHub-hosted Actions jobs execute zero steps because of account
+  billing/spending state. The same workflow passed on a trusted temporary
+  self-hosted Mac runner; this does not prove GitHub-hosted runner execution.
 - Live-provider accuracy is unmeasured; the scorecard replays fixtures recorded
   with a different Gemini model than the current live adapter default.
 - Only 2/80 rows are complete and covered for calorie MAPE.

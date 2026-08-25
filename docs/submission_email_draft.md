@@ -2,8 +2,8 @@
 
 > **Pre-send checklist:** verify the Loom link in a private window, confirm
 > repository access for the reviewers, and confirm the previously
-> exposed provider credential has been revoked. Hosted CI is currently blocked
-> before execution; preserve the disclosure below unless a later run is green.
+> exposed provider credential has been revoked. GitHub-hosted runners remain
+> blocked before execution; preserve the hosted/self-hosted distinction below.
 
 **To:** `hello@eatbetter.app`  
 **Subject:** Full Stack Developer Case Study Submission — mealog / Zeki  
@@ -45,7 +45,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 3. **Testing & CI Quality Gates:**
    - **313 Node.js / Vitest tests across 26 files** covering edge controllers, adapters, rate limiter, telemetry privacy, and the privacy pipeline.
    - **Offline Python parity and regression suite** for reference normalization, retrieval, and nutrition arithmetic.
-   - **80 recorded golden-set fixtures** with a local `make check` regression guard; the same guard is configured in GitHub Actions, whose current run still requires the billing blocker to be cleared.
+   - **80 recorded golden-set fixtures** with a `make check` regression guard; the same gates passed in a private-repository temporary self-hosted Actions run.
 
 ---
 
@@ -56,7 +56,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 * **Evaluation Scope:** Focused on reproducible offline golden evaluation rather than unconstrained live API spend.
 * **Estimate-Lane Risk:** Model-generated fallback ranges can still be wrong, especially for cooking fat, recipe, and visual portion. They are a weaker product option, not verified nutrition or evidence that grounded accuracy improved.
 * **Mobile Preview Duplication:** Review currently recalculates edited preview totals from a duplicated client catalogue map. The server-grounded path remains authoritative, but this client arithmetic should be removed in favor of rendering `POST /v1/meals/correct` responses only.
-* **Hosted CI Blocker:** The current GitHub Actions jobs are configured but were blocked before executing by the repository account's billing/spending state. I do not present local checks as hosted-CI evidence; the commands and current limitation are documented in the README.
+* **CI Execution Boundary:** GitHub-hosted jobs remain blocked before execution by the repository account's billing/spending state. The unchanged workflow passed on a trusted temporary self-hosted Mac runner; I do not present that as GitHub-hosted-runner evidence.
 
 ---
 
