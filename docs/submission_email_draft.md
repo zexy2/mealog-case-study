@@ -20,8 +20,8 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 ### 🔗 Submission Links
 * **GitHub Repository:** https://github.com/zexy2/mealog-case-study
 * **Loom Walkthrough Video (5–10 min):** Pending recording — insert the real URL before sending
-* **Architecture Decisions (D1–D17):** [docs/decisions.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/decisions.md)
-* **Continuous Learning & HITL Data Flywheel:** [docs/data_flywheel_and_hitl_architecture.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/data_flywheel_and_hitl_architecture.md)
+* **Architecture Decisions (D1–D18):** [docs/decisions.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/decisions.md)
+* **Correction Telemetry & Proposed HITL Loop:** [docs/data_flywheel_and_hitl_architecture.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/data_flywheel_and_hitl_architecture.md)
 * **EatBetter Comparison & Benchmark:** [docs/comparison.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/comparison.md)
 
 ---
@@ -32,16 +32,16 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
    - **Portion Uncertainty Intervals:** Returns explicit `grams_p10`–`grams_p90` bounds alongside provenance data rather than a hidden point estimate.
    - **Confidence Routing:** Routes items to `auto_accept`, `review`, or `ask` (abstention) with localized Turkish/English clarification questions.
    - **Security & Privacy (D4, D5, D13, D14):** Zero persistent photo storage (ephemeral in-memory processing only), binary EXIF/GPS stripping, PII text redaction, rate limiting, and prompt-injection defense.
-   - **Active Learning Telemetry:** Non-blocking fire-and-forget telemetry capturing user candidate swaps and portion adjustments for continuous model calibration.
+   - **Correction Telemetry Prototype:** Non-blocking candidate/portion events are PII-redacted, request-key hashed, and appended to a local JSONL store for operator review. No automatic training, dietitian portal, shadow traffic, or model promotion is claimed.
 
 2. **Mobile App (React Native / Expo):**
    - Implements Capture, Review, Day, and Abstention screens.
    - Supports interactive candidate selection ("Seç & Kaydet"), inline item editing/deletion, and dynamic portion adjustments.
    - Enforces count clarification answering before saving to Day, and infers correct HEIC/PNG/JPEG MIME types on iOS gallery uploads.
-   - Verified on iOS Simulator, Expo Go, and Android bundle exports.
+   - Current demo and live-provider paths were exercised on iOS Simulator; iOS and Android bundle exports pass. An earlier physical-iPhone Expo Go check covered only SDK 54 shell/camera compatibility, not current-flow E2E.
 
 3. **Testing & CI Quality Gates:**
-   - **299 Node.js / Vitest tests across 25 files** covering edge controllers, adapters, rate limiter, and privacy pipeline.
+   - **300 Node.js / Vitest tests across 25 files** covering edge controllers, adapters, rate limiter, telemetry privacy, and the privacy pipeline.
    - **Offline Python parity and regression suite** for reference normalization, retrieval, and nutrition arithmetic.
    - **80 recorded golden-set fixtures** with regression guard in GitHub Actions CI (`make check`).
 
@@ -56,7 +56,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 ---
 
 ### 🚀 Top Next Steps
-1. **Automated Catalogue Expansion:** Continuous pipeline ingesting OpenFoodFacts and regional national databases to expand catalogue coverage beyond the current 103 canonical foods.
+1. **Curated Catalogue Expansion:** Add foods only after licence review, canonical mapping, and nutrition-source verification; telemetry suggestions remain evidence, not labels.
 2. **Multimodal Embeddings:** Hybrid visual retrieval (CLIP embeddings + BM25 text) for higher visual recall on complex multi-dish platters.
 3. **Interactive Multi-Item Bounding Boxes:** User-tap segment correction for multi-item plates.
 
@@ -64,4 +64,3 @@ Thank you for reviewing my case study. I look forward to your feedback and discu
 
 Best regards,  
 **Zeki**
-

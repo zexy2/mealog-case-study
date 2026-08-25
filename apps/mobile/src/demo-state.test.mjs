@@ -78,5 +78,12 @@ assert.match(
 );
 assert.match(apiSource, /response\.status === 503/, "provider 503 must have a distinct client error path");
 assert.match(apiSource, /providerUnavailable/, "provider failure must use deliberate copy");
+assert.match(
+  apiSource,
+  /EXPO_PUBLIC_DEMO_MODE !== "false"/,
+  "a keyless clone must default to deterministic demo mode",
+);
+assert.match(apiSource, /export const apiBaseUrl/, "all live client calls must share one configured API base URL");
+assert.doesNotMatch(reviewSource, /sendTelemetryEvent\("http:\/\/localhost:3000"/, "Review must not hard-code telemetry to the device localhost");
 
 console.log("mobile Day detail checks passed");

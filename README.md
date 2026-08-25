@@ -5,9 +5,9 @@ mealog is a mobile-first meal logging case study: the model sees food, but never
 > **Core Focus (AI Accuracy):** Converting noisy, ambiguous, multi-component dining photos and informal text into **verified canonical foods + explicit portion uncertainty intervals + catalogue-backed nutrition** ([Deep Dive in System Architecture](docs/architecture.md#3-robustness-to-messy-real-world-inputs--ambiguity-core-ai-focus)).
 
 * **System Architecture & Design:** [docs/architecture.md](docs/architecture.md)
-* **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D17)
+* **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D18)
 * **EatBetter Comparison & Benchmark:** [docs/comparison.md](docs/comparison.md)
-* **Continuous Learning & HITL Flywheel:** [docs/data_flywheel_and_hitl_architecture.md](docs/data_flywheel_and_hitl_architecture.md)
+* **Correction Telemetry & Proposed HITL Loop:** [docs/data_flywheel_and_hitl_architecture.md](docs/data_flywheel_and_hitl_architecture.md)
 * **Walkthrough Script:** [docs/walkthrough.md](docs/walkthrough.md)
 
 
@@ -29,6 +29,8 @@ npm start
 ```
 
 In another terminal, liveness is available at `http://localhost:3000/health`.
+If port 3000 is occupied, start with `PORT=4310 npm start` and use the same port
+in the mobile API URL.
 `VISION_PROVIDER=gemini` selects the live Gemini adapter and requires
 `GEMINI_API_KEY`; no live-provider accuracy claim is made here.
 
@@ -40,18 +42,35 @@ From the repository root:
 cd apps/mobile
 npm ci
 npm run typecheck
+npm test
 npx expo export --platform ios
 npx expo export --platform android
 ```
 
-`npm run ios` launches the Expo iOS path when a local simulator is configured.
-Session logs document iOS Simulator execution and local Expo Go verification ([log/2026-08-24-1912-antigravity-harmonize-partial-meal-and-ui.md](log/2026-08-24-1912-antigravity-harmonize-partial-meal-and-ui.md)); repository CI proves TypeScript typecheck and iOS/Android bundle exports.
-Live Node service integration has been smoke-tested locally across 12 single and multi-item test scenarios ([server/test/messy_real_inputs.test.ts](server/test/messy_real_inputs.test.ts)); physical device deployment remains not run.
+The keyless reviewer path is the default. Launch it with `npm run ios` when a
+local simulator is configured; it uses deterministic local scenarios and makes
+no network request. Live mode is an explicit opt-in:
+
+```sh
+EXPO_PUBLIC_DEMO_MODE=false \
+EXPO_PUBLIC_API_URL=http://localhost:3000 \
+npm run ios
+```
+
+For a physical phone, replace `localhost` with a Node service address reachable
+from that phone. `apps/mobile/.env.example` records both modes without a secret.
+Session logs document current demo-mode iOS Simulator execution
+([log/2026-08-24-1755-codex3-demo-review-fixture-alignment.md](log/2026-08-24-1755-codex3-demo-review-fixture-alignment.md)); repository CI proves TypeScript typecheck and iOS/Android bundle exports.
+Fixture-backed multi-item pipeline behavior is covered by
+[server/test/messy_real_inputs.test.ts](server/test/messy_real_inputs.test.ts).
+A separate live-provider iOS Simulator retest is recorded in
+[log/2026-08-22-1434-codex3-live-gallery-pr184-retest.md](log/2026-08-22-1434-codex3-live-gallery-pr184-retest.md).
+Neither is physical-device deployment evidence.
 
 The mobile client is deterministic demo mode unless
-`EXPO_PUBLIC_DEMO_MODE=false` and `EXPO_PUBLIC_API_URL` are both supplied. Demo
-mode uses local scenarios and no network. Live mode calls `POST /v1/meals`; it
-requires a reachable local Node service and provider configuration.
+`EXPO_PUBLIC_DEMO_MODE=false` is supplied. Demo mode uses local scenarios and
+no network. Live mode calls `POST /v1/meals`; `EXPO_PUBLIC_API_URL` selects the
+reachable Node service and otherwise falls back to the simulator-local default.
 
 ### Offline evaluation and reference tooling
 
@@ -75,9 +94,9 @@ delivered HTTP API.
 
 | Brief requirement | Status | Evidence or reason |
 | --- | --- | --- |
-| Mobile app, not a web app | Delivered; runtime evidence is local | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection, EXIF stripping, iOS Simulator and Expo Go verified ([log/2026-08-24-1912-antigravity-harmonize-partial-meal-and-ui.md](log/2026-08-24-1912-antigravity-harmonize-partial-meal-and-ui.md)). Repository CI can prove typecheck and bundle export, not device execution. |
-| Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 299 tests passing across 25 files. |
-| Technical write-up | Delivered | Comprehensive architecture documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D17), and [docs/comparison.md](docs/comparison.md). |
+| Mobile app, not a web app | Delivered; runtime evidence is local | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection and server-side EXIF stripping. Current demo and live-provider paths have iOS Simulator evidence; repository CI proves typecheck and bundle export, not device execution. |
+| Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 300 tests passing across 25 files. |
+| Technical write-up | Delivered | Comprehensive architecture documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D18), and [docs/comparison.md](docs/comparison.md). |
 | Walkthrough video | Pending recording | Timed 5–10 minute script is ready in [docs/walkthrough.md](docs/walkthrough.md); no Loom URL is claimed until the recording exists. |
 | Email summary | Draft ready | [Submission email draft](docs/submission_email_draft.md) is prepared but must receive the recorded Loom URL before sending. |
 | Explicit EatBetter comparison | Delivered | Evidence-backed comparison and benchmark report documented in [docs/comparison.md](docs/comparison.md). |
@@ -131,7 +150,7 @@ flowchart LR
 > [!NOTE]
 > **Runtime Separation:** The delivered production API is **Node.js / TypeScript (NestJS Edge)** with framework-free pure core pipeline logic. Python remains dedicated **offline research, fixture generation, and regression testing tooling** (`eval/harness.py`).
 >
-> 📖 *For comprehensive sequence diagrams, privacy sanitization flows, and the continuous learning flywheel, see the [System Architecture Specification](docs/architecture.md).*
+> 📖 *For comprehensive sequence diagrams, privacy sanitization flows, and the bounded correction telemetry design, see the [System Architecture Specification](docs/architecture.md).*
 
 ## Key decisions
 
@@ -179,7 +198,7 @@ failures.
 | A photographed count is occluded or uncertain | `A2.jpg` shows two stacked simits. The service flags occlusion, returning `quantity: null`, 100 g standard portion with 65–145 g uncertainty band (214–478 kcal), and routes to Review with a count clarification question ('Kaç adet?'). | Prevents silent undercounting by gating Day save on user count confirmation. | [#218](https://github.com/zexy2/mealog-case-study/issues/218) |
 | Cooked dishes resolve to dry catalogue entries | `haşlanmış bulgur` resolves to `tr.bulgur_kuru` at 279.2 kcal, roughly +320%. Six of seven audited cooked inputs resolve to a dry or raw entry and inherit its nutrition. `çay` and `demlenmiş çay` correctly abstain, so the negative-alias mechanism itself works. | Dry-weight nutrition attributed to a cooked serving. The V3 gate routes these to review but does not correct the wrong `food_id`. | [#219](https://github.com/zexy2/mealog-case-study/issues/219) |
 | Legumes resolve to each other | `haşlanmış mercimek` to `tr.nohut_haslanmis`, `nohut yemeği` to `tr.kuru_fasulye`, `haşlanmış fasulye` to `tr.nohut_haslanmis`, `tarhana çorbası` to `tr.mercimek_corbasi`. | Wrong food, plausible calories. This is retrieval quality rather than aliasing, and negative aliases will not fix it. | Open, untracked |
-| The Turkish catalogue is thin for the default locale | `locale_packs/tr/foods.jsonl` holds 57 rows with no entry for döner, poğaça, börek, köfte, pide, or kebap. | Missing catalogue items trigger safe `ABSTAIN` (70/80 golden samples) rather than hallucinating wrong nutrition. | Open, untracked |
+| The Turkish catalogue is thin for the default locale | `locale_packs/tr/foods.jsonl` holds 57 rows, including `tr.kofte_izgara`, but no entry for döner, poğaça, börek, pide, or kebap. | Missing catalogue items trigger safe `ABSTAIN` (70/80 golden samples) rather than hallucinating wrong nutrition. | Open, untracked |
 | South Asian cuisine is unrepresented | 16 samples, 0% coverage, Item F1 0.00, FP rate 100%. | The golden set was deliberately not narrowed to fit the catalogue, so this bucket reports honestly instead of being excluded. | Open, untracked |
 
 The false-positive rate (86.0%) is measured over the identity set and counts rejected
@@ -221,7 +240,15 @@ typechecks the Expo client and creates an Android bundle.
 - No deployment URL is published.
 - Live-provider accuracy is unmeasured; the scorecard replays recorded
   fixtures offline.
-- Mobile client is verified on iOS Simulator, Expo Go, and Android bundle export.
+- Current demo and live-provider flows have iOS Simulator evidence; iOS and
+  Android bundle exports pass. An earlier SDK 54 compatibility smoke opened the
+  shell and camera in Expo Go on a physical iPhone, but it is not current-flow
+  physical-device E2E evidence.
+- Expo SDK 54 passes `expo-doctor`, typecheck, tests, and bundle export, but its
+  current transitive Metro/tooling tree reports npm audit advisories. The
+  available automatic fix is a major Expo SDK upgrade, which requires a
+  separate compatibility and device-validation pass rather than a forced
+  lockfile rewrite before submission.
 - The 80-sample scorecard has 2/2 calorie-eligible/scored rows; other rows
   are partial or zero-truth for calorie evaluation.
 - Reproduced accuracy defects, including photographed-count ambiguity, are
