@@ -18,8 +18,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 * **Loom Walkthrough Video (5–10 min):** [Loom Video Link Here]
 * **Architecture Decisions (D1–D17):** [docs/decisions.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/decisions.md)
 * **Continuous Learning & HITL Data Flywheel:** [docs/data_flywheel_and_hitl_architecture.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/data_flywheel_and_hitl_architecture.md)
-* **EatBetter Comparison & Benchmark:** [CASE-STUDY-GAP-REPORT.md](https://github.com/zexy2/mealog-case-study/blob/main/CASE-STUDY-GAP-REPORT.md) & [docs/comparison.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/comparison.md)
-* **Interview Questions & Direct Answers:** [docs/interview_questions_answers.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/interview_questions_answers.md)
+* **EatBetter Comparison & Benchmark:** [docs/comparison.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/comparison.md)
 
 ---
 
