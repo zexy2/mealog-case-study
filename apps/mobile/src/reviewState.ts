@@ -45,3 +45,7 @@ export function shouldShowCandidateEditor(
 ) {
   return isAbstain || candidateToggleOpen || customSearchOpen;
 }
+
+export function selectableCandidates<T>(isAbstain: boolean, candidates: readonly T[]): readonly T[] {
+  return isAbstain ? [] : candidates;
+}
