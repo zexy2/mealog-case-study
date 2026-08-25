@@ -2,7 +2,7 @@
 
 mealog is a mobile-first meal logging case study: the model sees food, but never produces a calorie number.
 
-> **Core Focus (AI Accuracy):** Converting noisy, ambiguous, multi-component dining photos and informal text into **verified canonical foods + portion uncertainty intervals + un-hallucinated nutrition** ([Deep Dive in System Architecture](docs/architecture.md#3-robustness-to-messy-real-world-inputs--ambiguity-core-ai-focus)).
+> **Core Focus (AI Accuracy):** Converting noisy, ambiguous, multi-component dining photos and informal text into **verified canonical foods + explicit portion uncertainty intervals + catalogue-backed nutrition** ([Deep Dive in System Architecture](docs/architecture.md#3-robustness-to-messy-real-world-inputs--ambiguity-core-ai-focus)).
 
 * **System Architecture & Design:** [docs/architecture.md](docs/architecture.md)
 * **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D17)
@@ -34,6 +34,8 @@ In another terminal, liveness is available at `http://localhost:3000/health`.
 
 ### Mobile app
 
+From the repository root:
+
 ```sh
 cd apps/mobile
 npm ci
@@ -43,8 +45,8 @@ npx expo export --platform android
 ```
 
 `npm run ios` launches the Expo iOS path when a local simulator is configured.
-Current main proves TypeScript typecheck, iOS Simulator execution, and iOS/Android bundle exports.
-Live Node service integration has been smoke-tested locally across 12 single and multi-item test scenarios; physical device deployment remains not run.
+Session logs document iOS Simulator execution and local Expo Go verification ([log/2026-08-24-1912-antigravity-harmonize-partial-meal-and-ui.md](log/2026-08-24-1912-antigravity-harmonize-partial-meal-and-ui.md)); repository CI proves TypeScript typecheck and iOS/Android bundle exports.
+Live Node service integration has been smoke-tested locally across 12 single and multi-item test scenarios ([server/test/messy_real_inputs.test.ts](server/test/messy_real_inputs.test.ts)); physical device deployment remains not run.
 
 The mobile client is deterministic demo mode unless
 `EXPO_PUBLIC_DEMO_MODE=false` and `EXPO_PUBLIC_API_URL` are both supplied. Demo
@@ -55,7 +57,7 @@ requires a reachable local Node service and provider configuration.
 
 This path is keyless. It replays repository fixtures from `eval/fixtures/`
 against locale and golden-set data; no provider token or network call is
-required.
+required. From the repository root:
 
 ```sh
 MEALOG_VENV="$(mktemp -d)/venv"
@@ -73,7 +75,7 @@ delivered HTTP API.
 
 | Brief requirement | Status | Evidence or reason |
 | --- | --- | --- |
-| Mobile app, not a web app | Delivered; runtime evidence is local | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection, EXIF stripping, iOS Simulator and Expo Go verified. Repository CI can prove typecheck and bundle export, not device execution. |
+| Mobile app, not a web app | Delivered; runtime evidence is local | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection, EXIF stripping, iOS Simulator and Expo Go verified ([log/2026-08-24-1912-antigravity-harmonize-partial-meal-and-ui.md](log/2026-08-24-1912-antigravity-harmonize-partial-meal-and-ui.md)). Repository CI can prove typecheck and bundle export, not device execution. |
 | Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 299 tests passing across 25 files. |
 | Technical write-up | Delivered | Comprehensive architecture documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D17), and [docs/comparison.md](docs/comparison.md). |
 | Walkthrough video | Pending recording | Timed 5–10 minute script is ready in [docs/walkthrough.md](docs/walkthrough.md); no Loom URL is claimed until the recording exists. |
@@ -128,7 +130,7 @@ calorie-eligible/scored rows; `eligible` means complete positive-truth rows and
 not zero-percent error.
 
 | Cuisine | n | Coverage | Eligible/scored | Item F1 | kcal MAPE | FP rate |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | western | 12 | 33% | 2/2 | 0.43 | 12.7% | 66.7% |
 | mediterranean | 12 | 25% | 0/0 | 0.22 | — | 71.4% |
 | east_asian | 16 | 6% | 0/0 | 0.10 | — | 90.0% |
@@ -150,7 +152,8 @@ recorded under Results and Testing; this section is deliberately only the
 failures.
 
 | Failure | Evidence | Effect | Tracked |
-| A photographed count is occluded or uncertain | `A2.jpg` shows two stacked simits. The service now flags occlusion, returning `quantity: null`, 100 g standard portion with 65–145 g uncertainty band (214–478 kcal), and routes to Review with a count clarification question ('Kaç adet?'). | Prevents silent undercounting by gating Day save on user count confirmation. | [#218](https://github.com/zexy2/mealog-case-study/issues/218) |
+|---|---|---|---|
+| A photographed count is occluded or uncertain | `A2.jpg` shows two stacked simits. The service flags occlusion, returning `quantity: null`, 100 g standard portion with 65–145 g uncertainty band (214–478 kcal), and routes to Review with a count clarification question ('Kaç adet?'). | Prevents silent undercounting by gating Day save on user count confirmation. | [#218](https://github.com/zexy2/mealog-case-study/issues/218) |
 | Cooked dishes resolve to dry catalogue entries | `haşlanmış bulgur` resolves to `tr.bulgur_kuru` at 279.2 kcal, roughly +320%. Six of seven audited cooked inputs resolve to a dry or raw entry and inherit its nutrition. `çay` and `demlenmiş çay` correctly abstain, so the negative-alias mechanism itself works. | Dry-weight nutrition attributed to a cooked serving. The V3 gate routes these to review but does not correct the wrong `food_id`. | [#219](https://github.com/zexy2/mealog-case-study/issues/219) |
 | Legumes resolve to each other | `haşlanmış mercimek` to `tr.nohut_haslanmis`, `nohut yemeği` to `tr.kuru_fasulye`, `haşlanmış fasulye` to `tr.nohut_haslanmis`, `tarhana çorbası` to `tr.mercimek_corbasi`. | Wrong food, plausible calories. This is retrieval quality rather than aliasing, and negative aliases will not fix it. | Open, untracked |
 | The Turkish catalogue is thin for the default locale | `locale_packs/tr/foods.jsonl` holds 57 rows with no entry for döner, poğaça, börek, köfte, pide, or kebap. | Missing catalogue items trigger safe `ABSTAIN` (70/80 golden samples) rather than hallucinating wrong nutrition. | Open, untracked |
@@ -198,7 +201,7 @@ typechecks the Expo client and creates an Android bundle.
 - Mobile client is verified on iOS Simulator, Expo Go, and Android bundle export.
 - The 80-sample scorecard has 2/2 calorie-eligible/scored rows; other rows
   are partial or zero-truth for calorie evaluation.
-- Reproduced accuracy defects, including the photographed-count undercount, are
+- Reproduced accuracy defects, including photographed-count ambiguity, are
   listed with their evidence under [Known failures, measured](#known-failures-measured).
 
 ## With more time
@@ -207,8 +210,7 @@ typechecks the Expo client and creates an Android bundle.
   URL only after external proof exists.
 - Record the complete walkthrough from the merged script with exact review and
   abstention states.
-- Add authenticated identity, rate limiting, durable idempotency, and explicit
-  consent/deletion controls before treating the service as production-ready.
+- Add authenticated OAuth identity, distributed/shared rate limiting (Redis/token-bucket tier across multi-instance edge), durable PostgreSQL idempotency, and explicit consent/deletion controls before treating the service as production-ready.
 - Follow the [D8](docs/decisions.md#d8) training plan only after data provenance
   and evaluation gates are ready. D8 is a specified, measured path, not
   permission to tune against a headline.
@@ -220,11 +222,8 @@ structure, abstention behavior, and evaluation gates. Models assist with
 implementation and review, but their suggestions are overridden when they
 conflict with those constraints.
 
-
 ### Concrete Model Error and Human Override
 
-* **Model Error:** When shown `A2.jpg` (two stacked simits on a plate), Gemini vision returned `count: 1` rather than `null` for occluded instances, and for text input `"haşlanmış makarna"`, it stripped the cooking method into a separate attribute and returned `surface_form: "makarna"`. Without human constraint, the pipeline would have matched dry uncooked pasta nutrition (`tr.makarna_kuru`), undercounting portion mass and severely miscalculating calories.
-* **How it was caught:** Caught by the golden set fixture regression check and offline evaluation harness (`eval/harness.py`).
-* **Human Override:** 
-  1. Enforced strict prompt instructions requiring `count: null` on occluded/stacked food instances to force explicit uncertainty intervals (`grams_p10`–`grams_p90`).
-  2. Appended negative aliases in `locale_packs/tr/aliases.jsonl` for cooked dishes (`"haşlanmış makarna"`, `"haşlanmış bulgur"`) to force `ABSTAIN` / user review instead of silently accepting dry raw ingredient nutrition.
+* **Model Error:** When shown `A2.jpg` (stacked simits), vision models return single counts or extract cooking prefixes from text (`"haşlanmış makarna"` $\rightarrow$ `"makarna"`), matching dry uncooked pasta (`tr.makarna_kuru`) and distorting calories by +320%.
+* **How it was caught:** Caught by the offline regression test suite (`eval/harness.py`).
+* **Human Override:** Enforced explicit `count: null` on occlusion, uncertainty intervals (`grams_p10`–`grams_p90`), and negative aliases forcing `ABSTAIN`/Review on raw/cooked ambiguities ([details in Known Failures](#known-failures-measured)).
