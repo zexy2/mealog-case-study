@@ -9,7 +9,7 @@ abstains instead of silently saving the nearest guess.
 
 **Submission:** [9:07 Loom walkthrough](https://www.loom.com/share/8a1ad6fea24e401eaf52788d72d5a0fd)
 · [Run locally](#run-locally) · [Evaluation](docs/evaluation.md) ·
-[EatBetter comparison](docs/comparison.md) · [Architecture](docs/architecture.md)
+[EatBetter comparison](#compared-with-eatbetter) · [Architecture](#architecture)
 
 ## Product thesis
 
@@ -53,8 +53,7 @@ results, not live-provider accuracy. The fixtures were recorded with
 error taxonomy are in [docs/evaluation.md](docs/evaluation.md).
 
 For a fast review, read the result and comparison, then run the keyless demo.
-Deep dives: [architecture](docs/architecture.md), [evaluation](docs/evaluation.md),
-[decisions D1–D20](docs/decisions.md), and the
+Deep dives: [evaluation](docs/evaluation.md), [decisions D1–D20](docs/decisions.md), and the
 [bounded HITL/data-flywheel design](docs/data_flywheel_and_hitl_architecture.md).
 
 ## Compared with EatBetter
