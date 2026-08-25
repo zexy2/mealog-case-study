@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Mealog evidence brief: privacy-minimized photo ingress, review telemetry, and the proposed human-in-the-loop data path.">
+  <title>Mealog — HITL and Privacy Evidence Brief</title>
+  <style>
+    :root {
+      --ink: #173b29;
+      --muted: #65736b;
+      --paper: #f6f3eb;
+      --panel: #fffdf8;
+      --line: #d9e1d8;
+      --green: #2e6b43;
+      --green-soft: #e7f0e9;
+      --amber: #a86f16;
+      --amber-soft: #fff4db;
+      --rose: #9b4439;
+      --rose-soft: #f9e9e5;
+      --shadow: 0 18px 50px rgba(35, 60, 42, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font: 16px/1.65 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { max-width: 1120px; margin: 0 auto; padding: 32px 22px 80px; }
+    header { padding: 42px 0 30px; }
+    .eyebrow { color: var(--green); font-size: .76rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    h1, h2, h3 { line-height: 1.15; letter-spacing: -.03em; }
+    h1 { max-width: 860px; margin: 12px 0 18px; font-size: clamp(2.4rem, 6vw, 5.6rem); }
+    h2 { margin: 0 0 14px; font-size: clamp(1.55rem, 2.8vw, 2.35rem); }
+    h3 { margin: 0 0 8px; font-size: 1.08rem; }
+    p { margin: 0 0 16px; }
+    a { color: var(--green); font-weight: 700; }
+    .lede { max-width: 760px; color: var(--muted); font-size: 1.15rem; }
+    .notice { margin: 22px 0 34px; padding: 16px 19px; border-left: 5px solid var(--amber); border-radius: 12px; background: var(--amber-soft); }
+    .status-grid, .card-grid { display: grid; gap: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .status, .card, .step, table { border: 1px solid var(--line); border-radius: 18px; background: var(--panel); box-shadow: var(--shadow); }
+    .status { padding: 18px; }
+    .status strong { display: block; margin-bottom: 6px; font-size: .76rem; letter-spacing: .12em; }
+    .status p { color: var(--muted); font-size: .94rem; }
+    .status.shipped strong { color: var(--green); }
+    .status.tested strong { color: #356493; }
+    .status.proposed strong { color: var(--amber); }
+    .status.absent strong { color: var(--rose); }
+    section { margin-top: 58px; }
+    .section-kicker { margin-bottom: 6px; color: var(--muted); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card { padding: 23px; }
+    .card p, .card li { color: #43564b; }
+    ul { margin: 10px 0 0; padding-left: 1.15rem; }
+    .steps { display: grid; gap: 12px; }
+    .step { display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding: 20px; align-items: start; }
+    .step-number { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; color: white; background: var(--green); font-weight: 800; }
+    .step p { margin-bottom: 0; color: #43564b; }
+    .flow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .flow span { padding: 12px 15px; border: 1px solid var(--line); border-radius: 999px; background: var(--green-soft); font-weight: 700; }
+    .flow i { color: var(--muted); font-style: normal; font-weight: 800; }
+    .callout { padding: 21px; border-radius: 16px; background: var(--rose-soft); border: 1px solid #edcfc8; }
+    .callout strong { color: var(--rose); }
+    table { width: 100%; border-spacing: 0; overflow: hidden; text-align: left; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); background: var(--green-soft); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    code { padding: 2px 5px; border-radius: 5px; background: #edf0ea; font-size: .9em; }
+    footer { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: .92rem; }
+    @media (max-width: 800px) {
+      .status-grid, .card-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      main { padding-inline: 16px; }
+      .status-grid, .card-grid { grid-template-columns: 1fr; }
+      .step { grid-template-columns: 1fr; }
+      th, td { padding: 11px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">Engineering evidence brief · 25 August 2026</div>
+      <h1>Privacy-minimized review, with a data flywheel that is still deliberately human.</h1>
+      <p class="lede">This companion report separates what Mealog ships and tests today from the production path that remains proposed. It is a static evidence brief, not a Loom recording and not proof of deployment or broad live-provider accuracy.</p>
+      <div class="notice"><strong>Reading rule:</strong> a correction event is a signal for review, not a nutrition label and not automatic training data. No section below claims that a model, catalogue, or alias updates itself.</div>
+      <div class="status-grid" aria-label="Evidence status">
+        <div class="status shipped"><strong>SHIPPED</strong><p>Closed-set resolution, review states, request idempotency, and privacy-aware telemetry prototype.</p></div>
+        <div class="status tested"><strong>TESTED</strong><p>Metadata sanitization, PII text redaction, image validation, and standalone RGBA face-blurring utility.</p></div>
+        <div class="status proposed"><strong>PROPOSED</strong><p>Durable human review, licensed label curation, and offline release gates for a future data loop.</p></div>
+        <div class="status absent"><strong>NOT TRAINED</strong><p>No checkpoint, training run, held-out training result, production deployment, or recorded Loom is claimed.</p></div>
+      </div>
+    </header>
+
+    <section>
+      <div class="section-kicker">01 · Ingress</div>
+      <h2>The request boundary is privacy-aware before perception begins.</h2>
+      <div class="card-grid">
+        <article class="card">
+          <h3>What is active</h3>
+          <ul>
+            <li>Image signatures and size are validated before provider use.</li>
+            <li>JPEG, PNG, WebP, and GIF metadata is sanitized in memory, including supported EXIF/GPS, IPTC, comments, and text metadata.</li>
+            <li>PII is redacted from supported text fields before telemetry is appended.</li>
+            <li>Meal photos and raw provider envelopes are not telemetry fields and are not persistently stored by the correction prototype.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>What the boundary does not cover</h3>
+          <ul>
+            <li>HEIC/HEIF/AVIF metadata item stripping is not established by the current sanitizer.</li>
+            <li>EXIF stripping is not the same as pixel-level face anonymization.</li>
+            <li>A clean health response or a demo screen is not evidence of deployment, retention, or provider accuracy.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-kicker">02 · Face privacy</div>
+      <h2>Face blurring is a tested module, not a live JPEG guarantee.</h2>
+      <div class="callout"><strong>Important boundary:</strong> <code>blurFacesInPixelArray</code> and <code>detectFaceRegions</code> are pure TypeScript RGBA utilities with focused tests. D14 keeps them decoupled from the active compressed-image edge path. The repository does not prove that every live JPEG is decoded, face-blurred, and re-encoded before Gemini receives it.</div>
+      <p style="margin-top:16px">A client camera canvas or an asynchronous image worker is the documented integration path for a future end-to-end pixel guarantee. Until that is wired and verified, the honest claim is metadata sanitization plus a standalone tested utility—not automatic biometric masking.</p>
+    </section>
+
+    <section>
+      <div class="section-kicker">03 · Nutrition safety</div>
+      <h2>Models observe; the catalogue and pipeline own the numbers.</h2>
+      <div class="steps">
+        <div class="step"><div class="step-number">1</div><div><h3>Provider observation</h3><p>The provider may return food observations and uncertainty. It is not authoritative for calories or grams.</p></div></div>
+        <div class="step"><div class="step-number">2</div><div><h3>Closed-set resolution</h3><p>Retrieval proposes catalogue candidates. Resolution returns a canonical <code>food_id</code> or <code>ABSTAIN</code>; it never creates a free-text nutrition identity.</p></div></div>
+        <div class="step"><div class="step-number">3</div><div><h3>Authoritative calculation</h3><p><code>pipeline/nutrition.py</code> derives nutrient numbers from the canonical record and portion provenance. Unsupported or ambiguous inputs remain review work.</p></div></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-kicker">04 · Review</div>
+      <h2>Correction is explicit and item-scoped.</h2>
+      <div class="card-grid">
+        <article class="card"><h3>What a user can correct</h3><p>The review flow exposes identity, count, and portion clarification. The correction endpoint recomputes the changed item from catalogue-backed values rather than trusting client-supplied grams or nutrients.</p></article>
+        <article class="card"><h3>What degraded means</h3><p>Degraded provider results propagate through the API and mobile result and require review. They cannot silently become <code>auto_accept</code>. Unknown quantity remains unknown; no visual count is fabricated.</p></article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-kicker">05 · Shipped telemetry prototype</div>
+      <h2>Useful correction signals without pretending they are labels.</h2>
+      <div class="flow" aria-label="Telemetry flow"><span>Mobile review action</span><i>→</i><span>metadata-only event</span><i>→</i><span>PII redaction</span><i>→</i><span>hashed idempotency key</span><i>→</i><span>process-local JSONL</span></div>
+      <p style="margin-top:18px">The correction event endpoint requires <code>X-User-Id</code> for rate limiting, but the prototype does not persist that identifier. Demo mode does not emit telemetry. The store is process-local rather than durable, lakehouse-backed, or safe for multi-instance aggregation; without a stored user ID, a future delete request cannot target an individual row.</p>
+      <p>Operators may run <code>scripts/curate_dataset.py</code> to prepare candidates for human review. The script does not create golden labels, update locale packs, fine-tune a model, or promote a release.</p>
+    </section>
+
+    <section>
+      <div class="section-kicker">06 · Proposed data flywheel</div>
+      <h2>Production learning is a gated workflow, not an automatic side effect.</h2>
+      <div class="flow" aria-label="Proposed data flywheel"><span>Durable, governed events</span><i>→</i><span>human nutrition review</span><i>→</i><span>licensed labels</span><i>→</i><span>offline eval</span><i>→</i><span>approved release</span></div>
+      <p style="margin-top:18px">This is a proposed operating path. Each transition needs an owner, provenance, and a regression result. A reviewed correction can become training or catalogue evidence only after human verification and licensing checks. There is no automatic self-training, automatic catalogue update, alias promotion, or model promotion in the current repository.</p>
+    </section>
+
+    <section>
+      <div class="section-kicker">07 · Training status</div>
+      <h2>The plan is documented; the run is not.</h2>
+      <p><a href="finetuning-plan.md">D8 and the fine-tuning plan</a> specify a rented frontier VLM, an FT-1 mass regressor, and an FT-2 locale adapter as future work. The repository has no checkpoint, training run, GPU-hour record, spend, or held-out training score to report. The local screenshot pack is test evidence, not a training set.</p>
+    </section>
+
+    <section>
+      <div class="section-kicker">08 · Evidence map</div>
+      <h2>Where to verify each boundary.</h2>
+      <table>
+        <thead><tr><th>Claim</th><th>Repository evidence</th><th>Limit</th></tr></thead>
+        <tbody>
+          <tr><td>Ingress privacy</td><td><a href="security.md">security.md</a>; <a href="../server/test/pipeline.privacy.test.ts">privacy tests</a></td><td>Format support is explicit; HEIC/HEIF/AVIF is limited.</td></tr>
+          <tr><td>Pixel face utility</td><td><a href="../server/test/face_blurring.test.ts">face-blurring tests</a>; <a href="decisions.md#d14--privacy-pipeline-boundary-deterministic-edge-exif-sanitization-vs-standalone-rgba-face-blurring">D14</a></td><td>Not proof of live compressed-path face masking.</td></tr>
+          <tr><td>Correction telemetry</td><td><a href="data_flywheel_and_hitl_architecture.md">architecture note</a>; <a href="../server/test/telemetry.test.ts">telemetry tests</a></td><td>Process-local prototype; no durable store or delete targeting.</td></tr>
+          <tr><td>Training</td><td><a href="finetuning-plan.md">fine-tuning plan</a></td><td>No run, checkpoint, cost, or held-out result exists.</td></tr>
+          <tr><td>Product comparison</td><td><a href="comparison.md">comparison.md</a></td><td>EatBetter statements are limited to observed public surfaces.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      <p><strong>Not claimed:</strong> a live face-blur guarantee, a durable HITL dashboard, automatic training or catalogue promotion, deployment, production readiness, broad live-provider accuracy, EatBetter internals, or a recorded Loom.</p>
+      <p>This report intentionally omits the former speech-script section. It documents evidence boundaries; it does not provide a script that turns proposed work into shipped work.</p>
+    </footer>
+  </main>
+</body>
+</html>

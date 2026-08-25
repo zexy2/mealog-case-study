@@ -371,3 +371,9 @@ are inferred.
 
 This document compares bounded, demonstrated properties. It does not establish
 that mealog beats EatBetter overall.
+
+For a presentation-ready English summary of the privacy boundary, correction
+telemetry, and proposed human-in-the-loop data path, see the companion
+[HITL and privacy evidence brief](hitl_data_flywheel_loom_presentation_report.html).
+It is a static report, not a Loom recording; the former speech-script section is
+intentionally omitted, and proposed production work is labelled as unshipped.
