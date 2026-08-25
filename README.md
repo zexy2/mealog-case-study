@@ -34,6 +34,25 @@ Deep dives: [architecture](docs/architecture.md), [evaluation](docs/evaluation.m
 [EatBetter comparison](docs/comparison.md), [decisions D1–D20](docs/decisions.md),
 and [bounded HITL/data-flywheel design](docs/data_flywheel_and_hitl_architecture.md).
 
+## Data licensing and attribution
+
+This repository is published as a noncommercial case-study and information-
+sharing project. Its software and third-party nutrition data do not share one
+blanket licence. See [THIRD_PARTY_DATA.md](THIRD_PARTY_DATA.md) before copying,
+redistributing, or using any locale pack.
+
+The Turkish pack contains selected nutrition values attributed as required:
+[TürKomp, Ulusal Gıda Kompozisyon Veri Tabanı, versiyon 1.0](https://turkomp.tarimorman.gov.tr/).
+Its [official data-use conditions](https://turkomp.tarimorman.gov.tr/useofdata)
+permit conditioned noncommercial information sharing; commercial use requires
+a separate agreement with the authorised institution. Project `food_id` values,
+display labels, aliases, serving defaults, density annotations, and confidence
+logic are mealog metadata, not official TürKomp fields.
+
+The Japanese pack is separately attributed to MEXT. Its source and remaining
+licence boundary are recorded in [THIRD_PARTY_DATA.md](THIRD_PARTY_DATA.md) and
+next to the pack. No third-party dataset is relicensed by this repository.
+
 ## Product and measured result
 
 The mobile experience has four deliberate outcomes:
