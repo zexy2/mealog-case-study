@@ -1,8 +1,10 @@
 # Case Study submission email draft
 
-> **Do not send yet:** record the walkthrough, replace the pending Loom line
-> below with its real URL, rotate the exposed provider credential, and confirm
-> hosted CI is green.
+> **Pre-send checklist:** upload the completed 9:07 walkthrough, replace the
+> single `[LOOM_URL]` placeholder below, verify the link in a private window,
+> confirm repository access for the reviewers, and confirm the previously
+> exposed provider credential has been revoked. Hosted CI is currently blocked
+> before execution; preserve the disclosure below unless a later run is green.
 
 **To:** `hello@eatbetter.app`  
 **Subject:** Full Stack Developer Case Study Submission — mealog / Zeki  
@@ -19,7 +21,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 
 ### 🔗 Submission Links
 * **GitHub Repository:** https://github.com/zexy2/mealog-case-study
-* **Loom Walkthrough Video (5–10 min):** Pending recording — insert the real URL before sending
+* **Loom Walkthrough Video (9:07):** [LOOM_URL]
 * **Architecture Decisions (D1–D20):** [docs/decisions.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/decisions.md)
 * **Correction Telemetry & Proposed HITL Loop:** [docs/data_flywheel_and_hitl_architecture.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/data_flywheel_and_hitl_architecture.md)
 * **EatBetter Comparison & Benchmark:** [docs/comparison.md](https://github.com/zexy2/mealog-case-study/blob/main/docs/comparison.md)
@@ -55,7 +57,7 @@ Below is a concise summary of what was built, key trade-offs, known boundaries, 
 * **Evaluation Scope:** Focused on reproducible offline golden evaluation rather than unconstrained live API spend.
 * **Estimate-Lane Risk:** Model-generated fallback ranges can still be wrong, especially for cooking fat, recipe, and visual portion. They are a weaker product option, not verified nutrition or evidence that grounded accuracy improved.
 * **Mobile Preview Duplication:** Review currently recalculates edited preview totals from a duplicated client catalogue map. The server-grounded path remains authoritative, but this client arithmetic should be removed in favor of rendering `POST /v1/meals/correct` responses only.
-* **Hosted CI Blocker:** The current GitHub Actions jobs are configured but have not started because the repository account's billing/spending state blocks execution. This draft must not be sent until that blocker is cleared and the submission commit passes hosted CI.
+* **Hosted CI Blocker:** The current GitHub Actions jobs are configured but were blocked before executing by the repository account's billing/spending state. I do not present local checks as hosted-CI evidence; the commands and current limitation are documented in the README.
 
 ---
 
