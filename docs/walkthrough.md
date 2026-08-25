@@ -1,6 +1,6 @@
 # Video walkthrough script — Node/TypeScript submission
 
-Target runtime: **8:40**. This is a timed, production-ready recording script.
+Target runtime: **8:40**. This is a timed submission recording script.
 Rehearse and re-check every evidence anchor against the recording commit before
 the take.
 
@@ -17,7 +17,7 @@ folder-by-folder code tour.
 | 0:40–2:20 | Capture, loading, result, portion band, auditability, and routing | Current Node endpoint or deterministic fixture fallback |
 | 2:20–2:50 | Live out-of-catalogue abstention | **Required**; use the labelled fixture fallback only if the live shot cannot run |
 | 2:50–4:00 | One architecture diagram and the server-action routing table | Node/Nest boundary on screen |
-| 4:00–5:20 | The model mistake that changed the design; closed-set nutrition and worst-cuisine measurement | D1/D3 and one short code boundary |
+| 4:00–5:20 | The model mistake that changed the design; grounded nutrition, the separate estimate lane, and worst-cuisine measurement | D1/D3/D19/D20 and one short code boundary |
 | 5:20–6:00 | EatBetter comparison, bounded to observed public surfaces | Visibility of uncertainty, not accuracy |
 | 6:00–6:55 | Offline scorecard, ablation, retrieval, and regression guard | Fresh scorecard from the recording commit |
 | 6:55–7:30 | Security and privacy | Request boundary and CI guard |
@@ -35,6 +35,8 @@ folder-by-folder code tour.
 - Do not show an API key, a personal photograph, a raw provider envelope, or a
   personal identifier. If the device path fails, use the deterministic fixture
   recording and say **fixture / demo path** on screen.
+- Rotate the provider key exposed during development before recording. Never
+  show a terminal or environment view that could reveal the replacement.
 - The abstention at 2:20–2:50 is mandatory. It is the strongest proof that the
   system knows when not to guess.
 - Do not say “production ready”. Do not narrate the multi-agent process.
@@ -95,19 +97,22 @@ opens the audit panel, and the action transition. Do not show raw JSON.
 
 **Say:**
 
-> When a food is outside the catalogue, Mealog refuses to hallucinate estimated calories.
-> The screen acknowledges the observation—for example, recognizing karnıyarık—without
-> assigning an unverified laboratory row.
+> When a food is outside the catalogue, Mealog refuses to attach a laboratory
+> row or present model output as verified nutrition. The screen acknowledges
+> the observation—for example, recognizing karnıyarık—without silently
+> converting it into catalogue truth.
 >
-> For logging, the user has two honest local alternatives: saving as an uncaloried note,
-> or entering a manual calorie estimate tagged explicitly as user input. The “Suggest dish”
-> control demonstrates the product direction prototype; in production, this feeds an
-> anonymized, rate-limited server curation queue for nutritionist review and licensed
-> pack releases.
+> In live mode, the separate D19/D20 lane can prepare an **AI estimate —
+> unverified** with a range and visible assumptions. It is never auto-accepted,
+> requires the user's explicit choice, and is excluded from grounded accuracy
+> metrics. The user can instead save an uncaloried note or enter a manual value.
+> The “Suggest dish” control is a product-direction prototype; it is not a live
+> catalogue-learning system.
 
-**On-screen proof:** The out-of-catalogue screen with recognized dish name, zero
-hallucinated calories, honest local logging alternatives, and prototype suggest control. Keep this
-segment; do not replace it with another success case.
+**On-screen proof:** The out-of-catalogue screen with recognized dish name,
+verified-versus-unverified labelling, estimate range and assumptions if the live
+fallback succeeds, honest local logging alternatives, and prototype suggest
+control. Keep this segment; do not replace it with another success case.
 
 ### 2:50–4:00 — One architecture, and why the route is server-owned
 
@@ -121,6 +126,11 @@ Expo capture or text
         -> normalize -> retrieval -> resolve -> portion -> nutrition
         -> MealLog { action, degraded, items, totals }
         -> Day / Review / Add
+
+ABSTAIN + live mode
+        -> POST /v1/meals/estimate
+        -> unverified range + assumptions
+        -> explicit user acceptance or discard
 ```
 
 **Say:**
@@ -130,6 +140,9 @@ Expo capture or text
 > runner can use a recorded fixture without booting HTTP. The pipeline
 > normalizes observations, retrieves candidates, resolves to a catalogue ID or
 > `ABSTAIN`, estimates a p10–p90 band, and computes nutrients deterministically.
+> After an abstention, a separate endpoint may prepare an unverified model
+> estimate. It does not enter the grounded pipeline, change the server action,
+> or save itself.
 >
 > One contract controls the experience: `action` and `degraded` come from the
 > server. A fallback-backed answer is review, never acceptance. A provider
@@ -140,9 +153,9 @@ Expo capture or text
 Show only enough of each file to support the boundary. Do not scroll through
 directories.
 
-### 4:00–5:20 — The wrong model answer, and the two design decisions
+### 4:00–5:20 — The wrong model answer, and the product boundary
 
-**Picture:** D1 and D3, then the nutrition boundary.
+**Picture:** D1, D3, D19, and D20, then the nutrition boundary.
 
 **Say:**
 
@@ -152,17 +165,25 @@ directories.
 > to a closed-set identity or reproduce the arithmetic. That was the wrong
 > contract, not a number to polish.
 >
-> Now the model observes food surfaces only. Retrieval and resolution choose a
-> catalogue `food_id` or return `ABSTAIN`; only nutrition produces a number from
-> catalogue data and grams. That is the first decision.
+> In the grounded path, the model observes food surfaces only. Retrieval and
+> resolution choose a catalogue `food_id` or return `ABSTAIN`; only nutrition
+> produces a number from catalogue data and grams. That remains the first and
+> strongest decision.
+>
+> D19 and D20 add a deliberately weaker product lane after abstention. It may
+> return broad model-estimated nutrition ranges and assumptions, labelled
+> **AI tahmini — doğrulanmamış**. Generation can be batched for up to 20
+> unresolved items, but acceptance and saving are never automatic. These rows
+> are excluded from the grounded scorecard and need their own labelled eval.
 >
 > The second is how to read accuracy. A mean can hide the failing cuisine, so
 > the headline is the worst bucket with coverage beside it. Abstention is not a
 > zero-calorie answer: it costs coverage, but avoids invented identity and
 > nutrition.
 
-**On-screen proof:** D1 and D3, the closed-set resolver, and the pure nutrition
-boundary. Do not show a made-up provider response or a folder tour.
+**On-screen proof:** D1, D3, D19, and D20; the closed-set resolver; the pure
+grounded nutrition boundary; and the unverified estimate badge. Do not show a
+made-up provider response or a folder tour.
 
 **Comparison beat — about 40 seconds, at the end of this decisions block.**
 
@@ -184,7 +205,7 @@ Do not show an inferred competitor architecture or claim an accuracy winner.
 
 ### 6:00–6:55 — Evaluation, ablation, and the regression guard
 
-**Picture:** The scorecard, retrieval table, and CI regression check. Generate
+**Picture:** The scorecard, retrieval table, and local regression check. Generate
 the scorecard from the recording commit and keep its SHA-256 visible.
 
 **Say:**
@@ -200,13 +221,14 @@ the scorecard from the recording commit and keep its SHA-256 visible.
 > Retrieval is a separate guard: across **145 variants**, Recall@1 is **100%**
 > and MRR is **1.000**; across **22 negative probes**, there are zero wrong
 > accepts. On **10 out-of-catalogue images**, there are **10 correct
-> abstentions** and zero false accepts. CI compares buckets, not just an
-> aggregate, before a change can merge.
+> abstentions** and zero false accepts. The regression gate compares buckets,
+> not just an aggregate.
 
 **On-screen proof:** scorecard SHA, the V0/V3 rows, the retrieval rows, the
-out-of-catalogue result summary, and the green regression check. If local output
-is unavailable, use a captured CI view; do not invent a new measurement during
-the recording.
+out-of-catalogue result summary, and the passing local regression check. Hosted
+Actions currently does not start because of the repository account's billing
+state, so do not show an old green run as current evidence. Clear the blocker
+and rerun Actions before submission.
 
 ### 6:55–7:30 — Security and privacy
 
@@ -281,4 +303,7 @@ Do not end on a fabricated success state.
       recording commit.
 - [ ] Confirm no API key, personal photo, personal identifier, or raw provider
       payload appears in the recording.
+- [ ] Rotate the exposed provider key before recording.
+- [ ] Clear the GitHub Actions billing/spending blocker and confirm the hosted
+      submission-commit run executes and passes; local checks are not a substitute.
 - [ ] Confirm the full script is at or under 9:00.
