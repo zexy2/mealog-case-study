@@ -73,7 +73,7 @@ sequenceDiagram
     participant Cat as 📚 TÜRKOMP / USDA Catalogue
 
     User->>Edge: Uploads image or text input
-    Edge->>Edge: Strip image metadata; redact PII from text
+    Edge->>Edge: Strip image metadata and redact PII from text
     Edge->>LLM: Send metadata-stripped pixels or sanitized text
     LLM-->>Pipe: Returns Perceived Items (free-text label + count/portion hints)
     
