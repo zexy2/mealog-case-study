@@ -2,7 +2,7 @@
 
 State: The CI workflow can select a trusted self-hosted runner through the `CI_RUNNER` repository variable while retaining `ubuntu-latest` as the default.
 
-Done: Changed runner selection and added a self-hosted-only temporary Python 3.11 virtualenv bootstrap because `setup-python`'s macOS ARM64 installer targets the unwritable hosted-runner path `/Users/runner`. The first executing run also exposed seven pre-existing Ruff violations in `scripts/curate_dataset.py`; these were corrected without changing lint rules or curation behavior. Hosted runners retain `setup-python`; all checkout, install, tests, lint, typecheck, export, scope, status, regression, invariant, and main-history guard commands remain unchanged.
+Done: Changed runner selection and added a self-hosted-only temporary Python 3.11 virtualenv bootstrap because `setup-python`'s macOS ARM64 installer targets the unwritable hosted-runner path `/Users/runner`. Hosted npm caching remains enabled, while the temporary runner skips restoring the repository's hundreds-of-MiB cache and uses clean `npm ci`. The first executing run also exposed seven pre-existing Ruff violations in `scripts/curate_dataset.py`; these were corrected without changing lint rules or curation behavior. All checkout, install, tests, lint, typecheck, export, scope, status, regression, invariant, and main-history guard commands remain unchanged.
 
 Next: Register a temporary macOS ARM64 runner outside the repository, set `CI_RUNNER=self-hosted`, read the hosted workflow result, then remove the variable and runner when submission verification is complete.
 
