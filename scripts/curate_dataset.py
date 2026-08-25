@@ -12,6 +12,7 @@ Usage:
 import argparse
 import json
 from collections import Counter, defaultdict
+from contextlib import suppress
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -26,11 +27,9 @@ def load_canonical_foods(locale: str = "tr") -> set[str]:
     with open(foods_file, "r", encoding="utf-8") as f:
         for line in f:
             if line.strip():
-                try:
+                with suppress(json.JSONDecodeError, KeyError, TypeError):
                     data = json.loads(line)
                     valid_ids.add(data["food_id"])
-                except Exception:
-                    pass
     return valid_ids
 
 
@@ -90,33 +89,31 @@ def curate_events(events_path: Path, out_dir: Path, locale: str = "tr") -> dict:
                 sel_g = it.get("selected_grams")
 
                 # 1. Candidate Swap (Hard Negative Mining for FT-2)
-                if pred_id and sel_id and pred_id != sel_id:
-                    if sel_id in valid_food_ids:
-                        stats["swaps"] += 1
-                        stats["confusion_pairs"][(pred_id, sel_id)] += 1
-                        ft2_rows.append(
-                            {
-                                "request_hash": request_hash,
-                                "positive_food_id": sel_id,
-                                "hard_negative_food_id": pred_id,
-                                "query": query,
-                                "weight": 1.5,
-                            }
-                        )
+                if pred_id and sel_id and pred_id != sel_id and sel_id in valid_food_ids:
+                    stats["swaps"] += 1
+                    stats["confusion_pairs"][(pred_id, sel_id)] += 1
+                    ft2_rows.append(
+                        {
+                            "request_hash": request_hash,
+                            "positive_food_id": sel_id,
+                            "hard_negative_food_id": pred_id,
+                            "query": query,
+                            "weight": 1.5,
+                        }
+                    )
 
                 # 2. Portion Adjustment (Quantile Target for FT-1)
-                if sel_id and sel_g and pred_g and sel_g != pred_g:
-                    if sel_id in valid_food_ids:
-                        stats["portion_adjustments"] += 1
-                        ft1_rows.append(
-                            {
-                                "request_hash": request_hash,
-                                "food_id": sel_id,
-                                "baseline_grams": pred_g,
-                                "target_grams": sel_g,
-                                "ratio": round(sel_g / pred_g, 3),
-                            }
-                        )
+                if sel_id and sel_g and pred_g and sel_g != pred_g and sel_id in valid_food_ids:
+                    stats["portion_adjustments"] += 1
+                    ft1_rows.append(
+                        {
+                            "request_hash": request_hash,
+                            "food_id": sel_id,
+                            "baseline_grams": pred_g,
+                            "target_grams": sel_g,
+                            "ratio": round(sel_g / pred_g, 3),
+                        }
+                    )
 
                 # 3. Discovered Aliases / Out-of-Distribution Vocabulary
                 if query and (pred_id == "ABSTAIN" or sel_id == "USER_CUSTOM"):
@@ -125,18 +122,19 @@ def curate_events(events_path: Path, out_dir: Path, locale: str = "tr") -> dict:
 
     # Write FT-2 Dataset
     with open(ft2_path, "w", encoding="utf-8") as f:
-        for row in ft2_rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in ft2_rows)
 
     # Write FT-1 Dataset
     with open(ft1_path, "w", encoding="utf-8") as f:
-        for row in ft1_rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in ft1_rows)
 
     # Write Discovered Aliases
     with open(aliases_path, "w", encoding="utf-8") as f:
-        for q, count in sorted(discovered_aliases.items(), key=lambda x: x[1], reverse=True):
-            f.write(json.dumps({"query": q, "frequency": count}, ensure_ascii=False) + "\n")
+        aliases = sorted(discovered_aliases.items(), key=lambda x: x[1], reverse=True)
+        f.writelines(
+            json.dumps({"query": query, "frequency": count}, ensure_ascii=False) + "\n"
+            for query, count in aliases
+        )
 
     return stats
 
