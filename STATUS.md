@@ -17,7 +17,7 @@
 | Real vision provider | ✅ working | 80 recorded non-synthetic provider response(s) |
 | Accuracy evaluation (metrics, test set, taxonomy) | ✅ working | harness runs offline; 80 golden samples, 0/80 fixtures still synthetic |
 | Fine-tuning | 🚧 partial | plan in `docs/finetuning-plan.md`; nothing trained (the brief marks implementation optional) |
-| Technical write-up | ✅ working | README + 13 documents; 0 section group(s) still TODO |
+| Technical write-up | ✅ working | README + 12 documents; 0 section group(s) still TODO |
 | Loom walkthrough | ⬜ not started | recorded after code freeze |
 | Email summary | ⬜ not started | sent with the submission |
 
