@@ -1,11 +1,14 @@
 # mealog — Full Stack Developer take-home for EatBetter
 
-mealog is a mobile-first meal logging case study: the model sees food, but never produces a calorie number.
+mealog is a mobile-first meal logging case study. Its grounded pipeline maps
+observations to a closed catalogue and computes nutrition deterministically. A
+separate, explicitly unverified LLM-estimate lane is available only after a
+catalogue miss and requires user acceptance.
 
 > **Core Focus (AI Accuracy):** Converting noisy, ambiguous, multi-component dining photos and informal text into **verified canonical foods + explicit portion uncertainty intervals + catalogue-backed nutrition** ([Deep Dive in System Architecture](docs/architecture.md#3-robustness-to-messy-real-world-inputs--ambiguity-core-ai-focus)).
 
 * **System Architecture & Design:** [docs/architecture.md](docs/architecture.md)
-* **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D18)
+* **Architecture Decisions:** [docs/decisions.md](docs/decisions.md) (D1–D20)
 * **EatBetter Comparison & Benchmark:** [docs/comparison.md](docs/comparison.md)
 * **Correction Telemetry & Proposed HITL Loop:** [docs/data_flywheel_and_hitl_architecture.md](docs/data_flywheel_and_hitl_architecture.md)
 * **Walkthrough Script:** [docs/walkthrough.md](docs/walkthrough.md)
@@ -94,13 +97,13 @@ delivered HTTP API.
 
 | Brief requirement | Status | Evidence or reason |
 | --- | --- | --- |
-| Mobile app, not a web app | Delivered; runtime evidence is local | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection and server-side EXIF stripping. Current demo and live-provider paths have iOS Simulator evidence; repository CI proves typecheck and bundle export, not device execution. |
-| Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 300 tests passing across 25 files. |
-| Technical write-up | Delivered | Comprehensive architecture documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D18), and [docs/comparison.md](docs/comparison.md). |
+| Mobile app, not a web app | Delivered; runtime evidence is local | React Native Expo client with Capture, Review, Day, and Abstention screens; interactive candidate selection and server-side EXIF stripping. Session logs record demo and live-provider iOS Simulator runs, but their temporary screenshots are not portable repository evidence. Local checks prove typecheck and bundle export, not device execution. |
+| Node.js / TypeScript backend | Delivered | NestJS edge, vision adapters (Gemini + Fixture), runner, retrieval seam, portion gate, rate limiter, privacy filter, and 313 tests passing across 26 files. |
+| Technical write-up | Delivered | Comprehensive architecture documentation across README.md, [docs/decisions.md](docs/decisions.md) (D1–D20), and [docs/comparison.md](docs/comparison.md). |
 | Walkthrough video | Pending recording | Timed 5–10 minute script is ready in [docs/walkthrough.md](docs/walkthrough.md); no Loom URL is claimed until the recording exists. |
 | Email summary | Draft ready | [Submission email draft](docs/submission_email_draft.md) is prepared but must receive the recorded Loom URL before sending. |
 | Explicit EatBetter comparison | Delivered | Evidence-backed comparison and benchmark report documented in [docs/comparison.md](docs/comparison.md). |
-| AI / LLM path | Delivered | Hybrid rules + retrieval + LLM approach with closed-set resolution, confidence routing, and deterministic nutrition guarantee. |
+| AI / LLM path | Delivered | Hybrid rules + retrieval + LLM approach with closed-set grounded nutrition, confidence routing, and a separately labelled unverified estimate fallback for catalogue misses. |
 
 
 ## Architecture
@@ -116,14 +119,15 @@ flowchart LR
         C --> D["🔎 Retrieval\n(TF-IDF N-grams)"]
         D --> E["🎯 Resolution\n(Closed-Set ID / ABSTAIN)"]
         E --> F["⚖️ Portion\n(p10–p90 Band)"]
-        F --> G["🧪 Nutrition\n(TÜRKOMP / USDA)"]
+        F --> G["🧪 Grounded Nutrition\n(TÜRKOMP / USDA)"]
     end
 
     subgraph TrustGate[" 🛡️ Trust & Routing Gate "]
-        G --> H{"🚦 Confidence Gate\n(Score ≥ 0.85?)"}
+        G --> H{"🚦 Confidence Gate\n(Effective score ≥ 0.75?)"}
         H -->|"High Confidence"| I["✅ Commit (Day)"]
         H -->|"Ambiguous / Occluded"| J["⚠️ Review / Clarify"]
         H -->|"Out of Catalogue"| K["🛑 Safe ABSTAIN"]
+        K -.->|"Explicit user acceptance"| L["⚠️ Optional LLM Estimate\nUnverified, range + assumptions"]
     end
 
     style Ingress fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff
@@ -133,22 +137,29 @@ flowchart LR
     style I fill:#064e3b,stroke:#22c55e,stroke-width:1px,color:#bbf7d0
     style J fill:#78350f,stroke:#f59e0b,stroke-width:1px,color:#fef3c7
     style K fill:#7f1d1d,stroke:#ef4444,stroke-width:1px,color:#fecaca
+    style L fill:#78350f,stroke:#f59e0b,stroke-width:1px,color:#fef3c7
 ```
 
 ### Pipeline Stages & Guarantees
 
 | Stage | Responsibility | Boundary & Invariant Guarantee |
 |---|---|---|
-| **1. Perception** | Visual extraction & multi-item disaggregation | `VisionPort` returns candidate text observations and bounding signals; **never** nutrient numbers. |
+| **1. Perception** | Visual extraction & multi-item disaggregation | Grounded `VisionPort` returns candidate text observations and count evidence; it does not return nutrient numbers. |
 | **2. Normalize** | Text, diacritic, and unit cleaning | Normalizes Turkish/Japanese characters and converts colloquial measures (`"2 dilim"` $\rightarrow$ `slice`). |
 | **3. Retrieval** | Candidate proposal via in-house TF-IDF | Word 1–2 & Char 3–5 n-grams scored as IDF-weighted asymmetric coverage over canonical documents. |
 | **4. Resolution** | Closed-set ID mapping or safe abstention | Returns only a verified catalogue `food_id` or `ABSTAIN` (eliminates free-text LLM hallucination). |
 | **5. Portion** | Serving mass estimation with uncertainty | Computes `(grams, p10, p90)` interval based on physical food density and visual item count. |
-| **6. Nutrition** | Pure deterministic nutrient arithmetic | **D1 Invariant:** The *only* stage allowed to compute calories/macros from verified laboratory rows. |
-| **7. Decision Gate** | Multi-factor confidence routing | Routes entries to `commit` ($\ge 0.85$), `review` (uncertain portion/food), or `ask` (safe abstention). |
+| **6. Nutrition** | Pure deterministic nutrient arithmetic | **D1 server invariant:** The only grounded server stage allowed to compute calories/macros from verified laboratory rows. |
+| **7. Decision Gate** | Multi-factor confidence routing | Routes entries to `auto_accept` ($\ge 0.75$ effective confidence), `review` (uncertain portion/food), or `ask` (safe deferral; `ABSTAIN` is one possible identity outcome). |
+
+The grounded path above uses an effective auto-accept threshold of `0.75` and
+keeps catalogue nutrition authoritative. After `ABSTAIN`, D19/D20 permit a
+separate `POST /v1/meals/estimate` request for up to 20 unresolved items. That
+response is labelled `llm_unverified_estimate`, carries ranges and assumptions,
+is never auto-accepted, and is excluded from grounded evaluation.
 
 > [!NOTE]
-> **Runtime Separation:** The delivered production API is **Node.js / TypeScript (NestJS Edge)** with framework-free pure core pipeline logic. Python remains dedicated **offline research, fixture generation, and regression testing tooling** (`eval/harness.py`).
+> **Runtime Separation:** The delivered API implementation is **Node.js / TypeScript (NestJS Edge)** with framework-free pure core pipeline logic. Python remains dedicated **offline research, fixture generation, and regression testing tooling** (`eval/harness.py`). No production deployment is claimed.
 >
 > 📖 *For comprehensive sequence diagrams, privacy sanitization flows, and the bounded correction telemetry design, see the [System Architecture Specification](docs/architecture.md).*
 
@@ -156,7 +167,7 @@ flowchart LR
 
 | Decision | Rejected alternative | Constraint | Cost |
 | --- | --- | --- | --- |
-| [D1](docs/decisions.md#d1) — model never produces nutrition | Ask the model for calories directly | Only deterministic nutrition code may produce nutrient numbers | Catalogue misses become review or abstention cases |
+| [D1](docs/decisions.md#d1), superseded narrowly by [D19](docs/decisions.md#d19) / [D20](docs/decisions.md#d20) | Silently treat model calories as grounded truth | Grounded nutrition remains catalogue-backed; optional model estimates are unverified, bounded, explicit, and excluded from eval | Catalogue misses either lose coverage or require a visibly weaker estimate lane |
 | [D2](docs/decisions.md#d2) — locale data lives in packs | Add market-specific branches to pipeline code | Market variation must remain data, with pack licensing visible | Pack maintenance and legal review grow with markets |
 | [D3](docs/decisions.md#d3) — report worst-case cuisine and coverage | Report only an overall mean | Distribution shift must stay visible to reviewers | Small buckets remain noisy and harder to summarize |
 | [D9](docs/decisions.md#d9) — Expo React Native client with focused screens | Ship a web app or a different mobile stack | Reviewer path must be a real phone flow | Expo and native runtime constraints remain |
@@ -196,15 +207,20 @@ failures.
 | Failure | Evidence | Effect | Tracked |
 |---|---|---|---|
 | A photographed count is occluded or uncertain | `A2.jpg` shows two stacked simits. The service flags occlusion, returning `quantity: null`, 100 g standard portion with 65–145 g uncertainty band (214–478 kcal), and routes to Review with a count clarification question ('Kaç adet?'). | Prevents silent undercounting by gating Day save on user count confirmation. | [#218](https://github.com/zexy2/mealog-case-study/issues/218) |
-| Cooked dishes resolve to dry catalogue entries | `haşlanmış bulgur` resolves to `tr.bulgur_kuru` at 279.2 kcal, roughly +320%. Six of seven audited cooked inputs resolve to a dry or raw entry and inherit its nutrition. `çay` and `demlenmiş çay` correctly abstain, so the negative-alias mechanism itself works. | Dry-weight nutrition attributed to a cooked serving. The V3 gate routes these to review but does not correct the wrong `food_id`. | [#219](https://github.com/zexy2/mealog-case-study/issues/219) |
-| Legumes resolve to each other | `haşlanmış mercimek` to `tr.nohut_haslanmis`, `nohut yemeği` to `tr.kuru_fasulye`, `haşlanmış fasulye` to `tr.nohut_haslanmis`, `tarhana çorbası` to `tr.mercimek_corbasi`. | Wrong food, plausible calories. This is retrieval quality rather than aliasing, and negative aliases will not fix it. | Open, untracked |
-| The Turkish catalogue is thin for the default locale | `locale_packs/tr/foods.jsonl` holds 57 rows, including `tr.kofte_izgara`, but no entry for döner, poğaça, börek, pide, or kebap. | Missing catalogue items trigger safe `ABSTAIN` (70/80 golden samples) rather than hallucinating wrong nutrition. | Open, untracked |
+| Legumes and soups still expose wrong near-neighbours | A current deterministic probe sends `haşlanmış mercimek` and `haşlanmış fasulye` to the egg record, `nohut yemeği` to `tr.kuru_fasulye`, and `tarhana çorbası` to `tr.mercimek_corbasi`. Their low effective confidence routes them away from silent commit, but the proposed identity is still wrong. | Review/ask contains the damage, but the correction burden remains with the user. This is retrieval/catalogue quality rather than calorie arithmetic. | Open, untracked |
+| The Turkish catalogue is thin for the default locale | `locale_packs/tr/foods.jsonl` holds 57 rows, including `tr.kofte_izgara`, but no entry for döner, poğaça, börek, pide, or kebap. | Unsupported or uncertain samples contribute to the measured 70/80 `ask` outcomes rather than being silently committed. `ask` is broader than explicit `ABSTAIN`. | Open, untracked |
 | South Asian cuisine is unrepresented | 16 samples, 0% coverage, Item F1 0.00, FP rate 100%. | The golden set was deliberately not narrowed to fit the catalogue, so this bucket reports honestly instead of being excluded. | Open, untracked |
 
 The false-positive rate (86.0%) is measured over the identity set and counts rejected
 samples as well; 64.4% of false positives stem from unmapped recipe ingredients
 (e.g., olive oil `us.olive_oil`) in multi-dish references. 70 of 80 samples ended in
 `ask` and none of them were saved to Day.
+
+The earlier cooked/dry defect is no longer listed as active: #219/#226 added
+narrow negative aliases. Current probes for cooked pasta, bulgur, mantı,
+ezogelin, kadayıf, prepared Turkish coffee, and brewed tea return `ABSTAIN`
+instead of selecting dry/raw nutrition. This improves safety by reducing
+coverage; it does not add the missing cooked catalogue rows.
 
 ## Compare EatBetter
 
@@ -222,13 +238,18 @@ checks with the offline regression gate.
 
 The TypeScript service has separate build, lint, and test commands. Its focused
 tests protect port parity and keep framework code at the edge. The mobile job
-typechecks the Expo client and creates an Android bundle.
+typechecks the Expo client and creates an Android bundle. GitHub Actions is
+configured to run these gates, but the latest hosted jobs did not start because
+the repository account's billing/spending limit blocked all steps; local green
+checks are not presented as hosted-CI evidence.
 
 ## Security and privacy limits
 
 - `X-User-Id` is a client-device scoped header (persisted in AsyncStorage) for
-  isolating idempotency, rate limiting (30 req/min), and GDPR deletion in this
-  case study; production deployment requires cryptographically signed OAuth/JWT authentication.
+  isolating idempotency, rate limiting (30 req/min), and meal/estimate-cache
+  deletion in this case study. Persisted telemetry omits that identifier and
+  cannot currently be selected for per-user deletion. Production deployment
+  requires signed authentication and owned telemetry retention/deletion semantics.
 - Idempotency state is process-local in memory with LRU eviction (5,000 max entries).
 - Image uploads use an allow-list, magic byte verification, and a 10 MiB limit.
   The edge scrubs EXIF/GPS metadata (`sanitizeImageBuffer()`), redacts PII text,
@@ -238,6 +259,12 @@ typechecks the Expo client and creates an Android bundle.
 ## Known limitations
 
 - No deployment URL is published.
+- Hosted CI is currently blocked before step execution by the GitHub account's
+  billing/spending state. This must be cleared and rerun before submission.
+- The mobile Review preview duplicates a small Turkish nutrition map and
+  recalculates preview totals after local edits. That is presentation-layer
+  arithmetic, not the grounded server pipeline, but it weakens the single-source
+  boundary and should be replaced by server correction responses.
 - Live-provider accuracy is unmeasured; the scorecard replays recorded
   fixtures offline.
 - Current demo and live-provider flows have iOS Simulator evidence; iOS and
@@ -274,6 +301,6 @@ conflict with those constraints.
 
 ### Concrete Model Error and Human Override
 
-* **Model Error:** When shown `A2.jpg` (stacked simits), vision models return single counts or extract cooking prefixes from text (`"haşlanmış makarna"` $\rightarrow$ `"makarna"`), matching dry uncooked pasta (`tr.makarna_kuru`) and distorting calories by +320%.
-* **How it was caught:** Caught by the offline regression test suite (`eval/harness.py`).
-* **Human Override:** Enforced explicit `count: null` on occlusion, uncertainty intervals (`grams_p10`–`grams_p90`), and negative aliases forcing `ABSTAIN`/Review on raw/cooked ambiguities ([details in Known Failures](#known-failures-measured)).
+* **Model Error:** Earlier probes treated two stacked simits as one and stripped cooking prefixes from inputs such as `"haşlanmış makarna"`, allowing dry-food nutrition to look plausible.
+* **How it was caught:** Live count verification plus adversarial cooked-form probes and regression tests made both failures reproducible.
+* **Human Override:** Occluded count-one observations become `count: null` with an explicit question, while narrow negative aliases force known raw/cooked ambiguities to `ABSTAIN`. Neither correction is presented as broad visual accuracy.
