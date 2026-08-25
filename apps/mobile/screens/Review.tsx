@@ -3,12 +3,12 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { Candidate, CaptureMedium, ItemClarification, MealAction, MealLog } from "../src/types";
+import { Candidate, CaptureMedium, ItemClarification, MealAction, MealLog, UnverifiedNutritionEstimate } from "../src/types";
 import { formatLocalizedProvenance, formatLocalizedUnit, StringKey, t } from "../src/strings";
 import { computedValuesNeedServerRefresh, countAnswerPending, getEffectiveQuantity } from "../src/reviewState";
 import { nutritionPresentationForItem } from "../src/nutritionPresentation";
 import { sendTelemetryEvent, telemetryEventTypeForEdits } from "../src/telemetry";
-import { apiBaseUrl, getClientUserId, isDemoMode } from "../src/api";
+import { apiBaseUrl, estimateNutrition, getClientUserId, isDemoMode } from "../src/api";
 import { AuditRow } from "../components/AuditRow";
 import { Header } from "../components/Header";
 import { actionLabel, actionTone } from "../components/meal";
@@ -185,6 +185,22 @@ function getSmartActionBannerDetails(
     };
   }
 
+  const unverifiedEstimateItems = meal.items.filter((item) => (
+    item.portion_provenance === "llm_unverified_estimate"
+    && item.nutrition_estimate?.provenance === "llm_unverified_estimate"
+  ));
+
+  if (unverifiedEstimateItems.length > 0) {
+    const estimateNames = unverifiedEstimateItems.map((item) => item.query).join(", ");
+    return {
+      title: unverifiedEstimateItems.length === meal.items.length
+        ? "Doğrulanmamış AI Tahmini"
+        : "Doğrulanmamış Tahmin İçeren Öğün",
+      text: `${estimateNames} için değerler Gemini genel bilgisinden geldi. Katalog veya laboratuvar verisi değildir; aralıkları ve varsayımları inceleyin.`,
+      actionType: "review",
+    };
+  }
+
   const customItems = meal.items.filter((item, i) => {
     const sel = selectedCandidates[i] ?? item.food_id;
     return sel === "USER_CUSTOM";
@@ -194,16 +210,16 @@ function getSmartActionBannerDetails(
     const isEntireMealCustom = customItems.length === meal.items.length;
     if (isEntireMealCustom) {
       return {
-        title: "Yapay Zeka Tahmini Yüklendi",
-        text: "Özel öğün değerleri yapay zeka tarafından tahmin edildi. Tabağınızı inceleyip gününüze kaydedebilirsiniz.",
-        actionType: "auto_accept",
+        title: "Manuel Öğün Girişi",
+        text: "Bu öğünün besin değerleri kullanıcı tarafından girildi. Kaydetmeden önce değerleri inceleyin.",
+        actionType: "review",
       };
     } else {
       const customNames = customItems.map((c) => c.query).join(", ");
       return {
-        title: "Tüm Öğeler Doğrulandı",
-        text: `Katalog yemekleri resmi veriyle eşleşti; ${customNames} öğesi yapay zeka tahminiyle eklendi.`,
-        actionType: "auto_accept",
+        title: "Manuel Değer İçeren Öğün",
+        text: `Katalog yemekleri resmi veriyle eşleşti; ${customNames} öğesi kullanıcı tarafından girildi.`,
+        actionType: "review",
       };
     }
   }
@@ -237,6 +253,7 @@ export type ReviewScreenProps = {
   onChooseCandidate: (index: number, candidate: Candidate) => void;
   onRemoveItem?: (index: number) => void;
   onAddItem?: (foodName: string, calories?: number) => void;
+  onAcceptEstimate?: (index: number, estimate: UnverifiedNutritionEstimate) => void;
   onSave: () => void;
   isSaved?: boolean;
   saving?: boolean;
@@ -258,6 +275,7 @@ export function ReviewScreen({
   onChooseCandidate,
   onRemoveItem,
   onAddItem,
+  onAcceptEstimate,
   onSave,
   isSaved = false,
   saving = false,
@@ -314,6 +332,9 @@ export function ReviewScreen({
   const [newPlateItemQuery, setNewPlateItemQuery] = useState("");
   const [newPlateItemKcal, setNewPlateItemKcal] = useState("");
   const [newPlateItemNotFound, setNewPlateItemNotFound] = useState(false);
+  const [nutritionEstimates, setNutritionEstimates] = useState<Record<number, UnverifiedNutritionEstimate>>({});
+  const [estimateLoading, setEstimateLoading] = useState<Record<number, boolean>>({});
+  const [estimateErrors, setEstimateErrors] = useState<Record<number, string>>({});
 
   // Audit details state: strictly collapsed by default
   const [openAuditItems, setOpenAuditItems] = useState<Record<number, boolean>>({});
@@ -430,6 +451,22 @@ export function ReviewScreen({
     setCustomFoodQuery("");
     setCustomNotFound(false);
     Alert.alert("Özel Yemek Eklendi", `"${name}" (${kcal} kcal) manuel kullanıcı girişi olarak tabağa eklendi.`);
+  }
+
+  async function requestNutritionEstimate(index: number, item: MealLog["items"][number]) {
+    setEstimateLoading((current) => ({ ...current, [index]: true }));
+    setEstimateErrors((current) => ({ ...current, [index]: "" }));
+    try {
+      const estimate = await estimateNutrition(item.query || "Yemek", item.quantity ?? null);
+      setNutritionEstimates((current) => ({ ...current, [index]: estimate }));
+    } catch (caught) {
+      setEstimateErrors((current) => ({
+        ...current,
+        [index]: caught instanceof Error ? caught.message : "AI tahmini alınamadı.",
+      }));
+    } finally {
+      setEstimateLoading((current) => ({ ...current, [index]: false }));
+    }
   }
 
   // Calculate live total macros across all items (including newly resolved candidates)
@@ -655,6 +692,7 @@ export function ReviewScreen({
         {meal.items.map((item, index) => {
           const selected = selectedCandidates[index] ?? item.food_id;
           const isAbstain = selected === "ABSTAIN";
+          const isUnverifiedEstimate = item.portion_provenance === "llm_unverified_estimate";
 
           const hasQuantityEdit = Object.prototype.hasOwnProperty.call(quantityEdits, index);
           const hasPortionEdit = Object.prototype.hasOwnProperty.call(portionEdits, index);
@@ -770,9 +808,12 @@ export function ReviewScreen({
                     </View>
                   </View>
                   {!isAbstain ? (
-                    <Text style={styles.itemHeaderMacrosMini}>
-                      {previewProtein}g P · {previewCarb}g K · {previewFat}g Y
-                    </Text>
+                    <>
+                      <Text style={styles.itemHeaderMacrosMini}>
+                        {previewProtein}g P · {previewCarb}g K · {previewFat}g Y
+                      </Text>
+                      {isUnverifiedEstimate ? <Text style={styles.unverifiedInlineTag}>AI tahmini · doğrulanmamış</Text> : null}
+                    </>
                   ) : null}
                 </View>
               </Pressable>
@@ -803,6 +844,17 @@ export function ReviewScreen({
                   {/* Item Macro Grid */}
                   {!isAbstain ? (
                     <View style={styles.nutritionCard}>
+                      {isUnverifiedEstimate && item.nutrition_estimate ? (
+                        <View style={styles.acceptedEstimateNotice}>
+                          <Text style={styles.unverifiedEstimateWarning}>AI tahmini — doğrulanmış katalog veya laboratuvar verisi değildir.</Text>
+                          <Text style={styles.unverifiedEstimateKcal}>
+                            {item.nutrition_estimate.kcal.low}–{item.nutrition_estimate.kcal.high} kcal
+                          </Text>
+                          {item.nutrition_estimate.assumptions.map((assumption) => (
+                            <Text key={assumption} style={styles.unverifiedEstimateAssumption}>• {assumption}</Text>
+                          ))}
+                        </View>
+                      ) : null}
                       <View style={styles.nutritionGrid}>
                         <View style={[styles.nutritionMetric, styles.nutritionMetricEnergy]}>
                           <Text style={styles.nutritionMetricValue}>≈ {previewKcal} kcal</Text>
@@ -827,15 +879,17 @@ export function ReviewScreen({
                   {/* Quick Action Toggle Buttons (ONLY FOR MATCHED FOODS) */}
                   {!isAbstain ? (
                     <View style={styles.itemQuickActionRow}>
-                      <Pressable
-                        style={[styles.itemQuickActionBtn, shouldShowPortion && styles.itemQuickActionBtnActive]}
-                        onPress={() => setShowPortionEdit((prev) => ({ ...prev, [index]: !prev[index] }))}
-                      >
-                        <Ionicons name="scale-outline" size={13} color={shouldShowPortion ? colors.moss : colors.ink} />
-                        <Text style={[styles.itemQuickActionBtnText, shouldShowPortion && styles.itemQuickActionBtnTextActive]}>
-                          {shouldShowPortion ? "Porsiyonu Gizle" : "Porsiyonu Ayarla"}
-                        </Text>
-                      </Pressable>
+                      {!isUnverifiedEstimate ? (
+                        <Pressable
+                          style={[styles.itemQuickActionBtn, shouldShowPortion && styles.itemQuickActionBtnActive]}
+                          onPress={() => setShowPortionEdit((prev) => ({ ...prev, [index]: !prev[index] }))}
+                        >
+                          <Ionicons name="scale-outline" size={13} color={shouldShowPortion ? colors.moss : colors.ink} />
+                          <Text style={[styles.itemQuickActionBtnText, shouldShowPortion && styles.itemQuickActionBtnTextActive]}>
+                            {shouldShowPortion ? "Porsiyonu Gizle" : "Porsiyonu Ayarla"}
+                          </Text>
+                        </Pressable>
+                      ) : null}
 
                       {item.candidates.length > 1 ? (
                         <Pressable
@@ -1084,8 +1138,47 @@ export function ReviewScreen({
                             <Text style={styles.aiKatalogDisiText}>Katalogda Yok</Text>
                           </View>
                           <Text style={styles.customNotFoundText}>
-                            Kalori ve makrolar uydurulmadı. Katalogda başka bir yemek arayın veya bildiğiniz kaloriyi kendiniz girin.
+                            Katalog doğrulaması yok. İsterseniz Gemini'den geniş aralıklı, doğrulanmamış bir tahmin isteyebilirsiniz.
                           </Text>
+                          {nutritionEstimates[index] ? (
+                            <View style={styles.unverifiedEstimateBox}>
+                              <Text style={styles.unverifiedEstimateTitle}>{nutritionEstimates[index].dish_name}</Text>
+                              <Text style={styles.unverifiedEstimateKcal}>
+                                ≈ {nutritionEstimates[index].kcal.midpoint} kcal ({nutritionEstimates[index].kcal.low}–{nutritionEstimates[index].kcal.high})
+                              </Text>
+                              <Text style={styles.unverifiedEstimateMacros}>
+                                Protein {nutritionEstimates[index].protein_g.low}–{nutritionEstimates[index].protein_g.high} g · Karb {nutritionEstimates[index].carb_g.low}–{nutritionEstimates[index].carb_g.high} g · Yağ {nutritionEstimates[index].fat_g.low}–{nutritionEstimates[index].fat_g.high} g
+                              </Text>
+                              {nutritionEstimates[index].assumptions.map((assumption) => (
+                                <Text key={assumption} style={styles.unverifiedEstimateAssumption}>• {assumption}</Text>
+                              ))}
+                              <Text style={styles.unverifiedEstimateWarning}>
+                                AI tahmini — doğrulanmış katalog veya laboratuvar verisi değildir.
+                              </Text>
+                              <Pressable
+                                style={styles.unverifiedEstimateAccept}
+                                onPress={() => onAcceptEstimate?.(index, nutritionEstimates[index])}
+                                accessibilityRole="button"
+                                accessibilityLabel="Doğrulanmamış AI tahminini kullan"
+                              >
+                                <Text style={styles.unverifiedEstimateAcceptText}>Bu tahmini kullan</Text>
+                              </Pressable>
+                            </View>
+                          ) : (
+                            <Pressable
+                              style={styles.unverifiedEstimateRequest}
+                              disabled={Boolean(estimateLoading[index])}
+                              onPress={() => void requestNutritionEstimate(index, item)}
+                              accessibilityRole="button"
+                              accessibilityLabel="Gemini tahmini iste"
+                            >
+                              <Ionicons name="sparkles-outline" size={15} color={colors.white} />
+                              <Text style={styles.unverifiedEstimateRequestText}>
+                                {estimateLoading[index] ? "Gemini tahmin ediyor…" : "AI tahmini al"}
+                              </Text>
+                            </Pressable>
+                          )}
+                          {estimateErrors[index] ? <Text style={styles.estimateError}>{estimateErrors[index]}</Text> : null}
                         </View>
                       ) : null}
 
@@ -2028,6 +2121,50 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 10,
     fontWeight: "700",
+  },
+  unverifiedEstimateRequest: {
+    minHeight: 44,
+    marginTop: 12,
+    borderRadius: 12,
+    backgroundColor: colors.moss,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingHorizontal: 14,
+  },
+  unverifiedEstimateRequestText: { color: colors.white, fontSize: 13, fontWeight: "800" },
+  unverifiedEstimateBox: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E8B653",
+    paddingTop: 12,
+  },
+  unverifiedEstimateTitle: { color: colors.ink, fontSize: 15, fontWeight: "900" },
+  unverifiedEstimateKcal: { color: colors.terracotta, fontSize: 18, fontWeight: "900", marginTop: 4 },
+  unverifiedEstimateMacros: { color: colors.ink, fontSize: 12, lineHeight: 18, fontWeight: "700", marginTop: 6 },
+  unverifiedEstimateAssumption: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 3 },
+  unverifiedEstimateWarning: { color: "#8D641C", fontSize: 11, lineHeight: 16, fontWeight: "800", marginTop: 9 },
+  unverifiedEstimateAccept: {
+    minHeight: 44,
+    marginTop: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.terracotta,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  unverifiedEstimateAcceptText: { color: colors.terracotta, fontSize: 13, fontWeight: "900" },
+  estimateError: { color: colors.terracotta, fontSize: 11, lineHeight: 16, fontWeight: "700", marginTop: 8 },
+  unverifiedInlineTag: { color: "#8D641C", fontSize: 10, fontWeight: "900", marginTop: 3, textAlign: "right" },
+  acceptedEstimateNotice: {
+    borderRadius: 12,
+    backgroundColor: "#FBF1D8",
+    borderWidth: 1,
+    borderColor: "#E8B653",
+    padding: 12,
+    marginBottom: 12,
   },
   // Alternates Block
   alternatesBlock: {

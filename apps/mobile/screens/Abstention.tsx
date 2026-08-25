@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { t } from "../src/strings";
-import { Candidate, MealLog } from "../src/types";
+import { estimateNutrition } from "../src/api";
+import { Candidate, MealLog, UnverifiedNutritionEstimate } from "../src/types";
 import { Header } from "../components/Header";
 import { colors } from "../components/theme";
 
@@ -16,6 +17,7 @@ export type AbstentionScreenProps = {
   onRetake: () => void;
   onSaveUncaloriedNote?: (meal: MealLog, dishName: string) => void;
   onSaveManualCalories?: (meal: MealLog, dishName: string, calories: number) => void;
+  onAcceptEstimate?: (estimate: UnverifiedNutritionEstimate) => void;
   onSuggestDish?: (dishName: string) => void;
   scrollY?: number;
   testFold?: "top" | "actions";
@@ -30,6 +32,7 @@ export function AbstentionScreen({
   onRetake,
   onSaveUncaloriedNote,
   onSaveManualCalories,
+  onAcceptEstimate,
   onSuggestDish,
   scrollY = 0,
   testFold,
@@ -46,6 +49,9 @@ export function AbstentionScreen({
   const [overrideFoodText, setOverrideFoodText] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualCalorieText, setManualCalorieText] = useState("");
+  const [nutritionEstimate, setNutritionEstimate] = useState<UnverifiedNutritionEstimate | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateError, setEstimateError] = useState("");
 
   function handleSuggest() {
     setSuggested(true);
@@ -76,6 +82,20 @@ export function AbstentionScreen({
       }
     } else {
       Alert.alert(t("invalidCaloriesTitle"), t("invalidCaloriesCopy"));
+    }
+  }
+
+  async function handleRequestEstimate() {
+    const observedName = meal.items[0]?.query?.trim();
+    if (!observedName) return;
+    setEstimateLoading(true);
+    setEstimateError("");
+    try {
+      setNutritionEstimate(await estimateNutrition(observedName, meal.items[0]?.quantity ?? null));
+    } catch (caught) {
+      setEstimateError(caught instanceof Error ? caught.message : "AI tahmini alınamadı.");
+    } finally {
+      setEstimateLoading(false);
     }
   }
 
@@ -123,6 +143,51 @@ export function AbstentionScreen({
             <Text style={styles.guaranteeHeader}>Denetlenmiş Besin Güvencesi (D1)</Text>
           </View>
           <Text style={styles.guaranteeCopy}>{t("abstainHonestGuarantee")}</Text>
+        </View>
+      ) : null}
+
+      {!isEmptyPlate ? (
+        <View style={styles.estimateCard}>
+          <Text style={styles.estimateEyebrow}>DOĞRULANMAMIŞ ALTERNATİF</Text>
+          <Text style={styles.estimateTitle}>AI tahmini almak ister misiniz?</Text>
+          <Text style={styles.estimateCopy}>
+            Gemini genel bilgisini kullanır. Sonuç katalog veya laboratuvar verisi değildir ve kaydetmeden önce sizin onayınızı ister.
+          </Text>
+          {nutritionEstimate ? (
+            <View style={styles.estimateResult}>
+              <Text style={styles.estimateDish}>{nutritionEstimate.dish_name}</Text>
+              <Text style={styles.estimateKcal}>
+                ≈ {nutritionEstimate.kcal.midpoint} kcal ({nutritionEstimate.kcal.low}–{nutritionEstimate.kcal.high})
+              </Text>
+              <Text style={styles.estimateMacros}>
+                Protein {nutritionEstimate.protein_g.low}–{nutritionEstimate.protein_g.high} g · Karb {nutritionEstimate.carb_g.low}–{nutritionEstimate.carb_g.high} g · Yağ {nutritionEstimate.fat_g.low}–{nutritionEstimate.fat_g.high} g
+              </Text>
+              {nutritionEstimate.assumptions.map((assumption) => (
+                <Text key={assumption} style={styles.estimateAssumption}>• {assumption}</Text>
+              ))}
+              <Text style={styles.estimateWarning}>Bu değerler doğrulanmamış AI tahminidir.</Text>
+              <Pressable
+                style={styles.estimateAcceptButton}
+                onPress={() => onAcceptEstimate?.(nutritionEstimate)}
+                accessibilityRole="button"
+                accessibilityLabel="Doğrulanmamış AI tahminini kullan"
+              >
+                <Text style={styles.estimateAcceptButtonText}>Bu tahmini kullan</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              style={styles.estimateButton}
+              disabled={estimateLoading}
+              onPress={() => void handleRequestEstimate()}
+              accessibilityRole="button"
+              accessibilityLabel="Gemini tahmini iste"
+            >
+              <Ionicons name="sparkles-outline" size={17} color={colors.white} />
+              <Text style={styles.estimateButtonText}>{estimateLoading ? "Gemini tahmin ediyor…" : "AI tahmini al"}</Text>
+            </Pressable>
+          )}
+          {estimateError ? <Text style={styles.estimateError}>{estimateError}</Text> : null}
         </View>
       ) : null}
 
@@ -414,6 +479,45 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontWeight: "600",
   },
+  estimateCard: {
+    backgroundColor: "#FBF1D8",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#E8B653",
+  },
+  estimateEyebrow: { color: "#8D641C", fontSize: 10, fontWeight: "900", letterSpacing: 1.2 },
+  estimateTitle: { color: colors.ink, fontSize: 17, fontWeight: "900", marginTop: 7 },
+  estimateCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
+  estimateButton: {
+    minHeight: 48,
+    marginTop: 14,
+    borderRadius: 14,
+    backgroundColor: colors.moss,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  estimateButtonText: { color: colors.white, fontSize: 14, fontWeight: "900" },
+  estimateResult: { marginTop: 14, borderTopWidth: 1, borderTopColor: "#E8B653", paddingTop: 12 },
+  estimateDish: { color: colors.ink, fontSize: 16, fontWeight: "900" },
+  estimateKcal: { color: colors.terracotta, fontSize: 20, fontWeight: "900", marginTop: 4 },
+  estimateMacros: { color: colors.ink, fontSize: 12, lineHeight: 18, fontWeight: "700", marginTop: 6 },
+  estimateAssumption: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 3 },
+  estimateWarning: { color: "#8D641C", fontSize: 11, lineHeight: 16, fontWeight: "900", marginTop: 9 },
+  estimateAcceptButton: {
+    minHeight: 46,
+    marginTop: 10,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    borderColor: colors.terracotta,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  estimateAcceptButtonText: { color: colors.terracotta, fontSize: 13, fontWeight: "900" },
+  estimateError: { color: colors.terracotta, fontSize: 11, lineHeight: 16, fontWeight: "700", marginTop: 8 },
   actionsContainer: {
     gap: 12,
   },

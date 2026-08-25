@@ -18,6 +18,11 @@ import {
   ALLOWED_IMAGE_MIME_TYPES,
   isSupportedImageBytes,
 } from '../adapters/vision.gemini';
+import {
+  NUTRITION_ESTIMATE_PORT,
+  type NutritionEstimatePort,
+  type UnverifiedNutritionEstimate,
+} from '../adapters/nutrition-estimate.gemini';
 import { VisionInput } from '../pipeline/ports';
 import { sanitizeImageBuffer, sanitizePromptInput } from '../pipeline/privacy';
 import type { MealLog } from '../domain/models';
@@ -185,7 +190,40 @@ export class MealsController {
   constructor(
     @Inject(MealsService) private readonly meals: MealsService,
     @Inject(Settings) private readonly runtimeSettings: Settings = settings,
+    @Inject(NUTRITION_ESTIMATE_PORT) private readonly nutritionEstimator: NutritionEstimatePort,
   ) {}
+
+  @Post('meals/estimate')
+  @HttpCode(HttpStatus.OK)
+  async estimateNutrition(
+    @Body() body: unknown,
+    @Headers('x-user-id') userId: string | undefined,
+  ): Promise<UnverifiedNutritionEstimate> {
+    if (!userId || !userId.trim()) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'X-User-Id header is required');
+    }
+    if (!isRecord(body) || typeof body.dish_name !== 'string') {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'dish_name is required');
+    }
+    const dishName = sanitizePromptInput(body.dish_name).cleanText.trim();
+    if (!dishName || dishName.length > 160) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'invalid dish_name');
+    }
+    const quantity = body.quantity === undefined || body.quantity === null
+      ? null
+      : body.quantity;
+    if (
+      quantity !== null
+      && (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity < 1 || quantity > 20)
+    ) {
+      invalid(HttpStatus.UNPROCESSABLE_ENTITY, 'quantity must be an integer from 1 to 20 or null');
+    }
+    const rate = defaultRateLimiter.check(`${userId.trim()}:nutrition-estimate`);
+    if (!rate.allowed) {
+      invalid(HttpStatus.TOO_MANY_REQUESTS, 'nutrition estimate rate limit exceeded');
+    }
+    return this.nutritionEstimator.estimate(dishName, quantity);
+  }
 
   @Post('telemetry/events')
   @HttpCode(HttpStatus.ACCEPTED)

@@ -416,3 +416,32 @@ stored, an individual anonymized event cannot be selected by the current GDPR
 delete endpoint. Production telemetry therefore needs authenticated
 pseudonymous ownership, retention limits, deletion semantics, durable storage,
 and explicit human curation before it can support learning claims.
+
+---
+
+## D19 — Unverified LLM nutrition is a separate product lane, never grounded truth
+
+**Decision.** Supersede D1 and D15 only for an explicit, user-requested fallback
+after closed-set resolution returns `ABSTAIN`. A separate server endpoint may ask
+the configured Gemini model for broad calorie and macro ranges plus stated
+assumptions. The response is always labelled `llm_unverified_estimate`, requires
+an explicit user action, never uses `auto_accept`, and never claims catalogue,
+TÜRKOMP, laboratory, or measured provenance. Grounded V1–V3 evaluation and the
+canonical nutrition pipeline remain unchanged.
+
+**Rejected.** Client-side hardcoded calorie defaults; placing a provider key in
+Expo; silently mixing an LLM midpoint into a catalogue result; presenting a
+single precise number without its range and assumptions; treating the fallback
+as evidence that grounded meal-logging accuracy improved.
+
+**Constraint.** The UI must distinguish verified catalogue nutrition from an
+unverified model estimate at every review and saved-meal surface. Provider
+failure returns no numeric fallback. Server validation bounds every returned
+range, and catalogue misses remain unresolved until the user explicitly accepts
+the estimate or chooses another honest logging path.
+
+**Cost.** The zero-model-nutrients claim no longer applies to the whole product;
+it applies only to the grounded pipeline. Accepted estimates can still be wrong,
+especially when cooking fat, recipe, and portion are visually ambiguous. They
+consume provider quota and are excluded from grounded eval metrics, so their
+accuracy requires a separate labelled dataset before any quality claim.

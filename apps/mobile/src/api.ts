@@ -4,7 +4,7 @@ import { buildDemoMeal } from "./demoData";
 import { demoScenarioFor } from "./demoScenarios";
 import { inferImageMimeAndName } from "./mime";
 import { t } from "./strings";
-import { MealCorrection, MealLog, PendingCapture } from "./types";
+import { MealCorrection, MealLog, PendingCapture, UnverifiedNutritionEstimate } from "./types";
 
 const defaultLocalApiUrl = Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
 export const apiBaseUrl = (process.env.EXPO_PUBLIC_API_URL || defaultLocalApiUrl).replace(/\/$/, "");
@@ -129,6 +129,33 @@ export async function correctMeal(meal: MealLog, corrections: MealCorrection[]):
     throw new MealApiError(response.status, message);
   }
   return response.json() as Promise<MealLog>;
+}
+
+export async function estimateNutrition(
+  dishName: string,
+  quantity: number | null,
+): Promise<UnverifiedNutritionEstimate> {
+  if (demoMode) {
+    throw new Error("AI tahmini yalnızca canlı sağlayıcı modunda kullanılabilir.");
+  }
+  const userId = await getClientUserId();
+  const response = await fetch(`${apiBaseUrl}/v1/meals/estimate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": userId,
+    },
+    body: JSON.stringify({ dish_name: dishName, quantity }),
+  });
+  if (!response.ok) {
+    const message = response.status === 503
+      ? "AI tahmini şu anda alınamadı. Daha sonra yeniden deneyin."
+      : response.status === 429
+      ? t("rateLimitExceeded")
+      : `AI tahmini alınamadı (${response.status}).`;
+    throw new MealApiError(response.status, message);
+  }
+  return response.json() as Promise<UnverifiedNutritionEstimate>;
 }
 
 async function submitText(capture: PendingCapture): Promise<Response> {

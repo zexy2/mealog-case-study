@@ -25,6 +25,23 @@ export type Nutrients = {
   fat_g: number;
 };
 
+export type NutritionRange = {
+  low: number;
+  midpoint: number;
+  high: number;
+};
+
+export type UnverifiedNutritionEstimate = {
+  dish_name: string;
+  kcal: NutritionRange;
+  protein_g: NutritionRange;
+  carb_g: NutritionRange;
+  fat_g: NutritionRange;
+  assumptions: string[];
+  provenance: "llm_unverified_estimate";
+  model_id: string;
+};
+
 export type ResolvedItem = {
   query: string;
   food_id: string;
@@ -41,6 +58,7 @@ export type ResolvedItem = {
   source_database?: string;
   portion_source?: string;
   portion_provenance?: string;
+  nutrition_estimate?: UnverifiedNutritionEstimate;
   clarification?: ItemClarification | null;
 };
 

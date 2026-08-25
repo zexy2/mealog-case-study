@@ -19,7 +19,7 @@ import { buildMealCorrections, removeSavedMeal } from "./src/corrections";
 import { buildDemoMeal, initialDayMeals } from "./src/demoData";
 import { demoInput, demoScenarioFor } from "./src/demoScenarios";
 import { t } from "./src/strings";
-import { Candidate, DemoScenario, MealLog, PendingCapture } from "./src/types";
+import { Candidate, DemoScenario, MealLog, PendingCapture, UnverifiedNutritionEstimate } from "./src/types";
 
 const PENDING_KEY = "@mealog/pending-capture";
 const DAY_MEALS_KEY = "@mealog/day-meals";
@@ -409,6 +409,49 @@ function AppContent() {
     setBanner(`"${matchedName}" tabağa başarıyla eklendi.`);
   }
 
+  function acceptUnverifiedEstimate(itemIndex: number, estimate: UnverifiedNutritionEstimate) {
+    if (!meal || !meal.items[itemIndex]) return;
+    const candidate: Candidate = {
+      food_id: "USER_CUSTOM",
+      name: estimate.dish_name,
+      score: 0,
+    };
+    const items = meal.items.map((item, index) => index === itemIndex ? {
+      ...item,
+      query: estimate.dish_name,
+      food_id: "USER_CUSTOM",
+      candidates: [...item.candidates, candidate],
+      grams: 0,
+      grams_p10: 0,
+      grams_p90: 0,
+      nutrients: {
+        kcal: estimate.kcal.midpoint,
+        protein_g: estimate.protein_g.midpoint,
+        carb_g: estimate.carb_g.midpoint,
+        fat_g: estimate.fat_g.midpoint,
+      },
+      source_database: "Gemini — doğrulanmamış tahmin",
+      portion_source: "llm_unverified_estimate",
+      portion_provenance: "llm_unverified_estimate",
+      nutrition_estimate: estimate,
+      clarification: null,
+    } : item);
+    const totals = items.reduce((sum, item) => ({
+      kcal: sum.kcal + item.nutrients.kcal,
+      protein_g: sum.protein_g + item.nutrients.protein_g,
+      carb_g: sum.carb_g + item.nutrients.carb_g,
+      fat_g: sum.fat_g + item.nutrients.fat_g,
+    }), { kcal: 0, protein_g: 0, carb_g: 0, fat_g: 0 });
+    setMeal({ ...meal, action: "review", items, totals });
+    setSelectedCandidates((current) => {
+      const next = { ...current };
+      delete next[itemIndex];
+      return next;
+    });
+    setBanner("Doğrulanmamış AI tahmini incelemeye eklendi.");
+    setScreen("review");
+  }
+
   function saveUncaloriedNote(abstainMeal: MealLog, dishName: string) {
     const noteMeal: MealLog = {
       ...abstainMeal,
@@ -682,6 +725,7 @@ function AppContent() {
           onRetake={leaveAbstention}
           onSaveUncaloriedNote={saveUncaloriedNote}
           onSaveManualCalories={saveManualCalories}
+          onAcceptEstimate={(estimate) => acceptUnverifiedEstimate(0, estimate)}
           onSuggestDish={suggestDishToQueue}
         />
       ) : null}
@@ -702,6 +746,7 @@ function AppContent() {
           onChooseCandidate={chooseCandidate}
           onRemoveItem={handleRemoveItem}
           onAddItem={handleAddItemToPlate}
+          onAcceptEstimate={acceptUnverifiedEstimate}
           onSave={saveReview}
           isSaved={reviewingSavedMealKey !== null}
           saving={saving}

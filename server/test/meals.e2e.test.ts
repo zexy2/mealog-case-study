@@ -10,6 +10,7 @@ import { Settings } from '../src/config';
 import { makePerceivedItem } from '../src/domain/models';
 import { configureBodyParsers } from '../src/main';
 import { VisionProviderError } from '../src/adapters/vision.gemini';
+import { NUTRITION_ESTIMATE_PORT } from '../src/adapters/nutrition-estimate.gemini';
 import { MealsService, VISION_PORT } from '../src/app/meals.service';
 import { MealsController } from '../src/app/meals.controller';
 import { defaultRateLimiter } from '../src/app/rate-limiter';
@@ -48,6 +49,61 @@ describe('POST /v1/meals', () => {
       config: 'V3',
       degraded: false,
     });
+  });
+
+  it('returns an explicitly unverified nutrition range from the injected estimate port', async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(NUTRITION_ESTIMATE_PORT)
+      .useValue({
+        estimate: (dishName: string, quantity: number | null) => ({
+          dish_name: dishName,
+          kcal: { low: 400, midpoint: 500, high: 600 },
+          protein_g: { low: 15, midpoint: 20, high: 25 },
+          carb_g: { low: 40, midpoint: 50, high: 60 },
+          fat_g: { low: 12, midpoint: 18, high: 24 },
+          assumptions: [`${quantity ?? 1} porsiyon varsayıldı.`],
+          provenance: 'llm_unverified_estimate',
+          model_id: 'stub-model',
+        }),
+      })
+      .compile();
+    const estimateApp = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
+    configureBodyParsers(estimateApp);
+    await estimateApp.init();
+
+    const response = await request(estimateApp.getHttpServer())
+      .post('/v1/meals/estimate')
+      .set('X-User-Id', 'estimate-user')
+      .send({ dish_name: 'pide', quantity: 1 });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      dish_name: 'pide',
+      kcal: { low: 400, midpoint: 500, high: 600 },
+      provenance: 'llm_unverified_estimate',
+      model_id: 'stub-model',
+    });
+    await estimateApp.close();
+  });
+
+  it('validates estimate input and keeps fixture mode unavailable', async () => {
+    const missingUser = await request(app.getHttpServer())
+      .post('/v1/meals/estimate')
+      .send({ dish_name: 'pide', quantity: 1 });
+    expect(missingUser.status).toBe(422);
+
+    const invalidQuantity = await request(app.getHttpServer())
+      .post('/v1/meals/estimate')
+      .set('X-User-Id', 'estimate-validation-user')
+      .send({ dish_name: 'pide', quantity: 21 });
+    expect(invalidQuantity.status).toBe(422);
+
+    const unavailable = await request(app.getHttpServer())
+      .post('/v1/meals/estimate')
+      .set('X-User-Id', 'estimate-fixture-user')
+      .send({ dish_name: 'pide', quantity: 1 });
+    expect(unavailable.status).toBe(503);
+    expect(unavailable.body).toMatchObject({ category: 'provider_unavailable' });
   });
 
   it('serializes provider degradation and keeps a high-confidence fallback in review', async () => {
