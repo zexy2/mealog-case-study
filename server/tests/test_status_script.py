@@ -13,14 +13,11 @@ sys.modules[SPEC.name] = status
 SPEC.loader.exec_module(status)
 
 
-def test_external_artifacts_remain_partial_when_references_exist(tmp_path, monkeypatch):
+def test_external_artifacts_are_never_self_certified(tmp_path, monkeypatch):
     monkeypatch.setattr(status, "ROOT", tmp_path)
     (tmp_path / "README.md").write_text(
         "https://www.loom.com/share/0123456789abcdef", encoding="utf-8"
     )
-    docs = tmp_path / "docs"
-    docs.mkdir()
-    (docs / "submission_email_draft.md").write_text("Draft", encoding="utf-8")
 
     loom = status.probe_loom()
     email = status.probe_email()
@@ -28,14 +25,14 @@ def test_external_artifacts_remain_partial_when_references_exist(tmp_path, monke
     assert loom.state == status.PARTIAL
     assert email.state == status.PARTIAL
     assert "not repository-verifiable" in loom.evidence
-    assert "not repository-verifiable" in email.evidence
+    assert "outside the public repository" in email.evidence
 
 
-def test_missing_external_artifacts_are_not_started(tmp_path, monkeypatch):
+def test_missing_loom_is_not_started_but_email_stays_external(tmp_path, monkeypatch):
     monkeypatch.setattr(status, "ROOT", tmp_path)
 
     assert status.probe_loom().state == status.TODO
-    assert status.probe_email().state == status.TODO
+    assert status.probe_email().state == status.PARTIAL
 
 
 def test_render_does_not_claim_external_submission_is_complete():

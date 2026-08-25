@@ -149,16 +149,13 @@ def probe_loom() -> Probe:
 
 
 def probe_email() -> Probe:
-    """A draft is repository evidence; delivery is not."""
-    draft = ROOT / "docs/submission_email_draft.md"
-    if draft.exists() and draft.read_text(encoding="utf-8").strip():
-        return Probe(
-            "Email summary",
-            PARTIAL,
-            "submission draft present; sending and receipt are external and not "
-            "repository-verifiable",
-        )
-    return Probe("Email summary", TODO, "no submission email draft in the tree")
+    """Email composition, delivery, and receipt are outside repository state."""
+    return Probe(
+        "Email summary",
+        PARTIAL,
+        "kept outside the public repository; composition, sending, and receipt "
+        "require operator confirmation",
+    )
 
 
 def counts() -> dict:
