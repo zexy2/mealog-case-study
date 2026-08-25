@@ -39,8 +39,8 @@ def probe_mobile() -> Probe:
         return Probe("Mobile app experience (not a web app)", TODO,
                      "no app project in the tree")
     return Probe("Mobile app experience (not a web app)", PARTIAL,
-                 "Expo app present; CI typechecks and bundles it; running on a "
-                 "device is shown in the walkthrough, not provable from the repository")
+                 "Expo app present; CI typechecks and bundles it; current device "
+                 "execution must be confirmed outside the repository")
 
 
 def probe_vision() -> Probe:
@@ -104,8 +104,19 @@ def probe_golden() -> tuple[Probe, int, int, int]:
 
 
 def probe_finetune() -> Probe:
-    scripts = list(ROOT.glob("**/train_*.py")) + list(ROOT.glob("**/*finetune*.py"))
-    weights = list(ROOT.glob("**/*.safetensors"))
+    # Probe project-owned source/artifact locations only. A recursive walk from
+    # the repository root enters npm dependency trees, where platform-optional
+    # broken symlinks can make status generation depend on `npm ci` side effects.
+    scripts = (
+        list((ROOT / "server/src").glob("**/train_*.py"))
+        + list((ROOT / "server/src").glob("**/*finetune*.py"))
+        + list((ROOT / "scripts").glob("train_*.py"))
+        + list((ROOT / "scripts").glob("*finetune*.py"))
+    )
+    weights = (
+        list((ROOT / "models").glob("**/*.safetensors"))
+        + list((ROOT / "artifacts").glob("**/*.safetensors"))
+    )
     if scripts or weights:
         return Probe("Fine-tuning", PARTIAL,
                      f"{len(scripts)} script(s), {len(weights)} artifact(s)")
@@ -123,6 +134,33 @@ def probe_writeup() -> Probe:
                  f"README + {docs} documents; {pending} section group(s) still TODO")
 
 
+def probe_loom() -> Probe:
+    """Report only what the tree can prove about the external recording."""
+    readme_path = ROOT / "README.md"
+    readme = readme_path.read_text(encoding="utf-8") if readme_path.exists() else ""
+    if re.search(r"https://www\.loom\.com/share/[A-Za-z0-9]+", readme):
+        return Probe(
+            "Loom walkthrough",
+            PARTIAL,
+            "share URL recorded in README; playback and reviewer access are external "
+            "and not repository-verifiable",
+        )
+    return Probe("Loom walkthrough", TODO, "no Loom share URL recorded in README")
+
+
+def probe_email() -> Probe:
+    """A draft is repository evidence; delivery is not."""
+    draft = ROOT / "docs/submission_email_draft.md"
+    if draft.exists() and draft.read_text(encoding="utf-8").strip():
+        return Probe(
+            "Email summary",
+            PARTIAL,
+            "submission draft present; sending and receipt are external and not "
+            "repository-verifiable",
+        )
+    return Probe("Email summary", TODO, "no submission email draft in the tree")
+
+
 def counts() -> dict:
     packs = sorted(p.name for p in (ROOT / "locale_packs").iterdir()
                    if (p / "pack.yaml").exists())
@@ -136,19 +174,18 @@ def render() -> str:
     probes = [
         probe_mobile(), probe_photo_ingest(), probe_vision(), golden,
         probe_finetune(), probe_writeup(),
-        Probe("Loom walkthrough", TODO, "recorded after code freeze"),
-        Probe("Email summary", TODO, "sent with the submission"),
+        probe_loom(), probe_email(),
     ]
     c = counts()
-    outstanding = sum(1 for p in probes if p.state != DONE)
+    working = sum(1 for p in probes if p.state == DONE)
 
     headline = (
-        "**Yes.** All core technical deliverables are complete and verified."
-        if outstanding == 0 else
-        f"**{'Yes, pending final submission artifacts.' if outstanding <= 2 else 'No.'}** "
-        f"{outstanding} of {len(probes)} deliverables are pending "
-        f"({', '.join(p.label for p in probes if p.state != DONE)}). "
-        "The core photo pipeline, mobile application, security layers, and evaluation harness are fully operational."
+        "**The repository package is ready for technical review, not "
+        "self-certified as submitted.** "
+        f"{working} of {len(probes)} rows have repository-verifiable working "
+        "evidence. Device execution, Loom playback/access, and email delivery "
+        "require operator confirmation; fine-tuning remains intentionally "
+        "untrained and optional."
     )
 
     L = [
@@ -157,6 +194,8 @@ def render() -> str:
         "> **Generated file — do not edit.** Produced by `python scripts/status.py`",
         "> from the working tree, and checked in CI. It cannot quietly go stale the",
         "> way a hand-written status section does.",
+        "> It does not certify external state such as device execution, Loom access,",
+        "> or email delivery.",
         "",
         "## Is this ready to submit?",
         "",
@@ -187,19 +226,16 @@ def render() -> str:
           f"| Canonical foods | {c['foods']} |",
           f"| Golden-set samples | {n_golden} |",
           "",
-          "## Order of work",
+          "## Verification boundary",
           "",
-          "1. [#6](../../issues/6) API photo contract — **before** the mobile client,",
-          "   so the client is never written against a shape that has to change",
-          "2. [#3](../../issues/3) real vision provider, recording real fixtures",
-          "3. [#2](../../issues/2) grow the golden set → the first honest scorecard",
-          "4. [#7](../../issues/7) portion density, and [#5](../../issues/5) confidence",
-          "   accounting for portion uncertainty",
-          "5. Mobile screens",
-          "6. Write-up, walkthrough, submission",
-          "",
-          "[#8](../../issues/8) (restricted-licence enforcement) is real, and is the",
-          "first item cut if the schedule slips.",
+          "- `make test` and `make lint` verify the repository test and lint suites.",
+          "- `python eval/harness.py --check-regression` verifies the committed",
+          "  offline evaluation boundary.",
+          "- `python scripts/check_invariants.py` and `python scripts/status.py --check`",
+          "  verify architectural constraints and this generated file.",
+          "- Hosted CI proves those jobs ran on the committed revision. It does not",
+          "  prove current device execution, Loom access, email delivery, or a public",
+          "  backend deployment.",
           ""]
     return "\n".join(L)
 
