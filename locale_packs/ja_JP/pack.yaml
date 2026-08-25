@@ -1,12 +1,12 @@
 locale: ja_JP
 cuisine_bucket: east_asian
-nutrition_source: MEXT Standard Tables of Food Composition
+nutrition_source: Unverified legacy pack; MEXT provenance not established
 license: unverified
 license_note: >-
-  Source and reuse guidance:
-  https://www.mext.go.jp/a_menu/syokuhinseibun/index.htm. MEXT asks secondary
-  users to identify the relevant Standard Tables as the source. This pack stays
-  unverified because the exact source edition for every selected row and the
-  commercial-publication boundary have not been confirmed. It is refused in
-  commercial mode. See locale_packs/ja_JP/README.md and THIRD_PARTY_DATA.md.
+  The pack originally declared MEXT Standard Tables as its source, but row-level
+  review did not establish that provenance for the pack as a whole. Only 2 of 8
+  rows exactly matched the four checked nutrient fields in the 2015 tables; the
+  rest did not exactly match the checked 2015, 2020, or 2023 tables. Do not cite
+  these rows as verified MEXT data. The pack is refused in commercial mode. See
+  locale_packs/ja_JP/README.md and THIRD_PARTY_DATA.md.
 food_count: 8
