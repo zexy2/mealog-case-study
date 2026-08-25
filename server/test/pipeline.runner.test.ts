@@ -90,6 +90,29 @@ describe('pipeline runner', () => {
     });
   });
 
+  it('abstains for unsupported chicken meat instead of logging whole egg', async () => {
+    const result = await run(
+      visionStub([
+        makePerceivedItem({ surface_form: 'tavuk', portion_hint: '2 parça', count: 2, confidence: 1 }),
+      ]),
+      new VisionInput({ text: 'tabakta iki parça tavuk' }),
+      'tr',
+      CONFIGS.V3,
+      'runner-chicken-not-egg',
+    );
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      query: 'tavuk',
+      food_id: ABSTAIN,
+      grams: 0,
+      grams_p10: 0,
+      grams_p90: 0,
+    });
+    expect(result.totals.kcal).toBe(0);
+    expect(result.action).toBe('ask');
+  });
+
   it('keeps an unobserved simit count null and unscaled', async () => {
     const result = await run(
       visionStub([
