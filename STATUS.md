@@ -20,7 +20,7 @@
 | Accuracy evaluation (metrics, test set, taxonomy) | ✅ working | harness runs offline; 80 golden samples, 0/80 fixtures still synthetic |
 | Fine-tuning | 🚧 partial | plan in `docs/finetuning-plan.md`; nothing trained (the brief marks implementation optional) |
 | Technical write-up | ✅ working | README + 11 documents; 0 section group(s) still TODO |
-| Loom walkthrough | 🚧 partial | share URL recorded in README; playback and reviewer access are external and not repository-verifiable |
+| Loom walkthrough | ⬜ not started | no Loom share URL recorded in README |
 | Email summary | 🚧 partial | kept outside the public repository; composition, sending, and receipt require operator confirmation |
 
 ## Measured
