@@ -7,7 +7,7 @@ turns a photo or informal text into canonical foods, explicit portion ranges,
 and catalogue-backed nutrition. When evidence is insufficient, it asks or
 abstains instead of silently saving the nearest guess.
 
-**Submission:** [9:07 Loom walkthrough](https://www.loom.com/share/8a1ad6fea24e401eaf52788d72d5a0fd)
+**Submission:** 
 · [Run locally](#run-locally) · [Evaluation](docs/evaluation.md) ·
 [EatBetter comparison](#compared-with-eatbetter) · [Architecture](#architecture)
 
