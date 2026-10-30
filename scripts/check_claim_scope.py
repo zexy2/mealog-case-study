@@ -1,6 +1,6 @@
 """Enforce that a pull request stays inside the scope its claim issue declared.
 
-AGENTS.md section 3 makes issues the only lock between agents. A lock nobody
+docs/submission/AGENTS.md section 3 makes issues the only lock between agents. A lock nobody
 checks is a convention, and conventions lose to a model in a hurry — so this
 turns the declared scope into a build failure.
 
@@ -27,7 +27,7 @@ API = "https://api.github.com"
 #: would be noise, and forgetting them is not the failure this guards against.
 # Every agent gets its own session file. The old AGENT_LOG.md is only a pointer
 # and should not be silently changed outside a declared scope.
-ALWAYS_ALLOWED = ("log/", "STATUS.md")
+ALWAYS_ALLOWED = ("docs/submission/",)
 
 # Claim references stay keyword-anchored. The optional emphasis covers the
 # repository's Markdown template (`**Closes:** #N`) without treating prose
@@ -128,7 +128,7 @@ def main() -> int:
 
     if not issue_number:
         print("FAIL: this pull request references no claim issue.\n\n"
-              "AGENTS.md section 3: open a claim issue declaring the files you\n"
+              "docs/submission/AGENTS.md section 3: open a claim issue declaring the files you\n"
               "will touch, then reference it here as '**Closes:** #N'. That claim is\n"
               "the only thing stopping two agents editing the same file.")
         return 1
@@ -159,7 +159,7 @@ def main() -> int:
         for s in scope:
             print(f"  {s}")
         print("\nEither revert these files, or widen the scope on the claim issue\n"
-              "*before* continuing — AGENTS.md section 3, step 3. Widening it is\n"
+              "*before* continuing — docs/submission/AGENTS.md section 3, step 3. Widening it is\n"
               "fine. Widening it silently is not.")
         return 1
 

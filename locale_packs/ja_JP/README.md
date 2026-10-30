@@ -14,4 +14,4 @@ traceable source edition, official record identifier, and reviewed reuse terms.
 Project `food_id` values, English display labels, aliases, serving defaults,
 density annotations, retrieval metadata, and confidence behavior are mealog
 metadata, not official MEXT fields. See the repository-level
-[third-party data notice](../../THIRD_PARTY_DATA.md) for the full boundary.
+[third-party data notice](../../docs/licensing.md) for the full boundary.

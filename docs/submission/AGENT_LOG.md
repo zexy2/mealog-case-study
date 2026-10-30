@@ -1,12 +1,17 @@
 # Agent log
 
-Entries live in [`log/`](log/), **one file per session**. Do not append to or edit
-this pointer; create a new session file under `log/` instead.
+Session-by-session record of the multi-agent development process used to build
+Mealog. Entries live in [`log/`](log/), **one file per session**. Do not append
+to or edit this pointer; create a new session file under `log/` instead.
 
 They used to be appended to this file. With several agents working in parallel
 that guarantees a merge conflict on every pull request, and a conflict on the
 log is the one conflict nobody resolves carefully. One file per session never
 collides.
+
+This is process documentation, archived under the submission appendix. It is
+not required to understand or run the project — start with the root
+[README](../../README.md) and [`docs/architecture.md`](../architecture.md).
 
 ## Writing an entry
 

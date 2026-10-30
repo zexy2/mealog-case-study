@@ -1,8 +1,13 @@
-# Third-party data notice
+# Licensing: code, data, and provenance
 
-This repository is a noncommercial case-study and information-sharing project.
-This notice records source, attribution, and reuse boundaries for nutrition data.
-It does not grant a software licence or relicense third-party material.
+The software in this repository is MIT-licensed (see [`LICENSE`](../LICENSE)).
+That licence deliberately does **not** extend to third-party nutrition data,
+evaluation fixtures, screenshots, or trademarks. This document records the
+source, attribution, and reuse boundaries for each data pack.
+
+Read this before reusing the repository, and again before publishing a fork.
+The default state of any data pack is "not mine to sublicense"; only the US
+pack is public domain.
 
 ## Turkish locale pack: TürKomp
 
@@ -62,9 +67,19 @@ Source: [USDA FoodData Central](https://fdc.nal.usda.gov/).
 The pack metadata records this source as `public-domain`. Project-specific IDs,
 aliases, serving defaults, and retrieval metadata remain mealog additions.
 
-## Repository code
+## Evaluation fixtures
 
-This notice covers third-party nutrition data only. No root open-source licence
-is granted by this file. Default copyright rules apply to repository code unless
-a file states otherwise. GitHub platform permissions, including viewing and
-forking a public repository, remain governed by GitHub's terms.
+`eval/fixtures/` holds recorded provider responses. They are observations made
+by Mealog during evaluation; they contain food descriptions only — no photos,
+no personal identifiers, and no raw provider envelopes. They are included so the
+offline scorecard can be reproduced without an API key. They are evidence of
+integration, not an accuracy benchmark, and are not a data set for training.
+
+## Reuse checklist
+
+1. Want the code only? Use it under MIT and delete `locale_packs/tr/`.
+2. Want the Turkish pack? Obtain the required agreement with the authorised
+   institution first — this repository's MIT licence does not provide it.
+3. Want the Japanese pack? Treat it as unverified and do not ship it to users.
+4. Want a new market? Add a pack with its own `pack.yaml` and `license` field;
+   commercial mode refuses to load packs that are not clearly licensed.

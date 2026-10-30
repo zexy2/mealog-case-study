@@ -1,5 +1,11 @@
 # Evaluation methodology
 
+> **Headline result.** The system knows what it measured and refuses to guess
+> beyond it. On the current 80-sample replay it commits on 10 samples and defers
+> on 70; the gate is deliberately conservative, and the weakest cuisine bucket is
+> reported rather than averaged away. Read the numbers below as a measurement
+> of limits, not as a product accuracy claim.
+
 This document describes the measurement system that is implemented by
 `eval/metrics.py` and rendered by `eval/harness.py`. `make eval` replays the
 recorded fixtures offline; the live-provider path is separate as required by

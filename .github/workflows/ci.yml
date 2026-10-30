@@ -40,21 +40,24 @@ jobs:
       - name: tests
         run: cd server && python -m pytest -q
 
-      # Architectural rules from AGENTS.md section 9. Prose rules get broken when
-      # several agents edit in parallel; these fail the build instead.
+      # Architectural rules from docs/submission/AGENTS.md section 9. Prose
+      # rules get broken when several agents edit in parallel; these fail the
+      # build instead.
       - name: invariants
         run: python scripts/check_invariants.py
 
-      # A claim issue is the only lock between agents (AGENTS.md section 3).
-      # Checking it is what makes it a lock rather than a convention.
+      # A claim issue is the only lock between agents (docs/submission/AGENTS.md
+      # section 3). Checking it is what makes it a lock rather than a
+      # convention.
       - name: pull request stays inside its declared scope
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/check_claim_scope.py
 
-      # STATUS.md is generated, not written. If it disagrees with the tree, the
-      # repository is making a claim about itself that is no longer true.
+      # docs/submission/STATUS.md is generated, not written. If it
+      # disagrees with the tree, the repository is making a claim about itself
+      # that is no longer true.
       - name: status is current
         run: python scripts/status.py --check
 

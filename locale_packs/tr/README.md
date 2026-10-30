@@ -23,4 +23,4 @@ as their source. The following are mealog metadata, not official TürKomp fields
 
 This subset is not a complete or guaranteed-current copy of TürKomp. The source
 database and its official conditions remain authoritative. See the repository-
-level [third-party data notice](../../THIRD_PARTY_DATA.md) for the full boundary.
+level [third-party data notice](../../docs/licensing.md) for the full boundary.

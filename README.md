@@ -7,9 +7,9 @@ turns a photo or informal text into canonical foods, explicit portion ranges,
 and catalogue-backed nutrition. When evidence is insufficient, it asks or
 abstains instead of silently saving the nearest guess.
 
-**Submission:**
-· [Run locally](#run-locally) · [Evaluation](docs/evaluation.md) ·
-[EatBetter comparison](#compared-with-eatbetter) · [Architecture](#architecture)
+**Start here:** [Run in 30 seconds](#run-in-30-seconds) ·
+[Architecture](#architecture) · [Decisions](docs/decisions.md) ·
+[Evaluation](docs/evaluation.md)
 
 <p align="center">
   <img src="docs/assets/readme-live-review.gif" width="360" alt="Mealog live Gemini flow from photo selection through Review and Day save">
@@ -17,140 +17,9 @@ abstains instead of silently saving the nearest guess.
 
 <p align="center"><sub>Live Gemini 3.1 Flash-Lite · iOS Simulator · one observed run · playback accelerated 1.7×. Integration evidence, not an accuracy benchmark.</sub></p>
 
-## Run locally
+## The problem it solves
 
-Requirements: Node.js 22.x. Python 3.11 is needed only for offline evaluation.
-iOS runtime needs macOS, Xcode, and a bootable Simulator; Android runtime needs
-Android Studio/emulator or a connected device.
-
-```sh
-git clone https://github.com/zexy2/mealog-case-study.git
-cd mealog-case-study
-node --version       # 22.x
-python3.11 --version # only for offline evaluation
-```
-
-### 1. Keyless mobile demo
-
-Fastest product path. Deterministic local scenarios; no Node service, network,
-or API key required.
-
-```sh
-cd apps/mobile
-npm ci
-npm run typecheck
-npm test
-EXPO_PUBLIC_DEMO_MODE=true npm run ios
-```
-
-The Capture screen exposes six demo states: auto-accept, review, abstention,
-degraded, provider error, and empty day. Start with **Review** to inspect the
-p10–p90 band and “Nasıl bulundu?” audit, then use **Abstention** to see the
-closed-set safety boundary. Use `npm run android` instead of `npm run ios` for
-an available Android emulator/device.
-
-These commands attempt a runtime launch. Bundle export is a separate build
-check and is not device proof.
-
-### 2. Keyless Node API smoke
-
-Terminal 1:
-
-```sh
-cd server
-npm ci
-npm run build
-VISION_PROVIDER=fixture PORT=3000 npm start
-```
-
-Terminal 2:
-
-```sh
-curl --fail --silent http://localhost:3000/health
-
-curl --fail --silent \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "idempotency_key": "readme-quickstart-1",
-    "sample_id": "tr_0001",
-    "locale": "tr",
-    "config": "V3"
-  }' \
-  http://localhost:3000/v1/meals
-```
-
-Expected: HTTP 200, `action: "review"`, resolved `tr.kuru_fasulye`, and an
-explicit portion band. If port 3000 is occupied, use another `PORT` and the
-same port in both URLs.
-
-### 3. Optional live Gemini integration
-
-Live mode requires a server-side key; never place it in the mobile bundle.
-
-```sh
-# Terminal 1: server/
-VISION_PROVIDER=gemini GEMINI_API_KEY='your-key' PORT=3000 npm start
-
-# Terminal 2: apps/mobile/
-EXPO_PUBLIC_DEMO_MODE=false \
-EXPO_PUBLIC_API_URL=http://localhost:3000 \
-npm run ios
-```
-
-For a physical phone, replace `localhost` with a service address reachable from
-that phone. A successful request proves integration, not provider accuracy.
-
-### 4. Full verification
-
-```sh
-# Node service
-cd server
-npm ci
-npm run build
-npm run typecheck
-npm run lint
-npm test
-
-# Mobile client
-cd ../apps/mobile
-npm ci
-npm run typecheck
-npm test
-npx expo export --platform ios
-npx expo export --platform android
-
-# Offline Python/reference gates, from repository root
-cd ../..
-MEALOG_VENV="$(mktemp -d)/venv"
-python3.11 -m venv "$MEALOG_VENV"
-. "$MEALOG_VENV/bin/activate"
-python -m pip install -e "server[dev]"
-make check
-```
-
-`make check` is the offline Python/reference gate; it does not replace Node or
-mobile checks.
-
-## What I built against the brief
-
-| Brief requirement | Status | Reviewer evidence |
-| --- | --- | --- |
-| Working mobile app, not a web substitute | Done | Expo/React Native client; keyless demo above and iOS/Android bundle gates in CI |
-| Node.js/TypeScript backend | Done | NestJS edge plus framework-free TypeScript pipeline stages |
-| End-to-end meal logging | Done with measured limits | Photo/text input, canonical resolution, portion review, correction, save and Day audit |
-| One AI path taken deeply | Done | Hybrid Gemini + retrieval + rules + catalogue nutrition; alternatives and costs are recorded below |
-| Accuracy evaluation and failure taxonomy | Done | Reproducible 80-sample replay, cuisine slices, coverage, Item F1, FP rate and MAPE denominators |
-| Hallucination reduction and human control | Done with coverage cost | Closed-set `food_id`/`ABSTAIN`, server action routing, p10–p90 ranges and explicit review |
-| Explicit EatBetter comparison | Done, qualitative boundary stated | Four-part comparison below, full caveats in `docs/comparison.md`, and optional visual deck supplied with submission |
-| Short technical write-up and walkthrough | Done | This README and the linked 9:07 Loom video |
-
-The current limits are part of the result, not hidden work: no public backend
-deployment, no broad live-provider accuracy claim, and no trained checkpoint.
-See [Remaining limitations](#remaining-limitations).
-
-## Product thesis
-
-Most meal loggers optimize for a complete-looking answer. Mealog optimizes for
+Most meal loggers optimise for a complete-looking answer. Mealog optimises for
 knowing when that answer is unsupported:
 
 - **Closed-set identity:** grounded nutrition requires a catalogue `food_id`;
@@ -167,52 +36,25 @@ LLM estimate lane exists only after a catalogue miss. Its output is labelled
 unverified, carries ranges and assumptions, is never auto-accepted, requires
 explicit user acceptance, and is excluded from grounded evaluation.
 
-## Evidence snapshot
+## Run in 30 seconds
 
-The current offline V3 replay uses **80 recorded, non-synthetic provider
-responses** and matching labels:
+The fastest path is a keyless mobile demo: no Node service, network, or API key.
 
-- **10/80 commit, 70/80 ask:** 12% grounded coverage.
-- **Item F1 0.15; FP rate 86.0%:** the current identity layer is not accurate
-  enough for broad automatic logging.
-- **Calorie MAPE 12.7% on 2/2 rows:** too small a denominator for a general
-  calorie-accuracy claim.
-- **Hosted CI green:** [main run #32884235704](https://github.com/zexy2/mealog-case-study/actions/runs/32884235704)
-  passed server, mobile, offline evaluation, invariant, status, and history
-  gates on GitHub-hosted runners.
+```sh
+git clone https://github.com/zexy2/mealog-case-study.git
+cd mealog-case-study/apps/mobile
+npm ci
+EXPO_PUBLIC_DEMO_MODE=true npm run ios
+```
 
-`ask` is a safe routing outcome, not a claim that every deferred candidate was
-correct. The FP metric includes unsupported proposed items even when the system
-defers them; it is not an 86% silent-commit rate. These are fixture-replay
-results, not live-provider accuracy. The fixtures were recorded with
-`gemini-flash-lite-latest`; they do not measure the live adapter default,
-`gemini-3.6-flash`. Full cuisine slices, denominators, metric definitions, and
-error taxonomy are in [docs/evaluation.md](docs/evaluation.md).
+The Capture screen exposes six demo states: auto-accept, review, abstention,
+degraded, provider error, and empty day. Start with **Review** to inspect the
+p10–p90 band and “Nasıl bulundu?” audit, then use **Abstention** to see the
+closed-set safety boundary. Use `npm run android` instead of `npm run ios` for
+an available Android emulator/device.
 
-For a fast review, read the result and comparison, then run the keyless demo.
-Deep dives: [evaluation](docs/evaluation.md), [decisions D1–D20](docs/decisions.md), and the
-[bounded HITL/data-flywheel design](docs/data_flywheel_and_hitl_architecture.md).
-
-## Compared with EatBetter
-
-This is an observed-product comparison, not a controlled accuracy benchmark.
-It is limited to Mealog's demonstrated behavior and EatBetter's public
-positioning and observed public product surfaces. It makes no claim about
-EatBetter's internal model, catalogue, thresholds, storage, or retry design.
-
-| What is better | Why | How measured | Concrete example or failure |
-| --- | --- | --- | --- |
-| Closed-set `food_id` or `ABSTAIN` | Prevents invented IDs from becoming authoritative nutrition; it does not prevent perception or wrong-match errors | 145 retrieval variants; 122/122 positive Recall@1 and 0/22 absent-food false accepts | `baked beans` must not become `tr.kuru_fasulye` |
-| Visible abstention | A wrong complete-looking log is harder to notice than a deferral | V3 reports coverage beside errors: 10/80 commit, 70/80 ask | `jp_0002` returns three abstentions for foods absent from `ja_JP` |
-| p10–p90 portion uncertainty | Portion error directly changes calorie error | Portion tests cover count, density, label serving, fallback, and provenance | Packaged yogurt shows 170 g with a 153–187 g band and label provenance |
-| Worst-cuisine reporting | A mean can hide an unusable market | Every cuisine reports n, coverage, Item F1, MAPE, and FP rate | South Asian: n=16, 0% coverage, Item F1 0.00 |
-| Auditable result | Identity, alternatives, confidence, grams, source, and provenance can be challenged before save | Typed response contract plus focused API/mobile tests | Review exposes canonical ID, ranked candidates, portion source, and uncertainty |
-| User-scoped idempotency | Retries do not duplicate one user's meal or collide across users | E2E tests replay the same key and reuse it across two users | Same user/key replays one result; another user executes independently |
-| Licence enforcement | Nutrition-data rights are checked at pack load | 103/103 food rows have a source; all three packs declare a licence status | Commercial mode rejects restricted or unverified packs |
-| **EatBetter: catalogue and long-tail breadth** | Mealog's safety boundary creates correction friction outside 103 foods | Mealog measures its own catalogue and abstention; an equivalent public EatBetter count is unavailable | The Turkish pack misses common long-tail dishes; abstention is safer but less convenient |
-
-Full evidence and caveats: [docs/comparison.md](docs/comparison.md). This does
-not establish that Mealog beats EatBetter overall.
+Full local instructions, including the keyless Node API smoke test and the
+optional live Gemini integration, are in [docs/running.md](docs/running.md).
 
 ## Architecture
 
@@ -244,6 +86,57 @@ flowchart LR
 The HTTP API is NestJS/TypeScript. Python remains offline evaluation and
 reference tooling, not the delivered backend.
 
+## Design decisions
+
+These are the choices that shaped the system, each with the trade-off it cost.
+The full record is [decision log D1–D20](docs/decisions.md).
+
+| Decision | What it buys | What it costs |
+| --- | --- | --- |
+| **The model never produces a nutrient number** ([D1](docs/decisions.md#d1)) | Unknown identity cannot silently receive authoritative nutrition | Low coverage; more questions to the user |
+| **A locale is a data pack, not code** ([D2](docs/decisions.md#d2)) | New markets need no pipeline branches; licence stays explicit | Pack curation and legal review per market |
+| **Worst-cuisine metric, read with coverage** ([D3](docs/decisions.md#d3)) | Distribution shift stays visible instead of hidden by an average | Small buckets are noisy and less flattering |
+| **Expo mobile client, not a web app** ([D9](docs/decisions.md#d9)) | Real camera and native review flow | Device compatibility needs separate runtime verification |
+| **NestJS edge plus Python evaluation harness** ([D12](docs/decisions.md#d12)) | Typed HTTP surface plus reproducible offline measurement | Two runtimes and parity ceremony |
+
+## Evidence snapshot
+
+Metrics below are from an offline replay of recorded, non-synthetic provider
+responses. They are presented here because they are the honest state of the
+project, not because they are flattering.
+
+- **10/80 commit, 70/80 ask:** 12% grounded coverage in the V3 configuration.
+- **Item F1 0.15; FP rate 86.0%:** the current identity layer is not accurate
+  enough for broad automatic logging.
+- **Calorie MAPE 12.7% on 2/2 rows:** too small a denominator for a general
+  calorie-accuracy claim.
+
+`ask` is a safe routing outcome, not a claim that every deferred candidate was
+correct. The FP metric includes unsupported proposed items even when the system
+defers them; it is not an 86% silent-commit rate. These are fixture-replay
+results, not live-provider accuracy. The fixtures were recorded with
+`gemini-flash-lite-latest`; they do not measure the live adapter default,
+`gemini-3.6-flash`. Full cuisine slices, denominators, metric definitions, and
+error taxonomy are in [docs/evaluation.md](docs/evaluation.md).
+
+**Retrieval itself is strong where the catalogue covers the food:** 145 variants,
+122/122 positive Recall@1, MRR 1.000, 0/22 absent-food false accepts. The
+weak measured layer is perception and closed-set matching over photographed
+food, which is why the gate abstains instead of guessing.
+
+## Measured failures
+
+| Failure | Current behaviour | Impact |
+| --- | --- | --- |
+| Occluded photographed counts | Two stacked simits become `quantity: null`, 100 g with a 65–145 g band, and a count question | Prevents silent undercount but adds review friction |
+| Legume/soup near-neighbours | Some inputs still surface egg, bean, or soup neighbours; low confidence prevents silent commit | Proposed identity can still be wrong |
+| Thin Turkish catalogue | 57 rows; common long-tail dishes are absent | More abstention and correction work |
+| South Asian coverage | n=16, 0% coverage, Item F1 0.00 | Weakest market is unusable in this evaluation set |
+
+Prepared pasta, bulgur, mantı, Turkish coffee, and tea probes abstain instead of
+selecting raw/dry records. This contains a known error class; it does not solve
+those foods. See [the error taxonomy](docs/evaluation.md#error-taxonomy).
+
 ## Reliability and observability
 
 - Idempotency is scoped by `(user_id, idempotency_key)`; payload conflicts are
@@ -256,29 +149,6 @@ reference tooling, not the delivered backend.
 - Metrics, rate-limit, and idempotency state are process-local. Multi-instance
   production needs shared durable infrastructure.
 
-## Key trade-offs
-
-| Decision | Constraint gained | Cost paid |
-| --- | --- | --- |
-| Closed-set grounded nutrition ([D1](docs/decisions.md#d1)) | Unknown identity cannot silently receive authoritative catalogue nutrition | Low coverage and more user questions |
-| Locale packs as data ([D2](docs/decisions.md#d2)) | New markets do not require pipeline branches; licence stays explicit | Pack curation and legal review grow per market |
-| Worst-cuisine plus coverage reporting ([D3](docs/decisions.md#d3)) | Distribution shift stays visible | Small buckets are noisy and less marketable |
-| Expo mobile client ([D9](docs/decisions.md#d9)) | Real mobile flow, not a format-violating web app | Device compatibility requires separate runtime verification |
-| NestJS edge plus Python harness ([D12](docs/decisions.md#d12)) | Required Node/TypeScript backend plus reproducible evaluation | Two runtimes and parity ceremony |
-
-## Measured failures
-
-| Failure | Current behavior | Impact |
-| --- | --- | --- |
-| Occluded photographed counts | Two stacked simits become `quantity: null`, 100 g with a 65–145 g band, and a count question | Prevents silent undercount but adds review friction |
-| Legume/soup near-neighbours | Some inputs still surface egg, bean, or soup neighbours; low confidence prevents silent commit | Proposed identity can still be wrong |
-| Thin Turkish catalogue | 57 rows; common long-tail dishes are absent | More abstention and correction work |
-| South Asian coverage | n=16, 0% coverage, Item F1 0.00 | Weakest market is unusable in this evaluation set |
-
-Prepared pasta, bulgur, mantı, Turkish coffee, and tea probes abstain instead of
-selecting raw/dry records. This contains a known error class; it does not solve
-those foods. See [the error taxonomy](docs/evaluation.md#error-taxonomy).
-
 ## Security, privacy, and data boundaries
 
 - Uploads use MIME allow-listing, magic-byte checks, and a 10 MiB limit.
@@ -287,22 +157,38 @@ those foods. See [the error taxonomy](docs/evaluation.md#error-taxonomy).
 - Raw photos are not persisted by the service.
 - Pixel-level face blurring exists as a tested standalone algorithm but is
   **not wired into live JPEG/PNG ingestion** and is not claimed as protection.
-- `X-User-Id` is client-device scope for this case study, not authentication.
+- `X-User-Id` is client-device scope for this prototype, not authentication.
   Production needs signed identity, durable consent, retention, and deletion.
 - API keys stay server-side. No key, `.env`, or user photo belongs in Git.
 
+## Stack
+
+| Layer | Technology |
+| --- | --- |
+| Mobile | React Native 0.81, Expo 54, React 19, TypeScript 5.9 |
+| Backend | Node.js 22, NestJS 11, Express, strict TypeScript |
+| Vision | Gemini `gemini-3.6-flash` live, or deterministic recorded fixtures |
+| Retrieval | TF-IDF word and character n-grams (scikit-learn) |
+| Evaluation | Python 3.11 harness replaying recorded responses offline |
+| Tests | Vitest + supertest (TypeScript), pytest (Python) |
+| CI | GitHub Actions: Python gates, Node build/lint/test, mobile typecheck + bundle |
+
+## Licensing
+
 Original Mealog software and documentation are MIT-licensed under
-[LICENSE](LICENSE). This public repository is a noncommercial case study, and
-the software licence does **not** grant rights to third-party nutrition data.
-Read [THIRD_PARTY_DATA.md](THIRD_PARTY_DATA.md) before reuse.
+[LICENSE](LICENSE). That licence **does not** extend to third-party nutrition
+data, which keeps its own terms:
 
 - Turkish values use required visible attribution to
   [TürKomp, Ulusal Gıda Kompozisyon Veri Tabanı, version 1.0](https://turkomp.tarimorman.gov.tr/)
-  and remain `restricted-noncommercial`.
-- The Japanese pack is **unverified legacy evaluation data**. Only 2/8 rows
-  exactly matched the checked official MEXT fields; the repository does not
-  present the pack as verified MEXT data.
+  and remain `restricted-noncommercial`; commercial use needs a separate
+  agreement, and the pack is excluded from the MIT licence.
+- The Japanese pack is **unverified legacy evaluation data**, not verified MEXT
+  data, and is rejected in commercial mode.
 - The US pack identifies USDA FoodData Central as its public-domain source.
+
+Read [docs/licensing.md](docs/licensing.md) before reuse, and delete any data
+pack whose terms do not fit your use case.
 
 ## Remaining limitations
 
@@ -327,7 +213,7 @@ Read [THIRD_PARTY_DATA.md](THIRD_PARTY_DATA.md) before reuse.
 3. Improve multi-item segmentation and count evidence, then rerun the same
    cuisine/tier slices and adversarial false-accept controls.
 
-## AI usage
+## How AI was used
 
 AI coding tools assisted implementation, tests, review, and documentation.
 Gemini is the live vision adapter and optional unverified estimate provider.
@@ -338,3 +224,20 @@ Fine-tuning was deliberately not the first step: reliable labels, an error
 taxonomy, and held-out measurement are prerequisites. Review corrections can
 become training candidates only after explicit consent, human review, licence
 checks, and deletion/retention controls. No automatic self-training is claimed.
+
+The development workflow used in this repository (multi-agent claim scopes,
+generated status, CI-enforced architectural invariants) is documented in
+[docs/submission/](docs/submission/) as an appendix; it is not required to run
+or read the project.
+
+## Repository layout
+
+```
+apps/mobile/         Expo / React Native client
+server/              NestJS edge + framework-free TypeScript pipeline
+  src/mealog/        Python reference implementation (offline evaluation)
+locale_packs/        Locale data packs (tr, en_US, ja_JP)
+eval/                Offline evaluation harness, fixtures, reports
+docs/                Architecture, decisions, evaluation, security, licensing
+docs/submission/     Original interview deliverable, kept for provenance
+```

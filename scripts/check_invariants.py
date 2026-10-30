@@ -1,6 +1,6 @@
 """Architectural invariants, enforced.
 
-AGENTS.md §9 lists the rules that keep this codebase coherent when several agents
+docs/submission/AGENTS.md §9 lists the rules that keep this codebase coherent when several agents
 edit it in parallel. Rules that live only in prose get broken; these are checked in
 CI so a violating PR fails instead of silently eroding the design.
 """
@@ -140,7 +140,7 @@ def main() -> int:
         print(f"{len(failures)} invariant violation(s):\n")
         for f in failures:
             print(f"  {f}")
-        print("\nSee AGENTS.md section 9. Do not weaken an invariant to pass CI;")
+        print("\nSee docs/submission/AGENTS.md section 9. Do not weaken an invariant to pass CI;")
         print("if it is genuinely wrong, change it in its own PR with a rationale.")
         return 1
 

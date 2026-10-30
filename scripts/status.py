@@ -1,4 +1,4 @@
-"""Generate STATUS.md by probing the repository.
+"""Generate docs/submission/STATUS.md by probing the repository.
 
 A hand-written status file drifts, and a drifted status file is just a false
 claim with extra steps — this repository has already shipped two of those today
@@ -9,8 +9,8 @@ fails if the committed file disagrees with what the probes find.
 Probes assert execution artifacts where the repository can prove them. Device
 execution is external and stays partial until the walkthrough.
 
-    python scripts/status.py            # regenerate STATUS.md
-    python scripts/status.py --check    # fail if STATUS.md is stale
+    python scripts/status.py            # regenerate docs/submission/STATUS.md
+    python scripts/status.py --check    # fail if docs/submission/STATUS.md is stale
 """
 from __future__ import annotations
 
@@ -242,17 +242,18 @@ def main() -> int:
     ap.add_argument("--check", action="store_true")
     args = ap.parse_args()
 
-    target = ROOT / "STATUS.md"
+    target = ROOT / "docs/submission/STATUS.md"
     fresh = render()
 
     if args.check:
         current = target.read_text(encoding="utf-8") if target.exists() else ""
         if current != fresh:
-            print("STATUS.md is stale. Run `python scripts/status.py` and commit the "
+            print("docs/submission/STATUS.md is stale. Run `python scripts/status.py` "
+                  "and commit the "
                   "result.\nThe repository and its status file disagree — which is "
                   "the drift this check exists to prevent.")
             return 1
-        print("STATUS.md matches the repository")
+        print("docs/submission/STATUS.md matches the repository")
         return 0
 
     target.write_text(fresh, encoding="utf-8")

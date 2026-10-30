@@ -17,3 +17,9 @@ data/golden-images/
 server/dist/
 .aider*
 docs/benchmark_photos/
+
+# Raw imports from third-party nutrition databases are never committed.
+# Only reviewed, attributed subsets are exported into locale_packs/.
+data/raw_imports/
+*.turkomp
+*.turkomp.csv

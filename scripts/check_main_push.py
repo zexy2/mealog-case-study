@@ -8,7 +8,7 @@ its author.
 
 That is weaker than a ruleset and should be replaced by one the moment this
 repository becomes public or moves into an organisation. It is recorded in
-AGENTS.md as such rather than presented as equivalent.
+docs/submission/AGENTS.md as such rather than presented as equivalent.
 
     python scripts/check_main_push.py            # GitHub Actions, push to main
     python scripts/check_main_push.py --sha <s>  # locally, needs GITHUB_TOKEN
@@ -68,7 +68,7 @@ def main() -> int:
         f"FAIL: {sha[:8]} was pushed straight to main.\n\n"
         f"  author:  {author}\n"
         f"  subject: {subject}\n\n"
-        "AGENTS.md section 4: every change goes through a pull request, so another\n"
+        "docs/submission/AGENTS.md section 4: every change goes through a pull request, so another\n"
         "agent can see it coming and the merge gate gets a chance to run. This\n"
         "commit skipped both.\n\n"
         "Nothing is reverted automatically — decide deliberately. Either open a\n"

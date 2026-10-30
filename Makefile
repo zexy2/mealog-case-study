@@ -25,7 +25,7 @@ invariants:
 status:
 	$(PYTHON) scripts/status.py
 
-# What CI runs. Run this before opening a PR (AGENTS.md section 7).
+# What CI runs. Run this before opening a PR (docs/submission/AGENTS.md §7).
 check: lint test invariants
 	$(PYTHON) scripts/status.py --check
 	$(PYTHON) eval/harness.py --configs V0,V1,V2,V3 --check-regression

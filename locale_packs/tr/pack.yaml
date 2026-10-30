@@ -8,6 +8,7 @@ license_note: >-
   Ulusal Gıda Kompozisyon Veri Tabanı, versiyon 1.0,
   https://turkomp.tarimorman.gov.tr/". Commercial software or website use
   requires a separate agreement with the authorised institution. Enforced at
-  load time: this pack refuses to load when MEALOG_COMMERCIAL_MODE is on. See
-  locale_packs/tr/README.md, THIRD_PARTY_DATA.md, and docs/decisions.md D2.
+  load time: this pack refuses to load when MEALOG_COMMERCIAL_MODE is on. This
+  pack is excluded from the repository's MIT licence. See
+  locale_packs/tr/README.md, docs/licensing.md, and docs/decisions.md D2.
 food_count: 57

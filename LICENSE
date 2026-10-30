@@ -20,7 +20,30 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-This licence covers original Mealog software and documentation only. It does
-not grant rights to third-party nutrition data, evaluation fixtures, product
-screenshots, trademarks, or other material identified in
-THIRD_PARTY_DATA.md. Those materials remain subject to their stated terms.
+---
+
+## Scope of this licence
+
+This MIT licence covers the **original Mealog software and documentation** in
+this repository only.
+
+It does **not** grant rights to third-party nutrition data, evaluation
+fixtures, screenshots, or trademarks. Those materials remain under their own
+stated terms, which are recorded in [docs/licensing.md](docs/licensing.md).
+The most important boundary:
+
+- `locale_packs/tr/` contains selected rows derived from **TürKomp**
+  (Ulusal Gıda Kompozisyon Veri Tabanı, version 1.0). The TürKomp data-use
+  conditions permit conditioned noncommercial sharing and require visible
+  attribution; **commercial use of that data requires a separate agreement**
+  with the authorised institution. It is therefore marked
+  `restricted-noncommercial`, is excluded from this MIT licence, and must be
+  removed before any commercial redistribution of this project.
+- `locale_packs/ja_JP/` is **unverified legacy evaluation data** and is not
+  presented as verified MEXT data.
+- `locale_packs/en_US/` is derived from USDA FoodData Central, which is
+  public domain.
+
+If you reuse this repository, check `docs/licensing.md` first and remove any
+data pack whose terms do not fit your use case. The MIT licence does not, and
+cannot, override those terms.

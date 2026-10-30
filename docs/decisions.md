@@ -175,12 +175,13 @@ CCC 0.767, and finds that low-data fine-tuning on strong base models yields
 limited gains without large, high-quality corpora. In six days that produces a
 model that loses to the baseline and a story about trying.
 
-**Constraint.** The brief marks fine-tuning implementation optional and asks
+**Constraint.** Fine-tuning is optional in scope and the question is
 which path was chosen and why. Measuring *where* the frontier is weak has to come
 before training anything: identification is adequate, mass is not, and local
 cuisine is not.
 
-**Cost.** **Nothing is trained yet** — see `STATUS.md`. This entry records a
+**Cost.** **Nothing is trained yet** — see
+[`docs/submission/STATUS.md`](submission/STATUS.md). This entry records a
 decision, not a result, and it is being misread the moment it is taken for one.
 The same published work found that human annotators corrected label omissions in
 Nutrition5k and moved measured ingredient overlap from 0.62 to 0.82, so a naive
@@ -367,7 +368,7 @@ the measured numbers do not move.
 
 **Rejected.** Claiming a live server-side curation queue exists when the current submission implements client-side state.
 
-**Constraint.** Total honesty and defensibility in case study presentation and walkthrough narrative.
+**Constraint.** Claims in presentation and documentation must be defensible: no prototype capability is described as production infrastructure.
 
 **Cost.** The boundary between prototype UX and production infrastructure is explicitly documented rather than left ambiguous.
 
