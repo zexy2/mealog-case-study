@@ -39,6 +39,10 @@ ISSUE_REF = re.compile(
 )
 SCOPE_BLOCK = re.compile(r"##\s*Scope.*?\n(.*?)(?=\n##\s|\Z)", re.DOTALL | re.IGNORECASE)
 PATHS = re.compile(r"`([^`]+)`")
+# Root-level files that carry no extension but are still real paths. Without
+# this, `- \`Makefile\`` was silently dropped from a claim, and the gate then
+# reported a file the author had declared.
+ROOT_FILES = frozenset({"Makefile", "Dockerfile", "LICENSE", "NOTICE"})
 
 
 def claim_issue_references(body: str) -> list[str]:
@@ -81,8 +85,13 @@ def declared_scope(body: str) -> list[str]:
     block = SCOPE_BLOCK.search(body or "")
     if not block:
         return []
+    # Backticked paths only, but tolerate the common `a.md`, `b.md` grouping and
+    # a path wrapped in a directory prefix, so one declaration cannot be read
+    # two ways.
     return [p.strip().rstrip("/") for p in PATHS.findall(block.group(1))
-            if "/" in p or p.endswith((".py", ".md", ".toml", ".yaml", ".yml", ".jsonl"))]
+            if "/" in p or p.endswith((".py", ".md", ".toml", ".yaml", ".yml",
+                                       ".jsonl", ".cfg", ".ts", ".json"))
+            or p in ROOT_FILES]
 
 
 def main() -> int:
