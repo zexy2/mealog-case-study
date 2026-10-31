@@ -46,6 +46,13 @@ jobs:
       - name: invariants
         run: python scripts/check_invariants.py
 
+      # The MIT grant must not appear to cover TürKomp-derived rows. The check
+      # stays red until the restricted pack is served from a licence-gated
+      # download instead of the tree; see docs/licensing.md.
+      - name: licence boundary
+        run: python scripts/check_licence_boundary.py
+        continue-on-error: true
+
       # A claim issue is the only lock between agents (docs/submission/AGENTS.md
       # section 3). Checking it is what makes it a lock rather than a
       # convention.

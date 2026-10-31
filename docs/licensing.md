@@ -75,6 +75,19 @@ no personal identifiers, and no raw provider envelopes. They are included so the
 offline scorecard can be reproduced without an API key. They are evidence of
 integration, not an accuracy benchmark, and are not a data set for training.
 
+## Known open item: the Turkish pack still ships in the tree
+
+`locale_packs/tr/foods.jsonl` contains selected TürKomp rows. They are excluded
+from the MIT grant above, but they are still committed, which means anyone who
+clones the repository receives restricted data. The intended end state is that
+the pack is fetched from a licence-gated download at runtime, exactly like an
+API key, and never committed.
+
+`python scripts/check_licence_boundary.py` (`make licence`) detects the current
+state. It runs in CI as an advisory step and is **not** part of `make check`,
+because it is red until the pack moves out of the tree. When that happens, the
+step should become blocking — do not make it blocking by deleting this note.
+
 ## Reuse checklist
 
 1. Want the code only? Use it under MIT and delete `locale_packs/tr/`.
