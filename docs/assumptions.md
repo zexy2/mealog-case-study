@@ -94,7 +94,7 @@ applied inside it, not three paths attempted shallowly.
 **Decision.** The reproducible reference path is local. `make eval` reproduces the
 published scorecard **fully offline** from recorded fixtures — no API key, no network,
 no spend — and the Node/Nest edge can be run locally for the mobile contract. A live
-iOS smoke run is recorded separately in [PR #191](https://github.com/zexy2/mealog-case-study/pull/191)
+iOS smoke run is recorded separately in [PR #191](https://github.com/zexy2/mealog/pull/191)
 with `EXPO_PUBLIC_DEMO_MODE=false`; it is runtime evidence, not proof of a hosted
 deployment. No deployed URL or deployment claim is part of this submission.
 

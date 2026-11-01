@@ -1,6 +1,6 @@
 # Capture-quality calibration
 
-This is a measurement report for issue [#236](https://github.com/zexy2/mealog-case-study/issues/236).
+This is a measurement report for issue [#236](https://github.com/zexy2/mealog/issues/236).
 The module is deliberately not wired into the meal pipeline, runner, gate, or
 HTTP response. No provider call is needed.
 

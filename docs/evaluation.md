@@ -252,7 +252,7 @@ baseline and fails if any cuisine bucket gets worse.
 
 ## Current evidence boundary
 
-The 80 recorded provider responses are real inputs from [#3](https://github.com/zexy2/mealog-case-study/issues/3),
+The 80 recorded provider responses are real inputs from [#3](https://github.com/zexy2/mealog/issues/3),
 and this manifest uses source-backed labels where the upstream datasets provide
 them. The baseline in `eval/reports/baseline.json` is deliberately retained
 unchanged here; this documentation refresh does not reset it. Current
