@@ -193,7 +193,7 @@ Repository measurements are reproducible with `make eval`,
 No competitor screenshot pair or user photo is committed. Local presentation
 media is not clean-clone, CI or benchmark evidence, so this document contains no
 links into ignored local folders. Historical iOS smoke in
-[PR #191](https://github.com/zexy2/mealog-case-study/pull/191) is runtime evidence
+[PR #191](https://github.com/zexy2/mealog/pull/191) is runtime evidence
 for selected flows only; it is not current-release device proof, offline
 accuracy, visual-counting accuracy or deployment proof.
 

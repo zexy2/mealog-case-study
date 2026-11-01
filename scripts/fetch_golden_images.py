@@ -33,7 +33,7 @@ MAX_IMAGE_BYTES = 25 * 1024 * 1024
 ZIP_TAIL_BYTES = 131_072
 MAX_ZIP_DIRECTORY_BYTES = 8 * 1024 * 1024
 HTTP_TIMEOUT = 90
-USER_AGENT = "mealog-case-study-golden-images/1.0"
+USER_AGENT = "mealog-golden-images/1.0"
 
 
 def _request(url: str, *, headers: dict[str, str] | None = None) -> urllib.request.Request:

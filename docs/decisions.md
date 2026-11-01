@@ -239,7 +239,7 @@ not ship it yet. On the nine-sample synthetic seed, the gate would keep four
 samples at 13.0% MAPE and newly withhold three at 8.8% MAPE; two samples were
 already withheld by retrieval. The gate therefore withholds better answers on
 this seed — it is abstaining blind, not demonstrating selective risk reduction.
-This risk-coverage measurement is recorded in [PR #39](https://github.com/zexy2/mealog-case-study/pull/39).
+This risk-coverage measurement is recorded in [PR #39](https://github.com/zexy2/mealog/pull/39).
 
 **Rejected.** Ship the current gate as a proven risk-control — its seeded
 operating point drops V3 coverage from 78% to 44% and raises covered mean MAPE

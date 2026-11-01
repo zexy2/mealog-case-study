@@ -9,8 +9,8 @@ iOS runtime needs macOS, Xcode, and a bootable Simulator; Android runtime needs
 Android Studio/emulator or a connected device.
 
 ```sh
-git clone https://github.com/zexy2/mealog-case-study.git
-cd mealog-case-study
+git clone https://github.com/zexy2/mealog.git
+cd mealog
 node --version       # 22.x
 python3.11 --version # only for offline evaluation
 ```

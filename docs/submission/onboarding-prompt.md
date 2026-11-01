@@ -10,7 +10,7 @@ agent goes and reads the repository rather than trusting a summary of it.
 ---
 
 ```
-You are working on the private repository zexy2/mealog-case-study.
+You are working on the public repository zexy2/mealog.
 Your agent handle is: <handle>
 
 Several agents work on this repository at the same time and cannot talk to each
